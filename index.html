@@ -289,6 +289,7 @@ const PERK_LIST = {
     INTIMIDATION: { id: "INTIMIDATION", name: "Intimidation Bonus", description: "Grants a bonus to Intimidation skill checks made within the stronghold." },
     EXOTIC_MOUNTS: { id: "EXOTIC_MOUNTS", name: "Exotic Mounts", description: "Enables the purchase and stabling of exotic mounts." },
     FLYING_MOUNTS: { id: "FLYING_MOUNTS", name: "Flying Mounts", description: "Enables the purchase and stabling of flying mounts." },
+    BASIC_MOUNTS: { id: "BASIC_MOUNTS", name: "Basic Mounts", description: "Enables the purchase and stabling of standard mounts (horses, ponies, mules etc.)." },
     SHIPBUILDING: { id: "SHIPBUILDING", name: "Shipbuilding", description: "Enables the construction of water or air vehicles up to the size of the drydock." },
     COMMERCE: { id: "COMMERCE", name: "Commerce", description: "Unlocks buying and selling goods within the stronghold." },
 };
@@ -301,6 +302,7 @@ const PERK_EXPLANATIONS = {
     INTIMIDATION: "Regeltechnisch: Gewährt einen Bonus auf Fertigkeitswürfe für Einschüchtern, die innerhalb der Festung gemacht werden (z.B. bei Verhören). Der Bonus ist kumulativ.",
     EXOTIC_MOUNTS: "Regeltechnisch: Schaltet die Möglichkeit frei, exotische (nicht-fliegende) Reittiere zu erwerben und zu zähmen. Die Kosten und Verfügbarkeit werden vom Spielleiter bestimmt.",
     FLYING_MOUNTS: "Regeltechnisch: Schaltet die Möglichkeit frei, flugfähige Reittiere zu erwerben und zu zähmen. Die Kosten und Verfügbarkeit werden vom Spielleiter bestimmt.",
+    BASIC_MOUNTS: "Regeltechnisch: Schaltet die Möglichkeit frei, normale Reittiere (Pferde, Ponys, Maultiere etc.) zu erwerben und zu stallen. Benötigt Stallplatz und einen Stallmeister.",
     SHIPBUILDING: "Regeltechnisch: Ermöglicht den Bau von Wasser- oder Luftfahrzeugen bis zur Größe des Trockendocks. Die Baukosten und -zeit folgen den entsprechenden Regeln.",
     COMMERCE: "Regeltechnisch: Spieler können Gegenstände an Händler verkaufen, aber nur bis zum maximal verfügbaren Händlergold. Sie können auch Gegenstände kaufen, deren Einzelwert das Händlergold nicht übersteigt (z.B. bei 100 GP Händlergold können keine Gegenstände über 100 GP gekauft werden). Das Händlergold beträgt 25% des Basiswerts aller fertiggestellten Geschäfte und wird wöchentlich zurückgesetzt."
 };
@@ -382,9 +384,9 @@ const COMPONENTS = {
         "Chapel, luxury": { cost: 25000, ss: 3, jobs: [{ role: 'Priest', count: 1 }] },
         "Prison cell": { cost: 500, ss: 0.5 },
         "Torture chamber": { cost: 3000, ss: 1, jobs: [{ role: 'Torturer', count: 1 }], perks: [{ ...PERK_LIST.INTIMIDATION, baseBonus: 1 }] },
-        "Stable, basic": { cost: 1000, ss: 1, provides: { stallSpace: 4 }, jobs: [{ role: 'Stablemaster', count: 1 }] },
-        "Stable, fancy": { cost: 3000, ss: 1, provides: { stallSpace: 4 }, jobs: [{ role: 'Stablemaster', count: 1 }], perks: [PERK_LIST.EXOTIC_MOUNTS] },
-        "Stable, luxury": { cost: 9000, ss: 1, provides: { stallSpace: 4 }, jobs: [{ role: 'Stablemaster', count: 1 }], perks: [PERK_LIST.FLYING_MOUNTS] },
+        "Stable, basic":  { cost: 1000, ss: 1, provides: { stallSpace: 4 }, jobs: [{ role: 'Stablemaster', count: 1 }], perks: [PERK_LIST.BASIC_MOUNTS] },
+        "Stable, fancy":  { cost: 3000, ss: 1, provides: { stallSpace: 4 }, jobs: [{ role: 'Stablemaster', count: 1 }], perks: [PERK_LIST.BASIC_MOUNTS, PERK_LIST.EXOTIC_MOUNTS] },
+        "Stable, luxury": { cost: 9000, ss: 1, provides: { stallSpace: 4 }, jobs: [{ role: 'Stablemaster', count: 1 }], perks: [PERK_LIST.BASIC_MOUNTS, PERK_LIST.EXOTIC_MOUNTS, PERK_LIST.FLYING_MOUNTS] },
         "Trophy hall, basic": { cost: 1000, ss: 1 },
         "Trophy hall, fancy (museum)": { cost: 6000, ss: 1 },
         "Auditorium, fancy": { cost: 2000, ss: 1 },
@@ -478,10 +480,10 @@ const HIRELING_DATA = {
     'cr_20': { name: 'CR 20 Creature', cost: 2400, cr: 20 },
 };
 const MOUNT_DATA = {
-    'mount_medium': { name: 'Mount (Medium)', size: 1, cost: 1.4, type: 'basic' }, // 2sp/day
-    'mount_large': { name: 'Mount (Large)', size: 4, cost: 5.6, type: 'basic' }, // 8sp/day
-    'mount_large_flying': { name: 'Mount (Large, Flying)', size: 4, cost: 5.6, type: 'flying', requiredPerk: 'FLYING_MOUNTS' },
-    'mount_huge': { name: 'Mount (Huge)', size: 9, cost: 12.6, type: 'exotic', requiredPerk: 'EXOTIC_MOUNTS' }, // 18sp/day
+    'mount_medium':       { name: 'Mount (Medium)',        size: 1, cost: 1.4,  type: 'basic',   requiredPerk: 'BASIC_MOUNTS' },
+    'mount_large':        { name: 'Mount (Large)',         size: 4, cost: 5.6,  type: 'basic',   requiredPerk: 'BASIC_MOUNTS' },
+    'mount_large_flying': { name: 'Mount (Large, Flying)', size: 4, cost: 5.6,  type: 'flying',  requiredPerk: 'FLYING_MOUNTS' },
+    'mount_huge':         { name: 'Mount (Huge)',          size: 9, cost: 12.6, type: 'exotic',  requiredPerk: 'EXOTIC_MOUNTS' },
 };
 const SITE_MODIFIERS = {
     climate: { cold: 5, temperate: 0, warm: -5, aquatic: 15, desert: 10, forest: 0, hill: -5, marsh: 10, mountains: 0, plains: -5, underground: 10, exotic: 15, mobile: -5 },
@@ -577,9 +579,9 @@ const ROOM_DESCRIPTIONS = {
         "Chapel, luxury": "Eine prächtige Kathedrale im Kleinen, mit einem juwelenbesetzten Altar und vergoldeten Bänken. Ein Ort großer Macht, der Priestern erlaubt, den sozialen Wert der Festung enorm zu steigern.",
         "Prison cell": "Eine karge Zelle mit Eisenfesseln an den Wänden und Strohmatratzen auf dem Boden. Kann als Gemeinschaftszelle oder in mehrere Einzelzellen unterteilt werden.",
         "Torture chamber": "Ein finsterer Raum, gefüllt mit den schrecklichsten Instrumenten, um Schmerz zuzufügen und Informationen zu erpressen. Der Geruch von Angst und kaltem Eisen erfüllt die Luft.",
-        "Stable, basic": "Ein einfacher Holzstall mit Boxen für bis zu vier Reittiere. Benötigt einen Stallmeister. Ein Stallmeister kann bis zu 4 Stallplätze versorgen.",
-        "Stable, fancy": "Ein sauberer Stall mit Steinboden, frischem Heu in den Boxen für bis zu vier Reittiere. Benötigt einen Stallmeister. Ein Stallmeister kann bis zu 4 Stallplätze versorgen. Ermöglicht exotische Reittiere.",
-        "Stable, luxury": "Ein palastartiger Stall mit polierten Böden für bis zu vier Reittiere. Benötigt einen Stallmeister. Ein Stallmeister kann bis zu 4 Stallplätze versorgen. Ermöglicht fliegende Reittiere.",
+        "Stable, basic":   "Ein einfacher Holzstall mit Boxen für bis zu vier Reittiere. Benötigt einen Stallmeister. Ein Stallmeister kann bis zu 4 Stallplätze versorgen. Ermöglicht normale Reittiere (Pferde, Ponys, Maultiere).",
+        "Stable, fancy":   "Ein sauberer Stall mit Steinboden, frischem Heu in den Boxen für bis zu vier Reittiere. Benötigt einen Stallmeister. Ein Stallmeister kann bis zu 4 Stallplätze versorgen. Ermöglicht normale und exotische Reittiere.",
+        "Stable, luxury":  "Ein palastartiger Stall mit polierten Böden für bis zu vier Reittiere. Benötigt einen Stallmeister. Ein Stallmeister kann bis zu 4 Stallplätze versorgen. Ermöglicht normale, exotische und fliegende Reittiere.",
         "Trophy hall, basic": "Ein Raum, um Trophäen und Erinnerungsstücke von Abenteuern und Schlachten auszustellen. Die Wände sind mit den Köpfen besiegter Monster und erbeuteten Waffen geschmückt.",
         "Trophy hall, fancy (museum)": "Eher ein Museum als ein Trophäenraum. Wertvolle Stücke werden in Vitrinen ausgestellt, versehen mit Gravuren, die ihre Geschichte erzählen. Eine Wache schützt die Exponate.",
         "Auditorium, fancy": "Ein Raum, der speziell für künstlerische Darbietungen konzipiert wurde. Die Akustik ist hervorragend, und eine Bühne bietet Platz für Musiker, Barden oder Schauspieler.",
@@ -2639,6 +2641,7 @@ const MountPurchaseForm = ({ stronghold }) => {
     const [mountKey, setMountKey] = useState(Object.keys(MOUNT_DATA)[0]);
     const [quantity, setQuantity] = useState(1);
     const [customName, setCustomName] = useState('');
+    const [isAlreadyOwned, setIsAlreadyOwned] = useState(false);
     const { staticPerks } = getAllPerks();
 
     const selectedMount = MOUNT_DATA[mountKey];
@@ -2649,22 +2652,22 @@ const MountPurchaseForm = ({ stronghold }) => {
         const messages = [];
         if (!selectedMount) return { isValid: false, messages: [] };
 
-        // Check perks
-        if (selectedMount.requiredPerk) {
+        // Perk check – skipped if already owned
+        if (!isAlreadyOwned && selectedMount.requiredPerk) {
             const hasPerk = staticPerks.some(p => p.id === selectedMount.requiredPerk);
             if (!hasPerk) {
                 messages.push(`Benötigt Perk: ${selectedMount.requiredPerk} (Upgrade deine Ställe).`);
             }
         }
 
-        // Check space
+        // Stallplatz wird immer benötigt
         if (resources.stallSpace.capacity < resources.stallSpace.demand + totalSlots) {
             const missing = (resources.stallSpace.demand + totalSlots) - resources.stallSpace.capacity;
             messages.push(`Nicht genug Stallplatz. Benötigt: ${missing} weitere Slots. ${RESOURCE_SUGGESTIONS.stallSpace}`);
         }
 
         return { isValid: messages.length === 0, messages };
-    }, [selectedMount, quantity, resources, staticPerks, totalSlots]);
+    }, [selectedMount, quantity, resources, staticPerks, totalSlots, isAlreadyOwned]);
 
     const [showWarning, setShowWarning] = useState(false);
 
@@ -2678,13 +2681,14 @@ const MountPurchaseForm = ({ stronghold }) => {
                 costPerUnit: selectedMount.cost,
                 totalCost,
                 cr: 0,
-                isVolunteer: false,
+                isVolunteer: isAlreadyOwned,
                 isMount: true,
                 mountSize: selectedMount.size
             };
             addStaff(newMount);
             setQuantity(1);
             setCustomName('');
+            setIsAlreadyOwned(false);
         }
         setShowWarning(false);
     };
@@ -2704,7 +2708,7 @@ const MountPurchaseForm = ({ stronghold }) => {
                 onConfirm: doAddMount,
                 onCancel: () => setShowWarning(false),
                 title: "Mount-Voraussetzungen nicht erfüllt",
-                confirmLabel: "🐴 Trotzdem kaufen"
+                confirmLabel: "🐴 Trotzdem eintragen"
             }),
             React.createElement("h3", { className: "text-2xl font-medieval text-wood-dark dark:text-gold-light -mb-2" }, "🐎 Purchase Mounts"),
             React.createElement("div", { className: "grid md:grid-cols-2 gap-6" },
@@ -2725,13 +2729,34 @@ const MountPurchaseForm = ({ stronghold }) => {
                 React.createElement("label", { className: "block font-semibold mb-2 text-wood dark:text-gold-light text-lg" }, "Custom Name (Optional)"),
                 React.createElement("input", { type: "text", value: customName, onChange: e => setCustomName(e.target.value), placeholder: "e.g., Shadowfax, Betsy", className: "w-full p-3 border-2 border-gold dark:border-gray-500 rounded-md bg-white/80 dark:bg-gray-700 dark:text-parchment-light" })
             ),
+
+            // Already owned toggle
+            React.createElement("label", { className: "flex items-center gap-3 cursor-pointer group select-none" },
+                React.createElement("div", {
+                    onClick: () => setIsAlreadyOwned(prev => !prev),
+                    className: `relative w-12 h-6 rounded-full transition-colors duration-200 flex-shrink-0 ${isAlreadyOwned ? 'bg-green-500 dark:bg-green-600' : 'bg-gray-300 dark:bg-gray-600'}`
+                },
+                    React.createElement("div", {
+                        className: `absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${isAlreadyOwned ? 'translate-x-6' : 'translate-x-0'}`
+                    })
+                ),
+                React.createElement("div", null,
+                    React.createElement("div", { className: `font-semibold text-sm transition-colors ${isAlreadyOwned ? 'text-green-700 dark:text-green-400' : 'text-wood-text/70 dark:text-parchment-bg/60'}` },
+                        isAlreadyOwned ? "🎁 Bereits besessen – kein Stallperk nötig" : "Bereits besessen?"
+                    ),
+                    React.createElement("div", { className: "text-xs text-wood-text/55 dark:text-parchment-bg/45 leading-tight" },
+                        "Gefunden, geschenkt oder anderweitig erworben. Kein Stallperk nötig – Unterhalt (Futter, Pflege) fällt trotzdem an. Stallplatz wird weiterhin benötigt."
+                    )
+                )
+            ),
+
             React.createElement("div", { className: "bg-parchment-light/50 dark:bg-gray-800/40 p-4 rounded-lg text-lg space-y-1" },
                 React.createElement("div", { className: "flex justify-between" },
-                    React.createElement("span", null, "Total Weekly Maintenance:"),
+                    React.createElement("span", null, "Wöchentlicher Unterhalt:"),
                     React.createElement("span", { className: "font-bold" }, `${totalCost.toFixed(2)} gp`)
                 ),
                 React.createElement("div", { className: "flex justify-between text-sm text-wood-text/80 dark:text-parchment-bg/70" },
-                    React.createElement("span", null, "Required Stall Slots:"),
+                    React.createElement("span", null, "Benötigte Stallplätze:"),
                     React.createElement("span", null, `${totalSlots}`)
                 )
             ),
@@ -2739,14 +2764,20 @@ const MountPurchaseForm = ({ stronghold }) => {
                 onClick: handleAddMount,
                 className: `w-full sm:w-auto font-bold py-3 px-6 rounded-lg border-2 transition-all duration-300 transform hover:-translate-y-0.5 shadow-md
                     ${!validationResult.isValid
-                        ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-700 dark:bg-amber-600 dark:hover:bg-amber-500 dark:border-amber-400'
-                        : 'bg-gradient-to-br from-wood-light to-wood-dark text-parchment-bg dark:from-gold dark:to-gold-dark dark:text-wood-dark border-wood-dark dark:border-gold-dark hover:from-gold-dark hover:to-gold-light hover:text-wood-dark dark:hover:from-gold-light dark:hover:to-gold'
+                        ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-700'
+                        : isAlreadyOwned
+                            ? 'bg-gradient-to-br from-green-600 to-green-700 text-white border-green-800 hover:from-green-500 hover:to-green-600'
+                            : 'bg-gradient-to-br from-wood-light to-wood-dark text-parchment-bg dark:from-gold dark:to-gold-dark dark:text-wood-dark border-wood-dark dark:border-gold-dark hover:opacity-90'
                     }`
             },
-                !validationResult.isValid ? "⚠️ Buy Mount(s) – Warnung" : "➕ Buy Mount(s)"
+                !validationResult.isValid
+                    ? "⚠️ Trotzdem eintragen – Warnung"
+                    : isAlreadyOwned
+                        ? "✅ Reittier eintragen"
+                        : "➕ Buy Mount(s)"
             )
         )
-    )
+    );
 }
 
 const HirelingForm = ({ stronghold }) => {
@@ -3327,7 +3358,7 @@ const ROOM_MECHANICS = {
     "Chapel, luxury":         "Höchster Kapellen-Einzelwert. Ermöglicht den größten Priester-Bonus-Cap. Bei dieser Kapelle können viele Priester gleichzeitig den vollen 10%-Bonus pro Person einbringen.",
     "Prison cell":            "Kein Ressourcen-Output. Militärischer-Wert-Beitrag.",
     "Torture chamber":        "Schaltet INTIMIDATION +1 pro Basis-Fläche frei, sobald ≥1 Folterer besetzt. Kumulativer Bonus auf Einschüchterungs-Würfe innerhalb der Festung.",
-    "Stable, basic":          "Stellt 4 Stallplätze bereit. 1 Stallmeister versorgt bis zu 4 Plätze (unabhängig von Stallgröße). Benötigt Stablemaster als Fachkraft. Reittiergrößen: Medium = 1 Platz, Large = 4 Plätze, Huge = 9 Plätze. Kein Exotic/Flying-Mount-Perk.",
+    "Stable, basic":          "Stellt 4 Stallplätze bereit. 1 Stallmeister versorgt bis zu 4 Plätze (unabhängig von Stallgröße). Benötigt Stablemaster als Fachkraft. Reittiergrößen: Medium = 1 Platz, Large = 4 Plätze, Huge = 9 Plätze. Schaltet normale Reittiere (Pferde, Ponys, Maultiere) frei.",
     "Stable, fancy":          "Stellt 4 Stallplätze bereit + schaltet EXOTIC_MOUNTS frei. Ermöglicht Kauf von exotischen (nicht-fliegenden) Reittieren. Benötigt Stallmeister.",
     "Stable, luxury":         "Stellt 4 Stallplätze bereit + schaltet FLYING_MOUNTS frei. Ermöglicht Kauf von flugfähigen Reittieren. Benötigt Stallmeister. Schließt exotic Mounts ein.",
     "Trophy hall, basic":     "Kein Ressourcen-Output. Sozialer-Wert-Beitrag.",
