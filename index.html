@@ -486,18 +486,32 @@ const MOUNT_DATA = {
     'mount_huge':         { name: 'Mount (Huge)',          size: 9, cost: 12.6, type: 'exotic',  requiredPerk: 'EXOTIC_MOUNTS' },
 };
 const SITE_MODIFIERS = {
-    climate: { cold: 5, temperate: 0, warm: -5, arctic: 15, desert: 10, forest: 0, hill: 0, marsh: 10, mountains: 10, plains: -5, underground: 10, exotic: 15, mobile: -5 },
+    climate: { cold: 5, warm: -5, arctic: 15, desert: 10, forest: 0, hill: 5, marsh: 10, mountains: 10, plains: 0, underground: 15, exotic: 15 },
     settlement: { smallTown_under1: 0, smallTown_1to16: 2, smallTown_17to48: 4, smallTown_49to112: 7, smallTown_113plus: 10, largeTown_under1: 2, largeTown_1to16: 0, largeTown_17to48: 2, largeTown_49to112: 4, largeTown_113plus: 7, smallCity_under1: 3, smallCity_1to16: 1, smallCity_17to48: -2, smallCity_49to112: 1, smallCity_113plus: 6, largeCity_under1: 6, largeCity_1to16: 3, largeCity_17to48: 1, largeCity_49to112: -1, largeCity_113plus: 5, metropolis_under1: 10, metropolis_1to16: 7, metropolis_17to48: 5, metropolis_49to112: 0, metropolis_113plus: 4 },
     features: { impede: 2, prohibit: 4, easier: -2, dispute: -5, lawless: -10, income: 10, potential: 5, hidden: 5 }
 };
 
 const TERRAIN_MV_BONUS = {
-    mountains:   { pct: 15, label: '+15% MV' },
-    underground: { pct: 20, label: '+20% MV' },
+    hill:        { pct:  5, label: '+5% MV'  },
     marsh:       { pct: 10, label: '+10% MV' },
     desert:      { pct:  5, label: '+5% MV'  },
+    mountains:   { pct: 15, label: '+15% MV' },
+    arctic:      { pct: 25, label: '+25% MV' },
+    underground: { pct: 30, label: '+30% MV' },
     exotic:      { pct: 10, label: '+10% MV' },
-    arctic:      { pct: 10, label: '+10% MV' },
+};
+
+// IV / ÖV / SV terrain effects (multiplier percent, can be negative)
+const TERRAIN_VALUE_EFFECTS = {
+    cold:        { iv: -5,  ev: -5,  sv:   0 },
+    warm:        { iv:  5,  ev:  0,  sv:   0 },
+    forest:      { iv:  5,  ev:  0,  sv:   0 },
+    desert:      { iv:-10,  ev: -5,  sv:   0 },
+    marsh:       { iv: -5,  ev:-10,  sv:   0 },
+    mountains:   { iv:  5,  ev:-15,  sv:   0 },
+    arctic:      { iv:-15,  ev:-25,  sv: -10 },
+    underground: { iv: 10,  ev:-50,  sv: -15 },
+    exotic:      { iv:  0,  ev:-10,  sv:  10 },
 };
 
 const FEATURE_MV_BONUS = {
@@ -506,7 +520,7 @@ const FEATURE_MV_BONUS = {
     dispute: { pct: -10, label: '−10% MV' },
 };
 
-const HIDDEN_CLIMATES = new Set(['aquatic']);
+const HIDDEN_CLIMATES = new Set(['aquatic', 'temperate']);
 const HIDDEN_FEATURES = new Set(['potential']);
 
 const RESOURCE_BONUSES = {
@@ -514,7 +528,8 @@ const RESOURCE_BONUSES = {
     farmland:{ id: 'farmland',label: '🌾 Fruchtbares Land',    ivBonus: 10, evBonus: 0,  desc: 'Nahrungsproduktion – senkt externe Abhängigkeiten und ermöglicht Vorräte.' },
     fishing: { id: 'fishing', label: '🎣 Fischgründe / Jagdrevier', ivBonus: 8, evBonus: 0, desc: 'Nahrung, Fell und Leder als lokale Produktionsquelle.' },
     water:   { id: 'water',   label: '💧 Wasserquelle / Fluss', ivBonus: 5, evBonus: 0,  desc: 'Mühlen, Gerbereien und allgemeine Infrastruktur profitieren von Wasserkraft.' },
-    trade:   { id: 'trade',   label: '🛤️ Handelsroute',        ivBonus: 0, evBonus: 20, desc: 'Zugang zu Händlernetzwerken und Märkten – die einzige Quelle für ÖV-Standortboni. Nicht kombinierbar mit Hidden – eine verborgene Festung hat keine öffentlichen Handelswege.' },
+    trade:   { id: 'trade',   label: '🛤️ Handelsroute',        ivBonus: 0, evBonus: 20, mvBonus: 0,  buildCostBonus: 0,  desc: 'Zugang zu Händlernetzwerken und Märkten. Nicht kombinierbar mit Hidden. Kann mit Seerouten kombiniert werden – gibt dann aber −10% MV extra (offener Hafen, prime Angriffsziel).' },
+    coastal: { id: 'coastal', label: '⚓ Seerouten / Küstenhandel', ivBonus: 5, evBonus: 25, mvBonus: -5, buildCostBonus: 5, desc: 'Zugang zu Seehandelsrouten. +25% ÖV, +5% IV, +5% Baukosten, −5% MV (offener Hafen). Kombiniert mit Handelsroute: zusätzlich −10% MV – du bist das reichste und offenste Ziel weit und breit.' },
 };
 const WALL_COSTS = {
     glass: 0.05,
@@ -641,20 +656,19 @@ const MATERIAL_DESCRIPTIONS = {
     adamantine: "Das legendärste aller Metalle. Eine Mauer aus Adamant ist praktisch unzerstörbar und immun gegen kritische Treffer. Der Bau einer solchen Mauer ist ein Unterfangen, das Generationen und ganze Königreiche in Anspruch nehmen kann."
 };
 const CLIMATE_DESCRIPTIONS = {
-    cold: "Erhöht die Baukosten um 5%. Kalte Umgebungen erfordern robustere Bauweisen, erschweren die Arbeit im Freien und können die Verfügbarkeit bestimmter Materialien einschränken.",
-    temperate: "Kein Kostenmodifikator. Gemäßigte Zonen bieten ideale Baubedingungen und gelten als Standard für die Kostenkalkulation.",
-    warm: "Senkt die Baukosten um 5%. Längere Arbeitstage und geringere Anforderungen an die Isolierung machen das Bauen in warmen Klimazonen günstiger.",
-    aquatic: "Erhöht die Baukosten um 15%. Bauen auf oder unter Wasser ist extrem komplex und erfordert spezielle Materialien, magische Versiegelungen und Fachkräfte.",
-    desert: "Erhöht die Baukosten um 10% und gewährt +5% MV. Wassermangel und extreme Temperaturen verteuern den Bau – doch Angreifer leiden unter denselben Bedingungen, was die Festung schwerer einnehmbar macht.",
-    forest: "Kein Kostenmodifikator. Wälder bieten in der Regel reichlich Baumaterial (Holz), was die Kosten ausgleicht, obwohl das Roden des Geländes Aufwand erfordert.",
-    hill: "Kein Kostenmodifikator. Hügel bieten gute natürliche Verteidigung und Steinzugang, aber das unebene Terrain und die erschwerte Logistik gleichen diese Vorteile aus.",
-    marsh: "Erhöht die Baukosten um 10% und gewährt +10% MV. Aufwendige Pfahlgründungen und Kanäle sind nötig – aber Sümpfe sind als natürliche Barriere für Angreifer äußerst hinderlich.",
-    mountains: "Erhöht die Baukosten um 10% und gewährt +15% MV. Material muss Berghänge hochgetragen werden, die Bausaison ist kürzer und Arbeiter müssen akklimatisiert werden – doch Bergfestungen gelten historisch als die am schwersten einzunehmenden überhaupt.",
-    plains: "Senkt die Baukosten um 5%. Weite Ebenen erleichtern den Transport von Material und den Einsatz von schwerem Gerät, was den Bauprozess beschleunigt und verbilligt.",
-    underground: "Erhöht die Baukosten um 10% und gewährt +20% MV. Konstante Abstützung und Belüftung sind nötig – aber unterirdische Festungen sind nahezu uneinnehmbar. Ein Angreifer muss sich durch einen einzigen kontrollierten Eingang kämpfen.",
-    exotic: "Erhöht die Baukosten um 15% und gewährt +10% MV. Außerplanare Orte stellen unvorhersehbare Herausforderungen dar – aber für Angreifer gelten dieselben Gefahren, was die Festung schwer zugänglich macht.",
-    mobile: "Senkt die Baukosten um 5%. Eine mobile Festung (z.B. auf dem Rücken einer gigantischen Kreatur) hat geringere Gründungskosten, was den Gesamtpreis leicht senkt.",
-    arctic: "Erhöht die Baukosten um 15% und gewährt +10% MV. Permafrostboden, monatelange Dunkelheit und arktische Stürme machen Bau und Versorgung extrem schwierig – doch kaum eine Armee kann unter diesen Bedingungen eine Belagerung aufrechterhalten.",
+    cold:        "Erhöht die Baukosten um 5%, −5% IV, −5% ÖV. Kürzere Bausaison, aufwändigere Isolierung und schwierigere Logistik treiben die Kosten hoch. Handel und Produktion leiden unter dem langen Winter.",
+    warm:        "Senkt die Baukosten um 5%, +5% IV. Längere Arbeitstage, üppige Vegetation und günstige Baubedingungen machen warme Regionen produktiv und erschwinglich.",
+    arctic:      "Erhöht die Baukosten um 15%, +25% MV, −15% IV, −25% ÖV, −10% SV. Permafrostboden, monatelange Dunkelheit und arktische Stürme machen Bau und Versorgung extrem schwierig. Kaum Ressourcen, kein Handel, soziale Isolation – aber nahezu uneinnehmbar.",
+    desert:      "Erhöht die Baukosten um 10%, +5% MV, −10% IV, −5% ÖV. Wassermangel und extreme Temperaturen treiben Baukosten und reduzieren Produktivität. Doch Angreifer leiden unter denselben Bedingungen.",
+    forest:      "Kein Kostenmodifikator, +5% IV. Reichliches Baumaterial (Holz, Wild, Kräuter) steigert die Produktion. Das Roden des Geländes gleicht etwaige Mehrkosten aus.",
+    hill:        "Erhöht die Baukosten um 5%, +5% MV. Unebenes Terrain erschwert den Transport leicht, bietet aber gute Verteidigungspositionen und natürlichen Steinzugang.",
+    marsh:       "Erhöht die Baukosten um 10%, +10% MV, −5% IV, −10% ÖV. Pfahlgründungen und Kanäle sind aufwendig. Feuchte Böden reduzieren die Produktivität und Handelswege sind schwer zugänglich – aber Sümpfe sind als natürliche Barriere kaum zu überwinden.",
+    mountains:   "Erhöht die Baukosten um 10%, +15% MV, +5% IV, −15% ÖV. Material muss Berghänge hochgetragen werden, die Bausaison ist kürzer. Reiche Erzlager steigern die Produktion, aber Handelswege sind schwierig. Bergfestungen gelten als die am schwersten einzunehmenden überhaupt.",
+    plains:      "Kein Kostenmodifikator. Weite Ebenen sind der echte Standard: ideale Logistik, gute Landwirtschaft, kein strategischer Vor- oder Nachteil. Der Ausgangspunkt für alle Vergleiche.",
+    underground: "Erhöht die Baukosten um 15%, +30% MV, +10% IV, −50% ÖV, −15% SV. Konstante Abstützung, Belüftung und magische Beleuchtung nötig. Bergbau ist lukrativ, aber Handel nahezu unmöglich und soziale Isolation zermürbt die Moral. Kein Ort ist schwerer einzunehmen.",
+    exotic:      "Erhöht die Baukosten um 15%, +10% MV, −10% ÖV, +10% SV. Außerplanare Orte stellen unvorhersehbare Herausforderungen dar. Schwer zugänglich – und das Prestige einer außerplanaren Festung zieht besondere Verbündete an.",
+    aquatic:     "Erhöht die Baukosten um 15%. Bauen auf oder unter Wasser erfordert spezielle Materialien, magische Versiegelungen und Fachkräfte.",
+    mobile:      "Senkt die Baukosten um 5%. Eine mobile Festung hat geringere Gründungskosten.",
 };
 const FEATURE_DESCRIPTIONS = {
     impede: "Erhöht die Kosten um 2%. Das Gelände (z.B. dichter Dschungel oder schroffe Felsen) behindert den Transport von Material und Arbeitern.",
@@ -1446,17 +1460,28 @@ const useStronghold = () => {
         return bonus ? bonus.pct : 0;
     }, [state.site.climate]);
 
-    // Feature MV bonus/malus from nearby features (hidden/lawless)
+    // Terrain IV/EV/SV effects
+    const terrainValueEffects = useMemo(() => {
+        const fx = TERRAIN_VALUE_EFFECTS[state.site.climate] || {};
+        return { iv: fx.iv || 0, ev: fx.ev || 0, sv: fx.sv || 0 };
+    }, [state.site.climate]);
+
+    // Feature MV bonus/malus from nearby features (hidden/lawless/dispute)
     const featureMvBonus = useMemo(() => {
         return (state.site.features || []).reduce((sum, f) => sum + (FEATURE_MV_BONUS[f]?.pct || 0), 0);
     }, [state.site.features]);
 
-    // Resource bonus multipliers from site selection
+    // Resource bonus multipliers from site selection (IV/EV)
+    // Coastal MV malus: -5% alone, extra -10% when combined with trade = -15% total
     const resourceBonusMults = useMemo(() => {
         const bonuses = (state.site.resourceBonuses || []);
         const ivBonus = bonuses.reduce((sum, id) => sum + (RESOURCE_BONUSES[id]?.ivBonus || 0), 0);
         const evBonus = bonuses.reduce((sum, id) => sum + (RESOURCE_BONUSES[id]?.evBonus || 0), 0);
-        return { iv: 1 + ivBonus / 100, ev: 1 + evBonus / 100, ivPct: ivBonus, evPct: evBonus };
+        const hasCoastal = bonuses.includes('coastal');
+        const hasTrade   = bonuses.includes('trade');
+        const coastalMv  = hasCoastal ? (hasTrade ? -15 : -5) : 0;
+        const buildCostExtra = bonuses.reduce((sum, id) => sum + (RESOURCE_BONUSES[id]?.buildCostBonus || 0), 0);
+        return { iv: 1 + ivBonus / 100, ev: 1 + evBonus / 100, ivPct: ivBonus, evPct: evBonus, coastalMv, buildCostExtra };
     }, [state.site.resourceBonuses]);
 
     // Custom feature value multipliers (mv/iv/ev/sv)
@@ -1466,21 +1491,21 @@ const useStronghold = () => {
         return { mv: sum('mv'), iv: sum('iv'), ev: sum('ev'), sv: sum('sv') };
     }, [state.site.customFeatures]);
 
-    const militaryValue = Math.max(0, (baseMilitaryValue - damageShare) * (1 + (terrainMvBonus + featureMvBonus) / 100) * (1 + customValueMults.mv / 100));
-    const industrialValue = Math.max(0, (baseIndustrialValue - damageShare) * resourceBonusMults.iv * (1 + customValueMults.iv / 100));
-    const economicValue = Math.max(0, (baseEconomicValue - damageShare) * resourceBonusMults.ev * (1 + customValueMults.ev / 100));
-    const socialValue = Math.max(0, baseSocialValue + actualPriestBonus - damageShare) * (1 + customValueMults.sv / 100);
+    const militaryValue = Math.max(0, (baseMilitaryValue - damageShare) * (1 + (terrainMvBonus + featureMvBonus + resourceBonusMults.coastalMv) / 100) * (1 + customValueMults.mv / 100));
+    const industrialValue = Math.max(0, (baseIndustrialValue - damageShare) * resourceBonusMults.iv * (1 + (terrainValueEffects.iv + customValueMults.iv) / 100));
+    const economicValue = Math.max(0, (baseEconomicValue - damageShare) * resourceBonusMults.ev * (1 + (terrainValueEffects.ev + customValueMults.ev) / 100));
+    const socialValue = Math.max(0, baseSocialValue + actualPriestBonus - damageShare) * (1 + (terrainValueEffects.sv + customValueMults.sv) / 100);
     const formulaSV = industrialValue + economicValue;
     const totalValue = militaryValue + industrialValue + economicValue + socialValue;
 
     const industrialValueForProfit = useMemo(() => {
         const scaledBase = calculateScaledValue('industrial');
-        return Math.max(0, scaledBase - damageShare) * resourceBonusMults.iv * (1 + customValueMults.iv / 100);
-    }, [calculateScaledValue, damageShare, resourceBonusMults, customValueMults]);
+        return Math.max(0, scaledBase - damageShare) * resourceBonusMults.iv * (1 + (terrainValueEffects.iv + customValueMults.iv) / 100);
+    }, [calculateScaledValue, damageShare, resourceBonusMults, terrainValueEffects, customValueMults]);
     const economicValueForProfit = useMemo(() => {
         const scaledBase = calculateScaledValue('economic');
-        return Math.max(0, scaledBase - damageShare) * resourceBonusMults.ev * (1 + customValueMults.ev / 100);
-    }, [calculateScaledValue, damageShare, resourceBonusMults, customValueMults]);
+        return Math.max(0, scaledBase - damageShare) * resourceBonusMults.ev * (1 + (terrainValueEffects.ev + customValueMults.ev) / 100);
+    }, [calculateScaledValue, damageShare, resourceBonusMults, terrainValueEffects, customValueMults]);
 
     const industrialPotential = useMemo(() => industrialValueForProfit * 0.01, [industrialValueForProfit]);
     const economicPotential = useMemo(() => economicValueForProfit * 0.05 * (economicValueForProfit > 0 ? Math.min(1, industrialValueForProfit / economicValueForProfit) : 0), [economicValueForProfit, industrialValueForProfit]);
@@ -1893,6 +1918,7 @@ const useStronghold = () => {
     drawElements: state.drawElements || [],
     resourceBonusMults,
     terrainMvBonus,
+    terrainValueEffects,
     featureMvBonus,
     customValueMults,
   };
@@ -1961,9 +1987,9 @@ const SiteTab = ({ stronghold }) => {
                 setSite({ ...site, features: newFeatures, resourceBonuses: [] });
                 return;
             }
-            // Hidden blocks trade resource (Händler wissen, wo du bist)
+            // Hidden blocks trade and coastal resources
             if (value === 'hidden' && checked) {
-                setSite({ ...site, features: newFeatures, resourceBonuses: (site.resourceBonuses||[]).filter(r => r !== 'trade') });
+                setSite({ ...site, features: newFeatures, resourceBonuses: (site.resourceBonuses||[]).filter(r => r !== 'trade' && r !== 'coastal') });
                 return;
             }
             setSite({ ...site, features: newFeatures });
@@ -2079,12 +2105,24 @@ const SiteTab = ({ stronghold }) => {
                             .filter(([key]) => !HIDDEN_CLIMATES.has(key) && key !== 'mobile')
                             .map(([key, mod]) => {
                                 const mvB = TERRAIN_MV_BONUS[key];
-                                const costStr = `${mod > 0 ? '+' : ''}${mod}% Kosten`;
-                                const mvStr = mvB ? ` · ${mvB.label}` : '';
+                                const vfx = TERRAIN_VALUE_EFFECTS[key] || {};
+                                const costStr = mod !== 0 ? `${mod > 0 ? '+' : ''}${mod}% Kosten` : '0% Kosten';
+                                const parts = [];
+                                if (mvB) parts.push(mvB.label);
+                                if (vfx.iv) parts.push(`${vfx.iv > 0 ? '+' : ''}${vfx.iv}% IV`);
+                                if (vfx.ev) parts.push(`${vfx.ev > 0 ? '+' : ''}${vfx.ev}% ÖV`);
+                                if (vfx.sv) parts.push(`${vfx.sv > 0 ? '+' : ''}${vfx.sv}% SV`);
                                 const label = key === 'arctic' ? 'Arktis/Eiswüste'
+                                    : key === 'plains' ? 'Ebene'
+                                    : key === 'underground' ? 'Unterirdisch'
+                                    : key === 'forest' ? 'Wald'
+                                    : key === 'marsh' ? 'Sumpf'
+                                    : key === 'hill' ? 'Hügel'
+                                    : key === 'exotic' ? 'Exotisch'
                                     : key.charAt(0).toUpperCase() + key.slice(1);
+                                const suffix = parts.length > 0 ? ` · ${parts.join(' · ')}` : '';
                                 return React.createElement("option", { key, value: key },
-                                    `${label} (${costStr}${mvStr})`
+                                    `${label} (${costStr}${suffix})`
                                 );
                             })
                     )
@@ -2139,7 +2177,7 @@ const SiteTab = ({ stronghold }) => {
                 React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-2" },
                         Object.values(RESOURCE_BONUSES).map(res => {
                             const isHidden = (site.features||[]).includes('hidden');
-                            const blockedByHidden = res.id === 'trade' && isHidden;
+                            const blockedByHidden = (res.id === 'trade' || res.id === 'coastal') && isHidden;
                             return React.createElement("label", {
                                 key: res.id,
                                 className: `flex items-start gap-2 p-2 rounded transition-colors ${blockedByHidden ? 'opacity-40 cursor-not-allowed' : `cursor-pointer hover:bg-amber-100/60 dark:hover:bg-amber-800/30 ${(site.resourceBonuses||[]).includes(res.id) ? 'bg-amber-100/80 dark:bg-amber-800/40' : ''}`}`,
@@ -5417,6 +5455,7 @@ const EconomyTab = ({ stronghold }) => {
         resourceBonusMults,
         site,
         customValueMults,
+        terrainValueEffects,
     } = stronghold;
 
     const [transactionAmount, setTransactionAmount] = useState('');
@@ -5512,7 +5551,18 @@ const EconomyTab = ({ stronghold }) => {
                             React.createElement(InfoRow, { label: "Industrieller Wert (IV)", value: `${industrialValue.toFixed(0)} GP`, tooltip: "Gesamtwert aller industriellen Gebäude, skaliert nach Arbeiterzahl." }),
                             React.createElement(InfoRow, { label: "Ökonomischer Wert (EV)", value: `${economicValue.toFixed(0)} GP`, tooltip: "Gesamtwert aller ökonomischen Gebäude, skaliert nach Arbeiterzahl." }),
 
-                            // Resource bonus breakdown
+                            // Terrain IV/EV effects
+                            (terrainValueEffects.iv !== 0 || terrainValueEffects.ev !== 0) && React.createElement("div", { className: "mt-1 mb-1 p-2 bg-blue-100/60 dark:bg-blue-900/30 rounded border border-blue-400/50 dark:border-blue-600/40" },
+                                React.createElement("div", { className: "text-xs font-bold text-blue-800 dark:text-blue-300 mb-1" }, "🏔️ Terrain-Werteffekte"),
+                                terrainValueEffects.iv !== 0 && React.createElement("div", { className: "flex justify-between text-xs text-blue-700 dark:text-blue-400" },
+                                    React.createElement("span", null, `${site.climate === 'arctic' ? 'Arktis' : site.climate === 'underground' ? 'Unterirdisch' : site.climate ? site.climate.charAt(0).toUpperCase()+site.climate.slice(1) : ''} → IV`),
+                                    React.createElement("span", { className: `font-semibold ${terrainValueEffects.iv >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'}` }, `${terrainValueEffects.iv > 0 ? '+' : ''}${terrainValueEffects.iv}%`)
+                                ),
+                                terrainValueEffects.ev !== 0 && React.createElement("div", { className: "flex justify-between text-xs text-blue-700 dark:text-blue-400 mt-0.5" },
+                                    React.createElement("span", null, `${site.climate === 'arctic' ? 'Arktis' : site.climate === 'underground' ? 'Unterirdisch' : site.climate ? site.climate.charAt(0).toUpperCase()+site.climate.slice(1) : ''} → ÖV`),
+                                    React.createElement("span", { className: `font-semibold ${terrainValueEffects.ev >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'}` }, `${terrainValueEffects.ev > 0 ? '+' : ''}${terrainValueEffects.ev}%`)
+                                )
+                            ),
                             (resourceBonusMults.ivPct > 0 || resourceBonusMults.evPct > 0) && React.createElement("div", { className: "mt-1 mb-1 p-2 bg-amber-100/60 dark:bg-amber-900/30 rounded border border-amber-400/50 dark:border-amber-600/40" },
                                 React.createElement("div", { className: "text-xs font-bold text-amber-800 dark:text-amber-300 mb-1" }, "📍 Standortvorteil (Ressourcen)"),
                                 (site.resourceBonuses || []).map(id => {
@@ -5532,6 +5582,10 @@ const EconomyTab = ({ stronghold }) => {
                                         resourceBonusMults.ivPct > 0 ? `+${resourceBonusMults.ivPct}% IV ` : '',
                                         resourceBonusMults.evPct > 0 ? `+${resourceBonusMults.evPct}% ÖV` : ''
                                     )
+                                ),
+                                resourceBonusMults.coastalMv !== 0 && React.createElement("div", { className: "flex justify-between text-xs text-red-600 dark:text-red-400 mt-1 pt-1 border-t border-amber-400/40" },
+                                    React.createElement("span", null, (site.resourceBonuses||[]).includes('trade') && (site.resourceBonuses||[]).includes('coastal') ? '⚠️ Hafen + Handelsroute (offene Flanke)' : '⚓ Offener Hafen'),
+                                    React.createElement("span", { className: "font-semibold" }, `${resourceBonusMults.coastalMv}% MV`)
                                 )
                             ),
 
