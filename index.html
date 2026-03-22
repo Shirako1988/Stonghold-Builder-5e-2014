@@ -1346,7 +1346,13 @@ const useStronghold = () => {
     const climateMod = SITE_MODIFIERS.climate[state.site.climate] || 0;
     const settlementMod = SITE_MODIFIERS.settlement[state.site.settlement] || 0;
     const featuresMod = (state.site.features || []).reduce((sum, feature) => sum + (SITE_MODIFIERS.features[feature] || 0), 0);
-    const customFeaturesMod = (state.site.customFeatures || []).filter(f => f.active).reduce((sum, f) => sum + (parseFloat(f.value) || 0), 0);
+    const customFeaturesMod = (state.site.customFeatures || []).filter(f => f.active).reduce((sum, f) => {
+        // New format: effects array; legacy format: value field (= buildCost)
+        if (f.effects && f.effects.length > 0) {
+            return sum + f.effects.filter(e => e.target === 'buildCost').reduce((s, e) => s + (parseFloat(e.pct) || 0), 0);
+        }
+        return sum + (parseFloat(f.value) || 0);
+    }, 0);
     return climateMod + settlementMod + featuresMod + customFeaturesMod;
   }, [state.site]);
 
@@ -1455,22 +1461,28 @@ const useStronghold = () => {
         return { iv: 1 + ivBonus / 100, ev: 1 + evBonus / 100, ivPct: ivBonus, evPct: evBonus };
     }, [state.site.resourceBonuses]);
 
-    const militaryValue = Math.max(0, (baseMilitaryValue - damageShare) * (1 + (terrainMvBonus + featureMvBonus) / 100));
-    const industrialValue = Math.max(0, (baseIndustrialValue - damageShare) * resourceBonusMults.iv);
-    const economicValue = Math.max(0, (baseEconomicValue - damageShare) * resourceBonusMults.ev);
-    // Damage also affects social value – morale suffers when the stronghold is in ruins
-    const socialValue = Math.max(0, baseSocialValue + actualPriestBonus - damageShare);
+    // Custom feature value multipliers (mv/iv/ev/sv)
+    const customValueMults = useMemo(() => {
+        const active = (state.site.customFeatures || []).filter(f => f.active && f.effects && f.effects.length > 0);
+        const sum = (target) => active.reduce((s, f) => s + f.effects.filter(e => e.target === target).reduce((ss, e) => ss + (parseFloat(e.pct) || 0), 0), 0);
+        return { mv: sum('mv'), iv: sum('iv'), ev: sum('ev'), sv: sum('sv') };
+    }, [state.site.customFeatures]);
+
+    const militaryValue = Math.max(0, (baseMilitaryValue - damageShare) * (1 + (terrainMvBonus + featureMvBonus) / 100) * (1 + customValueMults.mv / 100));
+    const industrialValue = Math.max(0, (baseIndustrialValue - damageShare) * resourceBonusMults.iv * (1 + customValueMults.iv / 100));
+    const economicValue = Math.max(0, (baseEconomicValue - damageShare) * resourceBonusMults.ev * (1 + customValueMults.ev / 100));
+    const socialValue = Math.max(0, baseSocialValue + actualPriestBonus - damageShare) * (1 + customValueMults.sv / 100);
     const formulaSV = industrialValue + economicValue;
     const totalValue = militaryValue + industrialValue + economicValue + socialValue;
 
     const industrialValueForProfit = useMemo(() => {
         const scaledBase = calculateScaledValue('industrial');
-        return Math.max(0, scaledBase - damageShare) * resourceBonusMults.iv;
-    }, [calculateScaledValue, damageShare, resourceBonusMults]);
+        return Math.max(0, scaledBase - damageShare) * resourceBonusMults.iv * (1 + customValueMults.iv / 100);
+    }, [calculateScaledValue, damageShare, resourceBonusMults, customValueMults]);
     const economicValueForProfit = useMemo(() => {
         const scaledBase = calculateScaledValue('economic');
-        return Math.max(0, scaledBase - damageShare) * resourceBonusMults.ev;
-    }, [calculateScaledValue, damageShare, resourceBonusMults]);
+        return Math.max(0, scaledBase - damageShare) * resourceBonusMults.ev * (1 + customValueMults.ev / 100);
+    }, [calculateScaledValue, damageShare, resourceBonusMults, customValueMults]);
 
     const industrialPotential = useMemo(() => industrialValueForProfit * 0.01, [industrialValueForProfit]);
     const economicPotential = useMemo(() => economicValueForProfit * 0.05 * (economicValueForProfit > 0 ? Math.min(1, industrialValueForProfit / economicValueForProfit) : 0), [economicValueForProfit, industrialValueForProfit]);
@@ -1884,6 +1896,7 @@ const useStronghold = () => {
     resourceBonusMults,
     terrainMvBonus,
     featureMvBonus,
+    customValueMults,
   };
 };
 
@@ -1969,14 +1982,28 @@ const SiteTab = ({ stronghold }) => {
         }
     };
 
+    const [editingFeatureId, setEditingFeatureId] = useState(null);
+
+    const EFFECT_TARGETS = [
+        { value: 'buildCost', label: '🏗️ Baukosten' },
+        { value: 'mv', label: '⚔️ MV – Militärischer Wert' },
+        { value: 'iv', label: '🏭 IV – Industrieller Wert' },
+        { value: 'ev', label: '💰 ÖV – Ökonomischer Wert' },
+        { value: 'sv', label: '👥 SV – Sozialer Wert' },
+    ];
+
+    const makeNewFeature = (name) => ({
+        id: crypto.randomUUID(), name, active: true,
+        effects: [{ target: 'buildCost', pct: 0 }]
+    });
+
     const handleAddCustomFeature = () => {
         const trimmed = newFeatureName.trim();
-        const val = parseFloat(newFeatureValue);
-        if (!trimmed || isNaN(val)) return;
-        const customFeatures = [...(site.customFeatures || []), { id: crypto.randomUUID(), name: trimmed, value: val, active: true }];
+        if (!trimmed) return;
+        const customFeatures = [...(site.customFeatures || []), makeNewFeature(trimmed)];
         setSite({ ...site, customFeatures });
         setNewFeatureName('');
-        setNewFeatureValue('');
+        setEditingFeatureId(customFeatures[customFeatures.length - 1].id);
     };
 
     const handleToggleCustomFeature = (id) => {
@@ -1987,9 +2014,60 @@ const SiteTab = ({ stronghold }) => {
     const handleRemoveCustomFeature = (id) => {
         const customFeatures = (site.customFeatures || []).filter(f => f.id !== id);
         setSite({ ...site, customFeatures });
+        if (editingFeatureId === id) setEditingFeatureId(null);
     };
 
-    const customFeatures = site.customFeatures || [];
+    const handleUpdateFeatureName = (id, name) => {
+        const customFeatures = (site.customFeatures || []).map(f => f.id === id ? { ...f, name } : f);
+        setSite({ ...site, customFeatures });
+    };
+
+    const handleAddEffect = (id) => {
+        const customFeatures = (site.customFeatures || []).map(f => f.id === id
+            ? { ...f, effects: [...(f.effects || []), { target: 'buildCost', pct: 0 }] } : f);
+        setSite({ ...site, customFeatures });
+    };
+
+    const handleUpdateEffect = (featureId, effectIndex, field, value) => {
+        const customFeatures = (site.customFeatures || []).map(f => {
+            if (f.id !== featureId) return f;
+            const effects = (f.effects || []).map((e, i) => i === effectIndex ? { ...e, [field]: field === 'pct' ? parseFloat(value) || 0 : value } : e);
+            return { ...f, effects };
+        });
+        setSite({ ...site, customFeatures });
+    };
+
+    const handleRemoveEffect = (featureId, effectIndex) => {
+        const customFeatures = (site.customFeatures || []).map(f => {
+            if (f.id !== featureId) return f;
+            const effects = (f.effects || []).filter((_, i) => i !== effectIndex);
+            return { ...f, effects };
+        });
+        setSite({ ...site, customFeatures });
+    };
+
+    // Migrate legacy features (value field) to effects format
+    const customFeatures = (site.customFeatures || []).map(f => {
+        if (!f.effects) return { ...f, effects: [{ target: 'buildCost', pct: parseFloat(f.value) || 0 }] };
+        return f;
+    });
+
+    const renderEffectsSummary = (f) => {
+        const effs = f.effects || [];
+        if (effs.length === 0) return React.createElement('span', { className: 'text-xs text-wood-text/40 dark:text-parchment-bg/30 italic' }, 'Keine Effekte');
+        return React.createElement('span', { className: 'text-xs text-wood-text/60 dark:text-parchment-bg/50' },
+            effs.map((e, i) => {
+                const t = EFFECT_TARGETS.find(t => t.value === e.target);
+                const pct = parseFloat(e.pct) || 0;
+                const col = e.target === 'buildCost'
+                    ? (pct > 0 ? 'text-red-600 dark:text-red-400' : pct < 0 ? 'text-green-700 dark:text-green-400' : 'text-gray-500')
+                    : (pct > 0 ? 'text-green-700 dark:text-green-400' : pct < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-500');
+                return React.createElement('span', { key: i, className: col },
+                    (i > 0 ? ' · ' : '') + (t?.label.split(' – ')[0] || e.target) + ' ' + (pct > 0 ? '+' : '') + pct + '%'
+                );
+            })
+        );
+    };
 
     return (
         React.createElement("div", null,
@@ -2097,49 +2175,97 @@ const SiteTab = ({ stronghold }) => {
 
             // --- Custom Features Section ---
             React.createElement("div", { className: "mb-6 bg-wood/10 dark:bg-gray-700/30 p-5 rounded-lg border-2 border-wood-light dark:border-gray-600" },
-                React.createElement("h3", { className: "text-xl font-semibold text-wood-dark dark:text-gold-light mb-3" }, "✏️ Eigene Modifikatoren"),
-                React.createElement("p", { className: "text-sm text-wood-text/80 dark:text-parchment-bg/70 italic mb-4" }, "Erstelle eigene Standort-Modifikatoren mit einem Namen und einem % Wert (positiv = teurer, negativ = günstiger)."),
+                React.createElement("h3", { className: "text-xl font-semibold text-wood-dark dark:text-gold-light mb-1" }, "✏️ Eigene Modifikatoren"),
+                React.createElement("p", { className: "text-sm text-wood-text/80 dark:text-parchment-bg/70 italic mb-4" },
+                    "Erstelle eigene Standort-Effekte. Jeder Modifikator kann mehrere Effekte auf Baukosten oder Festungswerte (MV/IV/ÖV/SV) haben."
+                ),
 
                 // Existing custom features list
                 customFeatures.length > 0 && React.createElement("div", { className: "space-y-2 mb-4" },
                     customFeatures.map(f => {
-                        const val = parseFloat(f.value) || 0;
-                        return React.createElement("div", { key: f.id, className: `flex items-center justify-between gap-3 p-2 rounded border ${f.active ? 'bg-parchment-light dark:bg-gray-700 border-gold-dark dark:border-gray-500' : 'bg-gray-200/50 dark:bg-gray-800/50 border-gray-300 dark:border-gray-700 opacity-60'}` },
-                            React.createElement("label", { className: "flex items-center gap-2 flex-1 cursor-pointer" },
-                                React.createElement("input", { type: "checkbox", checked: f.active, onChange: () => handleToggleCustomFeature(f.id), className: "h-5 w-5 rounded border-gold dark:border-gray-500" }),
-                                React.createElement("span", { className: "font-semibold" }, f.name),
-                                React.createElement("span", { className: `font-bold ml-1 ${val > 0 ? 'text-red-700 dark:text-red-400' : 'text-green-700 dark:text-green-400'}` }, `(${val > 0 ? `+${val}` : val}%)`)
+                        const isEditing = editingFeatureId === f.id;
+                        return React.createElement("div", { key: f.id, className: `rounded-lg border-2 ${f.active ? 'bg-parchment-light/60 dark:bg-gray-700/60 border-gold-dark dark:border-gray-500' : 'bg-gray-200/40 dark:bg-gray-800/40 border-gray-300 dark:border-gray-700 opacity-60'}` },
+                            // Header row
+                            React.createElement("div", { className: "flex items-center gap-2 p-2.5" },
+                                React.createElement("input", { type: "checkbox", checked: f.active, onChange: () => handleToggleCustomFeature(f.id), className: "h-5 w-5 rounded border-gold dark:border-gray-500 flex-shrink-0" }),
+                                React.createElement("span", { className: "font-semibold flex-1 text-wood-dark dark:text-gold-light" }, f.name),
+                                !isEditing && renderEffectsSummary(f),
+                                React.createElement("button", {
+                                    type: 'button',
+                                    onClick: () => setEditingFeatureId(isEditing ? null : f.id),
+                                    className: "text-xs px-2 py-1 rounded border border-wood/30 dark:border-gray-500 text-wood-text/70 dark:text-parchment-bg/60 hover:border-wood dark:hover:border-gray-400 ml-1"
+                                }, isEditing ? '✓ Fertig' : '✏️'),
+                                React.createElement("button", {
+                                    type: 'button',
+                                    onClick: () => handleRemoveCustomFeature(f.id),
+                                    className: "text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 px-2 py-1 rounded text-sm font-bold"
+                                }, '✕')
                             ),
-                            React.createElement("button", { onClick: () => handleRemoveCustomFeature(f.id), className: "text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 px-2 py-1 rounded text-sm font-bold transition-colors", title: "Entfernen" }, "✕")
+
+                            // Edit panel
+                            isEditing && React.createElement("div", { className: "px-3 pb-3 border-t border-wood/20 dark:border-gray-600 pt-2 space-y-2" },
+                                // Name edit
+                                React.createElement("div", { className: "flex items-center gap-2" },
+                                    React.createElement("label", { className: "text-xs font-semibold text-wood dark:text-gold-light w-12 flex-shrink-0" }, "Name"),
+                                    React.createElement("input", {
+                                        type: "text", value: f.name,
+                                        onChange: e => handleUpdateFeatureName(f.id, e.target.value),
+                                        className: "flex-1 p-1.5 text-sm border border-gold dark:border-gray-500 rounded bg-white/80 dark:bg-gray-700 dark:text-parchment-light"
+                                    })
+                                ),
+                                // Effects list
+                                (f.effects || []).map((eff, ei) =>
+                                    React.createElement("div", { key: ei, className: "flex items-center gap-2 bg-white/30 dark:bg-gray-800/30 rounded p-1.5" },
+                                        React.createElement("select", {
+                                            value: eff.target,
+                                            onChange: e => handleUpdateEffect(f.id, ei, 'target', e.target.value),
+                                            className: "flex-1 p-1.5 text-xs border border-gold/60 dark:border-gray-600 rounded bg-white/80 dark:bg-gray-700 dark:text-parchment-light"
+                                        },
+                                            EFFECT_TARGETS.map(t => React.createElement("option", { key: t.value, value: t.value }, t.label))
+                                        ),
+                                        React.createElement("div", { className: "flex items-center gap-1" },
+                                            React.createElement("input", {
+                                                type: "number", value: eff.pct,
+                                                onChange: e => handleUpdateEffect(f.id, ei, 'pct', e.target.value),
+                                                className: "w-20 p-1.5 text-xs text-center border border-gold/60 dark:border-gray-600 rounded bg-white/80 dark:bg-gray-700 dark:text-parchment-light"
+                                            }),
+                                            React.createElement("span", { className: "text-xs text-wood-text/60 dark:text-parchment-bg/50" }, "%")
+                                        ),
+                                        React.createElement("button", {
+                                            type: 'button',
+                                            onClick: () => handleRemoveEffect(f.id, ei),
+                                            disabled: (f.effects||[]).length <= 1,
+                                            className: "text-red-500 hover:text-red-700 px-1.5 py-1 rounded text-xs disabled:opacity-30"
+                                        }, "✕")
+                                    )
+                                ),
+                                React.createElement("button", {
+                                    type: 'button',
+                                    onClick: () => handleAddEffect(f.id),
+                                    className: "text-xs px-2 py-1 rounded border border-wood/30 dark:border-gray-500 text-wood-text/60 dark:text-parchment-bg/50 hover:border-wood dark:hover:border-gray-400"
+                                }, "➕ Weiterer Effekt")
+                            )
                         );
                     })
                 ),
 
                 // Add new custom feature form
-                React.createElement("div", { className: "flex flex-wrap gap-3 items-end" },
-                    React.createElement("div", { className: "flex-1 min-w-[150px]" },
+                React.createElement("div", { className: "flex gap-2 items-end" },
+                    React.createElement("div", { className: "flex-1" },
                         React.createElement("label", { className: "block text-sm font-semibold mb-1 text-wood dark:text-gold-light" }, "Name"),
-                        React.createElement("input", { 
+                        React.createElement("input", {
                             type: "text", value: newFeatureName, onChange: e => setNewFeatureName(e.target.value),
                             onKeyDown: e => e.key === 'Enter' && handleAddCustomFeature(),
-                            placeholder: "z.B. Goldmine, Verfluchtes Land",
-                            className: "w-full p-2 border-2 border-gold dark:border-gray-500 rounded-md bg-white/80 dark:bg-gray-700 dark:text-parchment-light"
+                            placeholder: "z.B. Goblin-Klan, Verfluchtes Land, Zwergengilde",
+                            className: "w-full p-2 border-2 border-gold dark:border-gray-500 rounded-md bg-white/80 dark:bg-gray-700 dark:text-parchment-light text-sm"
                         })
                     ),
-                    React.createElement("div", { className: "w-28" },
-                        React.createElement("label", { className: "block text-sm font-semibold mb-1 text-wood dark:text-gold-light" }, "Wert (%)"),
-                        React.createElement("input", { 
-                            type: "number", value: newFeatureValue, onChange: e => setNewFeatureValue(e.target.value),
-                            onKeyDown: e => e.key === 'Enter' && handleAddCustomFeature(),
-                            placeholder: "+3 oder -5",
-                            className: "w-full p-2 border-2 border-gold dark:border-gray-500 rounded-md bg-white/80 dark:bg-gray-700 dark:text-parchment-light"
-                        })
-                    ),
-                    React.createElement("button", { 
-                        onClick: handleAddCustomFeature, 
-                        disabled: !newFeatureName.trim() || newFeatureValue === '',
-                        className: "bg-gradient-to-br from-wood-light to-wood-dark text-parchment-bg dark:from-gold dark:to-gold-dark dark:text-wood-dark font-bold py-2 px-4 rounded-lg border-2 border-wood-dark dark:border-gold-dark hover:from-gold-dark hover:to-gold-light hover:text-wood-dark transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    }, "➕ Hinzufügen")
+                    React.createElement("button", {
+                        type: 'button',
+                        onClick: handleAddCustomFeature,
+                        disabled: !newFeatureName.trim(),
+                        className: "bg-gradient-to-br from-wood-light to-wood-dark text-parchment-bg dark:from-gold dark:to-gold-dark dark:text-wood-dark font-bold py-2 px-4 rounded-lg border-2 border-wood-dark dark:border-gold-dark hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                    }, "➕ Erstellen")
                 )
             ),
 
@@ -4770,7 +4896,7 @@ const SummaryTab = ({ stronghold }) => {
         defenseBonus, attackChanceBonus, maxAttackRoll, garrisonCR, attackCR,
         totalMerchantGold, comparisonValue, salaryReductionPercentage, baseStaffTotalWeekly,
         totalConstructionDays: constructionDaysLeft, strongholdTreasury, staff,
-        grandTotal, siteModifier, resourceBonusMults, site, terrainMvBonus, featureMvBonus
+        grandTotal, siteModifier, resourceBonusMults, site, terrainMvBonus, featureMvBonus, customValueMults
     } = stronghold;
     
     const [pendingDeletion, setPendingDeletion] = useState(null);
@@ -5138,6 +5264,20 @@ const SummaryTab = ({ stronghold }) => {
                         React.createElement(SummaryRow, { label: "Industrieller Wert", value: `${industrialValue.toFixed(0)} gp` }),
                         React.createElement(SummaryRow, { label: "Ökonomischer Wert", value: `${economicValue.toFixed(0)} gp` }),
                         React.createElement(SummaryRow, { label: "Sozialer Wert", value: `${socialValue.toFixed(0)} gp` }),
+                        // Custom value modifiers summary
+                        (customValueMults.mv !== 0 || customValueMults.iv !== 0 || customValueMults.ev !== 0 || customValueMults.sv !== 0) && React.createElement("div", { className: "mt-1 p-2 bg-purple-50/60 dark:bg-purple-900/20 rounded border border-purple-300/50 dark:border-purple-600/40" },
+                            React.createElement("div", { className: "text-xs font-bold text-purple-800 dark:text-purple-300 mb-1" }, "✏️ Eigene Modifikatoren"),
+                            (site.customFeatures||[]).filter(f => f.active && (f.effects||[]).some(e => ['mv','iv','ev','sv'].includes(e.target))).map(f =>
+                                (f.effects||[]).filter(e => ['mv','iv','ev','sv'].includes(e.target)).map((e, i) => {
+                                    const labels = { mv: 'MV', iv: 'IV', ev: 'ÖV', sv: 'SV' };
+                                    return React.createElement("div", { key: f.id+i, className: "flex justify-between text-xs" },
+                                        React.createElement("span", { className: "text-purple-700 dark:text-purple-400" }, f.name),
+                                        React.createElement("span", { className: `font-semibold ${e.pct >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'}` },
+                                            `${e.pct > 0 ? '+' : ''}${e.pct}% ${labels[e.target]}`)
+                                    );
+                                })
+                            )
+                        ),
                         React.createElement("div", { className: "flex justify-between items-baseline border-t-2 border-wood-light/50 dark:border-gold-dark/50 pt-2 mt-2 font-bold text-xl" },
                             React.createElement("span", null, "TOTAL VALUE:"),
                             React.createElement("span", null, `${totalValue.toFixed(0)} gp`)
@@ -5278,6 +5418,7 @@ const EconomyTab = ({ stronghold }) => {
         economicComponentsBreakdown,
         resourceBonusMults,
         site,
+        customValueMults,
     } = stronghold;
 
     const [transactionAmount, setTransactionAmount] = useState('');
@@ -5396,6 +5537,31 @@ const EconomyTab = ({ stronghold }) => {
                                 )
                             ),
 
+                            // Custom feature IV/EV bonuses
+                            (customValueMults.iv !== 0 || customValueMults.ev !== 0) && React.createElement("div", { className: "mt-1 mb-1 p-2 bg-purple-100/60 dark:bg-purple-900/30 rounded border border-purple-400/50 dark:border-purple-600/40" },
+                                React.createElement("div", { className: "text-xs font-bold text-purple-800 dark:text-purple-300 mb-1" }, "✏️ Eigene Wert-Modifikatoren"),
+                                (site.customFeatures||[]).filter(f => f.active && (f.effects||[]).some(e => e.target === 'iv' || e.target === 'ev')).map(f =>
+                                    (f.effects||[]).filter(e => e.target === 'iv' || e.target === 'ev').map((e, i) =>
+                                        React.createElement("div", { key: f.id+i, className: "flex justify-between text-xs text-purple-700 dark:text-purple-400" },
+                                            React.createElement("span", null, f.name),
+                                            React.createElement("span", { className: `font-semibold ${e.pct >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'}` },
+                                                `${e.pct > 0 ? '+' : ''}${e.pct}% ${e.target === 'iv' ? 'IV' : 'ÖV'}`
+                                            )
+                                        )
+                                    )
+                                ),
+                                customValueMults.iv !== 0 && React.createElement("div", { className: "flex justify-between text-xs font-bold text-purple-800 dark:text-purple-200 border-t border-purple-400/30 mt-1 pt-1" },
+                                    React.createElement("span", null, "Gesamt IV"),
+                                    React.createElement("span", { className: customValueMults.iv >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400' },
+                                        `${customValueMults.iv > 0 ? '+' : ''}${customValueMults.iv}% IV`)
+                                ),
+                                customValueMults.ev !== 0 && React.createElement("div", { className: "flex justify-between text-xs font-bold text-purple-800 dark:text-purple-200" },
+                                    React.createElement("span", null, "Gesamt ÖV"),
+                                    React.createElement("span", { className: customValueMults.ev >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400' },
+                                        `${customValueMults.ev > 0 ? '+' : ''}${customValueMults.ev}% ÖV`)
+                                )
+                            ),
+
                             React.createElement("hr", { className: "border-wood-light/50 dark:border-parchment-bg/30 my-2" }),
                             React.createElement(InfoRow, { label: "Industrielles Potential", value: `${industrialPotential.toFixed(2)} GP`, tooltip: "Eigenständiger Profit aus industriellen Gebäuden. Berechnet als: Industrieller Wert × 1%." }),
                             React.createElement(InfoRow, { label: "Ökonomisches Potential", value: `${economicPotential.toFixed(2)} GP`, tooltip: "Eigenständiger Profit aus ökonomischen Gebäuden, modifiziert durch industrielle Effizienz. Berechnet als: Ökonomischer Wert × 5% × (min(1, Industrieller Wert / Ökonomischer Wert))." }),
@@ -5499,6 +5665,7 @@ const DefenseTab = ({ stronghold }) => {
         economicValue,
         terrainMvBonus,
         featureMvBonus,
+        customValueMults,
         site,
         simulateNextWeek,
         rewindLastWeek,
@@ -5567,7 +5734,7 @@ const DefenseTab = ({ stronghold }) => {
                     React.createElement("div", { className: "bg-red-900/10 dark:bg-red-900/30 p-6 rounded-lg border-2 border-red-800/50 dark:border-red-500/50 shadow-lg mb-8" },
                         React.createElement("h3", { className: "text-2xl font-semibold text-center mb-4 text-red-900 dark:text-red-200" }, "Status & Angriffschance"),
                         React.createElement("div", { className: "space-y-3 bg-black/10 dark:bg-black/20 p-4 rounded" },
-                            React.createElement(InfoRow, { label: "Militärischer Wert (MV)", value: `${militaryValue.toFixed(0)} GP`, tooltip: "Gesamtwert aller militärischen Gebäude und Mauern, inkl. Terrain- und Feature-Boni." }),
+                            React.createElement(InfoRow, { label: "Militärischer Wert (MV)", value: `${militaryValue.toFixed(0)} GP`, tooltip: "Gesamtwert aller militärischen Gebäude und Mauern, inkl. aller Boni." }),
                             (terrainMvBonus !== 0 || featureMvBonus !== 0) && React.createElement("div", { className: "mx-1 mb-1 p-2 bg-blue-100/60 dark:bg-blue-900/30 rounded border border-blue-400/50 dark:border-blue-600/40" },
                                 React.createElement("div", { className: "text-xs font-bold text-blue-800 dark:text-blue-300 mb-1" }, "🏔️ MV-Standortboni"),
                                 terrainMvBonus !== 0 && React.createElement("div", { className: "flex justify-between text-xs text-blue-700 dark:text-blue-400" },
@@ -5580,7 +5747,7 @@ const DefenseTab = ({ stronghold }) => {
                                 ),
                                 (site.features||[]).filter(f => FEATURE_MV_BONUS[f]).map(f =>
                                     React.createElement("div", { key: f, className: "flex justify-between text-xs text-blue-700 dark:text-blue-400 mt-0.5" },
-                                        React.createElement("span", null, f === 'hidden' ? '🫥 Hidden' : f === 'lawless' ? '⚖️ Lawless' : f),
+                                        React.createElement("span", null, f === 'hidden' ? '🫥 Hidden' : f === 'lawless' ? '⚖️ Lawless' : f === 'dispute' ? '⚠️ Dispute' : f),
                                         React.createElement("span", { className: `font-semibold ${FEATURE_MV_BONUS[f].pct > 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'}` },
                                             `${FEATURE_MV_BONUS[f].pct > 0 ? '+' : ''}${FEATURE_MV_BONUS[f].pct}% MV`)
                                     )
@@ -5589,6 +5756,23 @@ const DefenseTab = ({ stronghold }) => {
                                     React.createElement("span", null, "Gesamt"),
                                     React.createElement("span", { className: (terrainMvBonus + featureMvBonus) >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400' },
                                         `${(terrainMvBonus + featureMvBonus) > 0 ? '+' : ''}${terrainMvBonus + featureMvBonus}% MV`)
+                                )
+                            ),
+                            customValueMults.mv !== 0 && React.createElement("div", { className: "mx-1 mb-1 p-2 bg-purple-100/60 dark:bg-purple-900/30 rounded border border-purple-400/50 dark:border-purple-600/40" },
+                                React.createElement("div", { className: "text-xs font-bold text-purple-800 dark:text-purple-300 mb-1" }, "✏️ Eigene MV-Modifikatoren"),
+                                (site.customFeatures||[]).filter(f => f.active && (f.effects||[]).some(e => e.target === 'mv')).map(f =>
+                                    (f.effects||[]).filter(e => e.target === 'mv').map((e, i) =>
+                                        React.createElement("div", { key: f.id+i, className: "flex justify-between text-xs text-purple-700 dark:text-purple-400" },
+                                            React.createElement("span", null, f.name),
+                                            React.createElement("span", { className: `font-semibold ${e.pct >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'}` },
+                                                `${e.pct > 0 ? '+' : ''}${e.pct}% MV`)
+                                        )
+                                    )
+                                ),
+                                React.createElement("div", { className: "flex justify-between text-xs font-bold border-t border-purple-400/30 mt-1 pt-1 text-purple-800 dark:text-purple-200" },
+                                    React.createElement("span", null, "Gesamt"),
+                                    React.createElement("span", { className: customValueMults.mv >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400' },
+                                        `${customValueMults.mv > 0 ? '+' : ''}${customValueMults.mv}% MV`)
                                 )
                             ),
                             React.createElement(InfoRow, { label: "Formel Wert (IV + EV)", value: `${socialValueForDisplay.toFixed(0)} GP`, tooltip: "Gesamtwert aller industriellen und ökonomischen Gebäude (IV + EV)." }),
