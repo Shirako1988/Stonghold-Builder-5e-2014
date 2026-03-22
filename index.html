@@ -486,17 +486,35 @@ const MOUNT_DATA = {
     'mount_huge':         { name: 'Mount (Huge)',          size: 9, cost: 12.6, type: 'exotic',  requiredPerk: 'EXOTIC_MOUNTS' },
 };
 const SITE_MODIFIERS = {
-    climate: { cold: 5, temperate: 0, warm: -5, aquatic: 15, desert: 10, forest: 0, hill: 0, marsh: 10, mountains: 10, plains: -5, underground: 10, exotic: 15, mobile: -5 },
+    climate: { cold: 5, temperate: 0, warm: -5, arctic: 15, desert: 10, forest: 0, hill: 0, marsh: 10, mountains: 10, plains: -5, underground: 10, exotic: 15, mobile: -5 },
     settlement: { smallTown_under1: 0, smallTown_1to16: 2, smallTown_17to48: 4, smallTown_49to112: 7, smallTown_113plus: 10, largeTown_under1: 2, largeTown_1to16: 0, largeTown_17to48: 2, largeTown_49to112: 4, largeTown_113plus: 7, smallCity_under1: 3, smallCity_1to16: 1, smallCity_17to48: -2, smallCity_49to112: 1, smallCity_113plus: 6, largeCity_under1: 6, largeCity_1to16: 3, largeCity_17to48: 1, largeCity_49to112: -1, largeCity_113plus: 5, metropolis_under1: 10, metropolis_1to16: 7, metropolis_17to48: 5, metropolis_49to112: 0, metropolis_113plus: 4 },
     features: { impede: 2, prohibit: 4, easier: -2, dispute: -5, lawless: -10, income: 10, potential: 5, hidden: 5 }
 };
+
+const TERRAIN_MV_BONUS = {
+    mountains:   { pct: 15, label: '+15% MV' },
+    underground: { pct: 20, label: '+20% MV' },
+    marsh:       { pct: 10, label: '+10% MV' },
+    desert:      { pct:  5, label: '+5% MV'  },
+    exotic:      { pct: 10, label: '+10% MV' },
+    arctic:      { pct: 10, label: '+10% MV' },
+};
+
+const FEATURE_MV_BONUS = {
+    hidden:  { pct: 10,  label: '+10% MV' },
+    lawless: { pct: -15, label: '−15% MV' },
+    dispute: { pct: -10, label: '−10% MV' },
+};
+
+const HIDDEN_CLIMATES = new Set(['aquatic']);
+const HIDDEN_FEATURES = new Set(['potential']);
 
 const RESOURCE_BONUSES = {
     mine:    { id: 'mine',    label: '⛏️ Mine / Erzvorkommen', ivBonus: 15, evBonus: 0,  desc: 'Rohstoffe für Handwerk und Herstellung direkt vor Ort.' },
     farmland:{ id: 'farmland',label: '🌾 Fruchtbares Land',    ivBonus: 10, evBonus: 0,  desc: 'Nahrungsproduktion – senkt externe Abhängigkeiten und ermöglicht Vorräte.' },
     fishing: { id: 'fishing', label: '🎣 Fischgründe / Jagdrevier', ivBonus: 8, evBonus: 0, desc: 'Nahrung, Fell und Leder als lokale Produktionsquelle.' },
     water:   { id: 'water',   label: '💧 Wasserquelle / Fluss', ivBonus: 5, evBonus: 0,  desc: 'Mühlen, Gerbereien und allgemeine Infrastruktur profitieren von Wasserkraft.' },
-    trade:   { id: 'trade',   label: '🛤️ Handelsroute',        ivBonus: 0, evBonus: 20, desc: 'Zugang zu Händlernetzwerken und Märkten – die einzige Quelle für ÖV-Standortboni.' },
+    trade:   { id: 'trade',   label: '🛤️ Handelsroute',        ivBonus: 0, evBonus: 20, desc: 'Zugang zu Händlernetzwerken und Märkten – die einzige Quelle für ÖV-Standortboni. Nicht kombinierbar mit Hidden – eine verborgene Festung hat keine öffentlichen Handelswege.' },
 };
 const WALL_COSTS = {
     glass: 0.05,
@@ -627,25 +645,26 @@ const CLIMATE_DESCRIPTIONS = {
     temperate: "Kein Kostenmodifikator. Gemäßigte Zonen bieten ideale Baubedingungen und gelten als Standard für die Kostenkalkulation.",
     warm: "Senkt die Baukosten um 5%. Längere Arbeitstage und geringere Anforderungen an die Isolierung machen das Bauen in warmen Klimazonen günstiger.",
     aquatic: "Erhöht die Baukosten um 15%. Bauen auf oder unter Wasser ist extrem komplex und erfordert spezielle Materialien, magische Versiegelungen und Fachkräfte.",
-    desert: "Erhöht die Baukosten um 10%. Wassermangel, extreme Temperaturen und die Schwierigkeit, Baumaterial zu beschaffen, treiben die Kosten in der Wüste in die Höhe.",
+    desert: "Erhöht die Baukosten um 10% und gewährt +5% MV. Wassermangel und extreme Temperaturen verteuern den Bau – doch Angreifer leiden unter denselben Bedingungen, was die Festung schwerer einnehmbar macht.",
     forest: "Kein Kostenmodifikator. Wälder bieten in der Regel reichlich Baumaterial (Holz), was die Kosten ausgleicht, obwohl das Roden des Geländes Aufwand erfordert.",
     hill: "Kein Kostenmodifikator. Hügel bieten gute natürliche Verteidigung und Steinzugang, aber das unebene Terrain und die erschwerte Logistik gleichen diese Vorteile aus.",
-    marsh: "Erhöht die Baukosten um 10%. Der instabile Untergrund in Sümpfen erfordert aufwendige Fundamente, und die hohe Luftfeuchtigkeit kann Materialien angreifen.",
-    mountains: "Erhöht die Baukosten um 10%. Berge bieten exzellente Verteidigung und Zugang zu Stein, aber Material muss die Berghänge hochgetragen werden, die Bausaison ist kürzer, Arbeiter müssen akklimatisiert werden und die Logistik auf schwierigem Terrain ist deutlich aufwendiger.",
+    marsh: "Erhöht die Baukosten um 10% und gewährt +10% MV. Aufwendige Pfahlgründungen und Kanäle sind nötig – aber Sümpfe sind als natürliche Barriere für Angreifer äußerst hinderlich.",
+    mountains: "Erhöht die Baukosten um 10% und gewährt +15% MV. Material muss Berghänge hochgetragen werden, die Bausaison ist kürzer und Arbeiter müssen akklimatisiert werden – doch Bergfestungen gelten historisch als die am schwersten einzunehmenden überhaupt.",
     plains: "Senkt die Baukosten um 5%. Weite Ebenen erleichtern den Transport von Material und den Einsatz von schwerem Gerät, was den Bauprozess beschleunigt und verbilligt.",
-    underground: "Erhöht die Baukosten um 10%. Unterirdisches Bauen ist aufwendig, erfordert ständige Abstützung und Belüftung, bietet aber unübertroffenen Schutz.",
-    exotic: "Erhöht die Baukosten um 15%. Exotische oder außerplanare Orte stellen unvorhersehbare Herausforderungen dar, von seltsamer Schwerkraft bis hin zu feindseliger Flora und Fauna.",
+    underground: "Erhöht die Baukosten um 10% und gewährt +20% MV. Konstante Abstützung und Belüftung sind nötig – aber unterirdische Festungen sind nahezu uneinnehmbar. Ein Angreifer muss sich durch einen einzigen kontrollierten Eingang kämpfen.",
+    exotic: "Erhöht die Baukosten um 15% und gewährt +10% MV. Außerplanare Orte stellen unvorhersehbare Herausforderungen dar – aber für Angreifer gelten dieselben Gefahren, was die Festung schwer zugänglich macht.",
     mobile: "Senkt die Baukosten um 5%. Eine mobile Festung (z.B. auf dem Rücken einer gigantischen Kreatur) hat geringere Gründungskosten, was den Gesamtpreis leicht senkt.",
+    arctic: "Erhöht die Baukosten um 15% und gewährt +10% MV. Permafrostboden, monatelange Dunkelheit und arktische Stürme machen Bau und Versorgung extrem schwierig – doch kaum eine Armee kann unter diesen Bedingungen eine Belagerung aufrechterhalten.",
 };
 const FEATURE_DESCRIPTIONS = {
     impede: "Erhöht die Kosten um 2%. Das Gelände (z.B. dichter Dschungel oder schroffe Felsen) behindert den Transport von Material und Arbeitern.",
     prohibit: "Erhöht die Kosten um 4%. Lokale Gegebenheiten (z.B. magische Zonen oder heilige Stätten) verbieten bestimmte Bauweisen, was teure Alternativen erfordert.",
     easier: "Senkt die Kosten um 2%. Das Gelände ist besonders gut für den Bau geeignet, z.B. durch einen vorhandenen Steinbruch oder einen magisch stabilisierten Untergrund.",
-    dispute: "Senkt die Kosten um 5%. Das Land ist umstritten, was zwar gefährlich ist, aber die Grundstückskosten und Steuern drastisch senkt.",
-    lawless: "Senkt die Kosten um 10%. In gesetzlosen Gebieten gibt es keine Vorschriften, Steuern oder Zölle, was das Baumaterial erheblich verbilligt. Die Sicherheit ist jedoch ein ständiges Problem.",
+    dispute: "Senkt die Kosten um 5%, aber −10% MV. Das Land ist umstritten – konkurrierende Ansprüche von Adligen, Stämmen oder anderen Mächten bedeuten gelegentliche Übergriffe und eine unsichere Rechtslage. Die Grundstückskosten sind niedrig, aber die Festung muss ständig auf Konflikte vorbereitet sein.",
+    lawless: "Senkt die Kosten um 10%, aber −15% MV. Keine Steuern, keine Vorschriften – aber auch keine Patrouillen, keine Gerichtsbarkeit und ständige Bedrohung durch Banditen und Räuber. Die gesparten Baukosten werden teuer mit einem geschwächten Verteidigungswert bezahlt. Nicht kombinierbar mit Hidden.",
     income: "Erhöht die Kosten um 10%. Der Standort liegt an einer wertvollen Ressource (Mine, Handelsroute etc.), was Grundstückspreise und Bauaufwand erhöht. Wähle unten die Art der Ressource um konkrete IV/ÖV-Boni zu erhalten.",
     potential: "Erhöht die Kosten um 5%. Der Ort hat ungenutztes Potenzial, z.B. einen Zugang zu einem unentdeckten Höhlensystem, dessen Erschließung im Voraus kostet.",
-    hidden: "Erhöht die Kosten um 5%. Die Festung soll verborgen bleiben, was zusätzliche Tarnmaßnahmen und aufwendigere Logistik erfordert, um keine Spuren zu hinterlassen.",
+    hidden: "Erhöht die Kosten um 5%, gewährt +10% MV. Was niemand findet, kann niemand angreifen – eine verborgene Festung ist schwerer belagert als eine berühmte. Logistik und Tarnmaßnahmen erhöhen die Kosten. Nicht kombinierbar mit Handelsroute (Händler wissen, wo du bist).",
 };
 const getSettlementLabel = (key) => {
     const parts = key.split('_');
@@ -1417,6 +1436,17 @@ const useStronghold = () => {
 
     const damageShare = state.totalDamage > 0 ? state.totalDamage / 4 : 0;
 
+    // Terrain MV bonus from climate selection
+    const terrainMvBonus = useMemo(() => {
+        const bonus = TERRAIN_MV_BONUS[state.site.climate];
+        return bonus ? bonus.pct : 0;
+    }, [state.site.climate]);
+
+    // Feature MV bonus/malus from nearby features (hidden/lawless)
+    const featureMvBonus = useMemo(() => {
+        return (state.site.features || []).reduce((sum, f) => sum + (FEATURE_MV_BONUS[f]?.pct || 0), 0);
+    }, [state.site.features]);
+
     // Resource bonus multipliers from site selection
     const resourceBonusMults = useMemo(() => {
         const bonuses = (state.site.resourceBonuses || []);
@@ -1425,7 +1455,7 @@ const useStronghold = () => {
         return { iv: 1 + ivBonus / 100, ev: 1 + evBonus / 100, ivPct: ivBonus, evPct: evBonus };
     }, [state.site.resourceBonuses]);
 
-    const militaryValue = Math.max(0, baseMilitaryValue - damageShare);
+    const militaryValue = Math.max(0, (baseMilitaryValue - damageShare) * (1 + (terrainMvBonus + featureMvBonus) / 100));
     const industrialValue = Math.max(0, (baseIndustrialValue - damageShare) * resourceBonusMults.iv);
     const economicValue = Math.max(0, (baseEconomicValue - damageShare) * resourceBonusMults.ev);
     // Damage also affects social value – morale suffers when the stronghold is in ruins
@@ -1852,6 +1882,8 @@ const useStronghold = () => {
     enchantmentPins: state.enchantmentPins || [],
     drawElements: state.drawElements || [],
     resourceBonusMults,
+    terrainMvBonus,
+    featureMvBonus,
   };
 };
 
@@ -1910,15 +1942,20 @@ const SiteTab = ({ stronghold }) => {
         if (type === 'checkbox') {
             const { checked } = e.target;
             const currentFeatures = site.features || [];
-            const newFeatures = checked
+            let newFeatures = checked
                 ? [...currentFeatures, value]
                 : currentFeatures.filter(f => f !== value);
             // If income is unchecked, clear all resource bonuses
             if (value === 'income' && !checked) {
                 setSite({ ...site, features: newFeatures, resourceBonuses: [] });
-            } else {
-                setSite({ ...site, features: newFeatures });
+                return;
             }
+            // Hidden blocks trade resource (Händler wissen, wo du bist)
+            if (value === 'hidden' && checked) {
+                setSite({ ...site, features: newFeatures, resourceBonuses: (site.resourceBonuses||[]).filter(r => r !== 'trade') });
+                return;
+            }
+            setSite({ ...site, features: newFeatures });
         } else {
             setSite({ ...site, [name]: value });
         }
@@ -1962,11 +1999,18 @@ const SiteTab = ({ stronghold }) => {
                 React.createElement(FormGroup, { label: "Climate/Terrain Type" },
                     React.createElement("select", { name: "climate", value: site.climate, onChange: handleChange, className: "w-full p-3 border-2 border-gold dark:border-gray-500 rounded-md bg-white/80 dark:bg-gray-700 dark:text-parchment-light focus:border-wood dark:focus:border-gold-light focus:outline-none focus:ring-2 focus:ring-wood-light dark:focus:ring-gold-light" },
                         React.createElement("option", { value: "" }, "Wähle Klima/Gelände"),
-                        Object.entries(SITE_MODIFIERS.climate).map(([key, mod]) => 
-                            React.createElement("option", { key: key, value: key },
-                                `${key.charAt(0).toUpperCase() + key.slice(1)} (${mod > 0 ? `+${mod}` : mod}%)`
-                            )
-                        )
+                        Object.entries(SITE_MODIFIERS.climate)
+                            .filter(([key]) => !HIDDEN_CLIMATES.has(key) && key !== 'mobile')
+                            .map(([key, mod]) => {
+                                const mvB = TERRAIN_MV_BONUS[key];
+                                const costStr = `${mod > 0 ? '+' : ''}${mod}% Kosten`;
+                                const mvStr = mvB ? ` · ${mvB.label}` : '';
+                                const label = key === 'arctic' ? 'Arktis/Eiswüste'
+                                    : key.charAt(0).toUpperCase() + key.slice(1);
+                                return React.createElement("option", { key, value: key },
+                                    `${label} (${costStr}${mvStr})`
+                                );
+                            })
                     )
                 ),
                 React.createElement(FormGroup, { label: "Primary Settlement" },
@@ -1980,10 +2024,18 @@ const SiteTab = ({ stronghold }) => {
                     )
                 )
             ),
+
+            // Description box – fixed height to prevent layout shift on hover
+            React.createElement("div", { className: "mb-6 bg-blue-900/10 dark:bg-blue-900/30 p-4 rounded-lg border-l-4 border-blue-600 dark:border-blue-400 overflow-hidden", style: { height: '100px' } },
+                React.createElement("h4", { className: "text-base font-semibold text-blue-800 dark:text-blue-200" }, "📖 Beschreibung"),
+                React.createElement("p", { className: "mt-1 text-sm text-wood-text/80 dark:text-parchment-bg/70 italic" }, description)
+            ),
             React.createElement("div", { className: "mb-6" },
                 React.createElement("label", { className: "block font-semibold mb-2 text-wood dark:text-gold-light text-lg" }, "Nearby Features"),
                 React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2" },
-                    Object.entries(SITE_MODIFIERS.features).map(([key, mod]) => (
+                    Object.entries(SITE_MODIFIERS.features)
+                        .filter(([key]) => !HIDDEN_FEATURES.has(key))
+                        .map(([key, mod]) => (
                         React.createElement("label", { 
                             key: key, 
                             className: "flex items-center space-x-2 p-2 rounded hover:bg-parchment-dark/30 dark:hover:bg-gray-700/50 cursor-pointer",
@@ -1991,7 +2043,11 @@ const SiteTab = ({ stronghold }) => {
                             onMouseLeave: handleFeatureMouseLeave
                         },
                             React.createElement("input", { type: "checkbox", name: "features", value: key, checked: site.features.includes(key), onChange: handleChange, className: "h-5 w-5 rounded border-gold dark:border-gray-500 text-wood dark:text-gold-dark focus:ring-wood-light dark:focus:ring-gold" }),
-                            React.createElement("span", null, `${key.charAt(0).toUpperCase() + key.slice(1)} (${mod > 0 ? `+${mod}` : mod}%)`)
+                            React.createElement("span", null,
+                                `${key.charAt(0).toUpperCase() + key.slice(1)} (${mod > 0 ? `+${mod}` : mod}% Kosten`,
+                                FEATURE_MV_BONUS[key] ? ` · ${FEATURE_MV_BONUS[key].label}` : '',
+                                ')'
+                            )
                         )
                     ))
                 )
@@ -2005,32 +2061,37 @@ const SiteTab = ({ stronghold }) => {
                     "Ressourcen erhöhen IV oder ÖV dauerhaft als Standortvorteil – sichtbar im Wirtschafts- und Summary-Tab."
                 ),
                 React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-2" },
-                    Object.values(RESOURCE_BONUSES).map(res =>
-                        React.createElement("label", {
-                            key: res.id,
-                            className: `flex items-start gap-2 p-2 rounded cursor-pointer hover:bg-amber-100/60 dark:hover:bg-amber-800/30 transition-colors ${(site.resourceBonuses||[]).includes(res.id) ? 'bg-amber-100/80 dark:bg-amber-800/40' : ''}`,
-                            onMouseEnter: () => setDescription(res.desc),
-                            onMouseLeave: handleFeatureMouseLeave,
-                        },
-                            React.createElement("input", {
-                                type: "checkbox",
-                                checked: (site.resourceBonuses||[]).includes(res.id),
-                                onChange: e => {
-                                    const cur = site.resourceBonuses || [];
-                                    const next = e.target.checked ? [...cur, res.id] : cur.filter(r => r !== res.id);
-                                    setSite({ ...site, resourceBonuses: next });
-                                },
-                                className: "h-5 w-5 mt-0.5 rounded border-amber-400 dark:border-amber-600 flex-shrink-0"
-                            }),
-                            React.createElement("div", null,
-                                React.createElement("div", { className: "font-semibold text-sm text-amber-800 dark:text-amber-200" }, res.label),
-                                React.createElement("div", { className: "text-xs text-amber-700/70 dark:text-amber-400/60" },
-                                    res.ivBonus > 0 ? `+${res.ivBonus}% IV` : '',
-                                    res.evBonus > 0 ? `+${res.evBonus}% ÖV` : ''
+                        Object.values(RESOURCE_BONUSES).map(res => {
+                            const isHidden = (site.features||[]).includes('hidden');
+                            const blockedByHidden = res.id === 'trade' && isHidden;
+                            return React.createElement("label", {
+                                key: res.id,
+                                className: `flex items-start gap-2 p-2 rounded transition-colors ${blockedByHidden ? 'opacity-40 cursor-not-allowed' : `cursor-pointer hover:bg-amber-100/60 dark:hover:bg-amber-800/30 ${(site.resourceBonuses||[]).includes(res.id) ? 'bg-amber-100/80 dark:bg-amber-800/40' : ''}`}`,
+                                onMouseEnter: () => setDescription(res.desc),
+                                onMouseLeave: handleFeatureMouseLeave,
+                                title: blockedByHidden ? 'Nicht kombinierbar mit Hidden – eine verborgene Festung hat keine öffentlichen Handelswege.' : '',
+                            },
+                                React.createElement("input", {
+                                    type: "checkbox",
+                                    checked: (site.resourceBonuses||[]).includes(res.id),
+                                    disabled: blockedByHidden,
+                                    onChange: e => {
+                                        if (blockedByHidden) return;
+                                        const cur = site.resourceBonuses || [];
+                                        const next = e.target.checked ? [...cur, res.id] : cur.filter(r => r !== res.id);
+                                        setSite({ ...site, resourceBonuses: next });
+                                    },
+                                    className: "h-5 w-5 mt-0.5 rounded border-amber-400 dark:border-amber-600 flex-shrink-0"
+                                }),
+                                React.createElement("div", null,
+                                    React.createElement("div", { className: "font-semibold text-sm text-amber-800 dark:text-amber-200" }, res.label),
+                                    React.createElement("div", { className: "text-xs text-amber-700/70 dark:text-amber-400/60" },
+                                        res.ivBonus > 0 ? `+${res.ivBonus}% IV` : '',
+                                        res.evBonus > 0 ? `+${res.evBonus}% ÖV` : ''
+                                    )
                                 )
-                            )
-                        )
-                    )
+                            );
+                        })
                 )
             ),
 
@@ -2082,10 +2143,6 @@ const SiteTab = ({ stronghold }) => {
                 )
             ),
 
-            React.createElement("div", { className: "mt-6 bg-blue-900/10 dark:bg-blue-900/30 p-4 rounded-lg border-l-4 border-blue-600 dark:border-blue-400 min-h-[80px]" },
-                React.createElement("h4", { className: "text-xl font-semibold text-blue-800 dark:text-blue-200" }, "📖 Beschreibung"),
-                React.createElement("p", { className: "mt-2 text-wood-text/80 dark:text-parchment-bg/70 italic" }, description)
-            ),
             React.createElement("div", { className: "mt-8 bg-wood/10 dark:bg-gray-700/30 border-2 border-wood-light dark:border-gray-600 rounded-lg p-4" },
                 React.createElement("h3", { className: "text-xl font-semibold text-wood-dark dark:text-gold-light" }, "Current Site Modifier: ", 
                     React.createElement("span", { className: `ml-2 font-bold ${siteModifier > 0 ? 'text-red-700 dark:text-red-400' : 'text-green-700 dark:text-green-400'}` },
@@ -4713,7 +4770,7 @@ const SummaryTab = ({ stronghold }) => {
         defenseBonus, attackChanceBonus, maxAttackRoll, garrisonCR, attackCR,
         totalMerchantGold, comparisonValue, salaryReductionPercentage, baseStaffTotalWeekly,
         totalConstructionDays: constructionDaysLeft, strongholdTreasury, staff,
-        grandTotal, siteModifier, resourceBonusMults, site
+        grandTotal, siteModifier, resourceBonusMults, site, terrainMvBonus, featureMvBonus
     } = stronghold;
     
     const [pendingDeletion, setPendingDeletion] = useState(null);
@@ -4911,6 +4968,7 @@ const SummaryTab = ({ stronghold }) => {
                 <div class="print-section-header">💎 Festungswerte</div>
                 <div class="print-section-body">
                     ${row('Militärischer Wert', militaryValue.toFixed(0) + ' GP')}
+                    ${terrainMvBonus > 0 ? row('🏔️ Terrain-Bonus MV', '+' + terrainMvBonus + '%', 'blue') : ''}
                     ${row('Industrieller Wert', industrialValue.toFixed(0) + ' GP')}
                     ${row('Ökonomischer Wert', economicValue.toFixed(0) + ' GP')}
                     ${row('Sozialer Wert', socialValue.toFixed(0) + ' GP')}
@@ -5071,6 +5129,12 @@ const SummaryTab = ({ stronghold }) => {
                 React.createElement("div", { className: "space-y-8" },
                     React.createElement(SummarySection, { title: "Asset Values", icon: "💎" },
                         React.createElement(SummaryRow, { label: "Militärischer Wert", value: `${militaryValue.toFixed(0)} gp` }),
+                        (terrainMvBonus !== 0 || featureMvBonus !== 0) && React.createElement("div", { className: "flex justify-between text-xs bg-blue-50/60 dark:bg-blue-900/20 rounded px-2 py-0.5 -mt-1 mb-0.5" },
+                            React.createElement("span", { className: "text-blue-700 dark:text-blue-400" }, "🏔️ MV-Standortboni"),
+                            React.createElement("span", { className: `font-semibold ${(terrainMvBonus+featureMvBonus) >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'}` },
+                                `${(terrainMvBonus+featureMvBonus) > 0 ? '+' : ''}${terrainMvBonus+featureMvBonus}% MV`
+                            )
+                        ),
                         React.createElement(SummaryRow, { label: "Industrieller Wert", value: `${industrialValue.toFixed(0)} gp` }),
                         React.createElement(SummaryRow, { label: "Ökonomischer Wert", value: `${economicValue.toFixed(0)} gp` }),
                         React.createElement(SummaryRow, { label: "Sozialer Wert", value: `${socialValue.toFixed(0)} gp` }),
@@ -5433,6 +5497,9 @@ const DefenseTab = ({ stronghold }) => {
         simulationLog,
         industrialValue,
         economicValue,
+        terrainMvBonus,
+        featureMvBonus,
+        site,
         simulateNextWeek,
         rewindLastWeek,
         undoDepth,
@@ -5500,7 +5567,30 @@ const DefenseTab = ({ stronghold }) => {
                     React.createElement("div", { className: "bg-red-900/10 dark:bg-red-900/30 p-6 rounded-lg border-2 border-red-800/50 dark:border-red-500/50 shadow-lg mb-8" },
                         React.createElement("h3", { className: "text-2xl font-semibold text-center mb-4 text-red-900 dark:text-red-200" }, "Status & Angriffschance"),
                         React.createElement("div", { className: "space-y-3 bg-black/10 dark:bg-black/20 p-4 rounded" },
-                            React.createElement(InfoRow, { label: "Militärischer Wert (MV)", value: `${militaryValue.toFixed(0)} GP`, tooltip: "Gesamtwert aller militärischen Gebäude und Mauern." }),
+                            React.createElement(InfoRow, { label: "Militärischer Wert (MV)", value: `${militaryValue.toFixed(0)} GP`, tooltip: "Gesamtwert aller militärischen Gebäude und Mauern, inkl. Terrain- und Feature-Boni." }),
+                            (terrainMvBonus !== 0 || featureMvBonus !== 0) && React.createElement("div", { className: "mx-1 mb-1 p-2 bg-blue-100/60 dark:bg-blue-900/30 rounded border border-blue-400/50 dark:border-blue-600/40" },
+                                React.createElement("div", { className: "text-xs font-bold text-blue-800 dark:text-blue-300 mb-1" }, "🏔️ MV-Standortboni"),
+                                terrainMvBonus !== 0 && React.createElement("div", { className: "flex justify-between text-xs text-blue-700 dark:text-blue-400" },
+                                    React.createElement("span", null,
+                                        site.climate === 'arctic' ? '🧊 Arktis/Eiswüste'
+                                        : site.climate ? site.climate.charAt(0).toUpperCase() + site.climate.slice(1) : ''
+                                    ),
+                                    React.createElement("span", { className: `font-semibold ${terrainMvBonus > 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'}` },
+                                        `${terrainMvBonus > 0 ? '+' : ''}${terrainMvBonus}% MV`)
+                                ),
+                                (site.features||[]).filter(f => FEATURE_MV_BONUS[f]).map(f =>
+                                    React.createElement("div", { key: f, className: "flex justify-between text-xs text-blue-700 dark:text-blue-400 mt-0.5" },
+                                        React.createElement("span", null, f === 'hidden' ? '🫥 Hidden' : f === 'lawless' ? '⚖️ Lawless' : f),
+                                        React.createElement("span", { className: `font-semibold ${FEATURE_MV_BONUS[f].pct > 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'}` },
+                                            `${FEATURE_MV_BONUS[f].pct > 0 ? '+' : ''}${FEATURE_MV_BONUS[f].pct}% MV`)
+                                    )
+                                ),
+                                React.createElement("div", { className: "flex justify-between text-xs font-bold text-blue-800 dark:text-blue-200 border-t border-blue-400/30 mt-1 pt-1" },
+                                    React.createElement("span", null, "Gesamt"),
+                                    React.createElement("span", { className: (terrainMvBonus + featureMvBonus) >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400' },
+                                        `${(terrainMvBonus + featureMvBonus) > 0 ? '+' : ''}${terrainMvBonus + featureMvBonus}% MV`)
+                                )
+                            ),
                             React.createElement(InfoRow, { label: "Formel Wert (IV + EV)", value: `${socialValueForDisplay.toFixed(0)} GP`, tooltip: "Gesamtwert aller industriellen und ökonomischen Gebäude (IV + EV)." }),
                             React.createElement("hr", { className: "border-red-800/30 dark:border-red-400/30 my-2" }),
                             React.createElement(InfoRow, { label: "Verteidigungsbonus", value: `${(defenseBonus * 100).toFixed(1)}%`, tooltip: "Stärkt (oder schwächt) deine Garnison basierend auf dem Verhältnis von MV zu (IV+EV)." }),
