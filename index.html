@@ -486,9 +486,17 @@ const MOUNT_DATA = {
     'mount_huge':         { name: 'Mount (Huge)',          size: 9, cost: 12.6, type: 'exotic',  requiredPerk: 'EXOTIC_MOUNTS' },
 };
 const SITE_MODIFIERS = {
-    climate: { cold: 5, temperate: 0, warm: -5, aquatic: 15, desert: 10, forest: 0, hill: -5, marsh: 10, mountains: 0, plains: -5, underground: 10, exotic: 15, mobile: -5 },
+    climate: { cold: 5, temperate: 0, warm: -5, aquatic: 15, desert: 10, forest: 0, hill: 0, marsh: 10, mountains: 10, plains: -5, underground: 10, exotic: 15, mobile: -5 },
     settlement: { smallTown_under1: 0, smallTown_1to16: 2, smallTown_17to48: 4, smallTown_49to112: 7, smallTown_113plus: 10, largeTown_under1: 2, largeTown_1to16: 0, largeTown_17to48: 2, largeTown_49to112: 4, largeTown_113plus: 7, smallCity_under1: 3, smallCity_1to16: 1, smallCity_17to48: -2, smallCity_49to112: 1, smallCity_113plus: 6, largeCity_under1: 6, largeCity_1to16: 3, largeCity_17to48: 1, largeCity_49to112: -1, largeCity_113plus: 5, metropolis_under1: 10, metropolis_1to16: 7, metropolis_17to48: 5, metropolis_49to112: 0, metropolis_113plus: 4 },
     features: { impede: 2, prohibit: 4, easier: -2, dispute: -5, lawless: -10, income: 10, potential: 5, hidden: 5 }
+};
+
+const RESOURCE_BONUSES = {
+    mine:    { id: 'mine',    label: '⛏️ Mine / Erzvorkommen', ivBonus: 15, evBonus: 0,  desc: 'Rohstoffe für Handwerk und Herstellung direkt vor Ort.' },
+    farmland:{ id: 'farmland',label: '🌾 Fruchtbares Land',    ivBonus: 10, evBonus: 0,  desc: 'Nahrungsproduktion – senkt externe Abhängigkeiten und ermöglicht Vorräte.' },
+    fishing: { id: 'fishing', label: '🎣 Fischgründe / Jagdrevier', ivBonus: 8, evBonus: 0, desc: 'Nahrung, Fell und Leder als lokale Produktionsquelle.' },
+    water:   { id: 'water',   label: '💧 Wasserquelle / Fluss', ivBonus: 5, evBonus: 0,  desc: 'Mühlen, Gerbereien und allgemeine Infrastruktur profitieren von Wasserkraft.' },
+    trade:   { id: 'trade',   label: '🛤️ Handelsroute',        ivBonus: 0, evBonus: 20, desc: 'Zugang zu Händlernetzwerken und Märkten – die einzige Quelle für ÖV-Standortboni.' },
 };
 const WALL_COSTS = {
     glass: 0.05,
@@ -621,9 +629,9 @@ const CLIMATE_DESCRIPTIONS = {
     aquatic: "Erhöht die Baukosten um 15%. Bauen auf oder unter Wasser ist extrem komplex und erfordert spezielle Materialien, magische Versiegelungen und Fachkräfte.",
     desert: "Erhöht die Baukosten um 10%. Wassermangel, extreme Temperaturen und die Schwierigkeit, Baumaterial zu beschaffen, treiben die Kosten in der Wüste in die Höhe.",
     forest: "Kein Kostenmodifikator. Wälder bieten in der Regel reichlich Baumaterial (Holz), was die Kosten ausgleicht, obwohl das Roden des Geländes Aufwand erfordert.",
-    hill: "Senkt die Baukosten um 5%. Hügel bieten oft eine gute natürliche Verteidigung und leichten Zugang zu Stein, was die Baukosten reduzieren kann.",
+    hill: "Kein Kostenmodifikator. Hügel bieten gute natürliche Verteidigung und Steinzugang, aber das unebene Terrain und die erschwerte Logistik gleichen diese Vorteile aus.",
     marsh: "Erhöht die Baukosten um 10%. Der instabile Untergrund in Sümpfen erfordert aufwendige Fundamente, und die hohe Luftfeuchtigkeit kann Materialien angreifen.",
-    mountains: "Kein Kostenmodifikator. Berge bieten exzellente Verteidigung und Zugang zu Stein, aber die Logistik in großer Höhe und auf schwierigem Terrain gleicht diese Vorteile aus.",
+    mountains: "Erhöht die Baukosten um 10%. Berge bieten exzellente Verteidigung und Zugang zu Stein, aber Material muss die Berghänge hochgetragen werden, die Bausaison ist kürzer, Arbeiter müssen akklimatisiert werden und die Logistik auf schwierigem Terrain ist deutlich aufwendiger.",
     plains: "Senkt die Baukosten um 5%. Weite Ebenen erleichtern den Transport von Material und den Einsatz von schwerem Gerät, was den Bauprozess beschleunigt und verbilligt.",
     underground: "Erhöht die Baukosten um 10%. Unterirdisches Bauen ist aufwendig, erfordert ständige Abstützung und Belüftung, bietet aber unübertroffenen Schutz.",
     exotic: "Erhöht die Baukosten um 15%. Exotische oder außerplanare Orte stellen unvorhersehbare Herausforderungen dar, von seltsamer Schwerkraft bis hin zu feindseliger Flora und Fauna.",
@@ -635,7 +643,7 @@ const FEATURE_DESCRIPTIONS = {
     easier: "Senkt die Kosten um 2%. Das Gelände ist besonders gut für den Bau geeignet, z.B. durch einen vorhandenen Steinbruch oder einen magisch stabilisierten Untergrund.",
     dispute: "Senkt die Kosten um 5%. Das Land ist umstritten, was zwar gefährlich ist, aber die Grundstückskosten und Steuern drastisch senkt.",
     lawless: "Senkt die Kosten um 10%. In gesetzlosen Gebieten gibt es keine Vorschriften, Steuern oder Zölle, was das Baumaterial erheblich verbilligt. Die Sicherheit ist jedoch ein ständiges Problem.",
-    income: "Erhöht die Kosten um 10%. Der Standort befindet sich an einer wertvollen Ressource (z.B. Mine, Handelsroute), was die Grundstückspreise und den Bauaufwand erhöht, aber zukünftiges Einkommen verspricht.",
+    income: "Erhöht die Kosten um 10%. Der Standort liegt an einer wertvollen Ressource (Mine, Handelsroute etc.), was Grundstückspreise und Bauaufwand erhöht. Wähle unten die Art der Ressource um konkrete IV/ÖV-Boni zu erhalten.",
     potential: "Erhöht die Kosten um 5%. Der Ort hat ungenutztes Potenzial, z.B. einen Zugang zu einem unentdeckten Höhlensystem, dessen Erschließung im Voraus kostet.",
     hidden: "Erhöht die Kosten um 5%. Die Festung soll verborgen bleiben, was zusätzliche Tarnmaßnahmen und aufwendigere Logistik erfordert, um keine Spuren zu hinterlassen.",
 };
@@ -682,7 +690,7 @@ const WONDROUS_ARCHITECTURE = [{"name":"Chamber of Guidance","originalPrice3e":7
 
 
 const INITIAL_STATE = {
-  site: { climate: '', settlement: '', features: [], customFeatures: [] },
+  site: { climate: '', settlement: '', features: [], customFeatures: [], resourceBonuses: [] },
   components: [],
   walls: [],
   staff: [],
@@ -1408,9 +1416,18 @@ const useStronghold = () => {
     // --- PRIEST / CHAPEL LOGIC END ---
 
     const damageShare = state.totalDamage > 0 ? state.totalDamage / 4 : 0;
+
+    // Resource bonus multipliers from site selection
+    const resourceBonusMults = useMemo(() => {
+        const bonuses = (state.site.resourceBonuses || []);
+        const ivBonus = bonuses.reduce((sum, id) => sum + (RESOURCE_BONUSES[id]?.ivBonus || 0), 0);
+        const evBonus = bonuses.reduce((sum, id) => sum + (RESOURCE_BONUSES[id]?.evBonus || 0), 0);
+        return { iv: 1 + ivBonus / 100, ev: 1 + evBonus / 100, ivPct: ivBonus, evPct: evBonus };
+    }, [state.site.resourceBonuses]);
+
     const militaryValue = Math.max(0, baseMilitaryValue - damageShare);
-    const industrialValue = Math.max(0, baseIndustrialValue - damageShare);
-    const economicValue = Math.max(0, baseEconomicValue - damageShare);
+    const industrialValue = Math.max(0, (baseIndustrialValue - damageShare) * resourceBonusMults.iv);
+    const economicValue = Math.max(0, (baseEconomicValue - damageShare) * resourceBonusMults.ev);
     // Damage also affects social value – morale suffers when the stronghold is in ruins
     const socialValue = Math.max(0, baseSocialValue + actualPriestBonus - damageShare);
     const formulaSV = industrialValue + economicValue;
@@ -1418,12 +1435,12 @@ const useStronghold = () => {
 
     const industrialValueForProfit = useMemo(() => {
         const scaledBase = calculateScaledValue('industrial');
-        return Math.max(0, scaledBase - damageShare);
-    }, [calculateScaledValue, damageShare]);
+        return Math.max(0, scaledBase - damageShare) * resourceBonusMults.iv;
+    }, [calculateScaledValue, damageShare, resourceBonusMults]);
     const economicValueForProfit = useMemo(() => {
         const scaledBase = calculateScaledValue('economic');
-        return Math.max(0, scaledBase - damageShare);
-    }, [calculateScaledValue, damageShare]);
+        return Math.max(0, scaledBase - damageShare) * resourceBonusMults.ev;
+    }, [calculateScaledValue, damageShare, resourceBonusMults]);
 
     const industrialPotential = useMemo(() => industrialValueForProfit * 0.01, [industrialValueForProfit]);
     const economicPotential = useMemo(() => economicValueForProfit * 0.05 * (economicValueForProfit > 0 ? Math.min(1, industrialValueForProfit / economicValueForProfit) : 0), [economicValueForProfit, industrialValueForProfit]);
@@ -1834,6 +1851,7 @@ const useStronghold = () => {
     worldDate, worldDateLabel, setWorldDate, undoDepth: undoStack.length,
     enchantmentPins: state.enchantmentPins || [],
     drawElements: state.drawElements || [],
+    resourceBonusMults,
   };
 };
 
@@ -1895,7 +1913,12 @@ const SiteTab = ({ stronghold }) => {
             const newFeatures = checked
                 ? [...currentFeatures, value]
                 : currentFeatures.filter(f => f !== value);
-            setSite({ ...site, features: newFeatures });
+            // If income is unchecked, clear all resource bonuses
+            if (value === 'income' && !checked) {
+                setSite({ ...site, features: newFeatures, resourceBonuses: [] });
+            } else {
+                setSite({ ...site, features: newFeatures });
+            }
         } else {
             setSite({ ...site, [name]: value });
         }
@@ -1971,6 +1994,43 @@ const SiteTab = ({ stronghold }) => {
                             React.createElement("span", null, `${key.charAt(0).toUpperCase() + key.slice(1)} (${mod > 0 ? `+${mod}` : mod}%)`)
                         )
                     ))
+                )
+            ),
+
+            // Resource bonus section – shown when "income" feature is selected
+            site.features.includes('income') && React.createElement("div", { className: "mb-6 p-4 bg-amber-50/60 dark:bg-amber-900/20 rounded-lg border-2 border-amber-400/60 dark:border-amber-600/50" },
+                React.createElement("h3", { className: "text-lg font-semibold text-amber-800 dark:text-amber-300 mb-1" }, "📍 Art der wertvollen Ressource"),
+                React.createElement("p", { className: "text-sm text-amber-700/80 dark:text-amber-400/70 mb-3 italic" },
+                    "Wähle welche Ressourcen am Standort vorhanden sind. Mehrere sind möglich. " +
+                    "Ressourcen erhöhen IV oder ÖV dauerhaft als Standortvorteil – sichtbar im Wirtschafts- und Summary-Tab."
+                ),
+                React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-2" },
+                    Object.values(RESOURCE_BONUSES).map(res =>
+                        React.createElement("label", {
+                            key: res.id,
+                            className: `flex items-start gap-2 p-2 rounded cursor-pointer hover:bg-amber-100/60 dark:hover:bg-amber-800/30 transition-colors ${(site.resourceBonuses||[]).includes(res.id) ? 'bg-amber-100/80 dark:bg-amber-800/40' : ''}`,
+                            onMouseEnter: () => setDescription(res.desc),
+                            onMouseLeave: handleFeatureMouseLeave,
+                        },
+                            React.createElement("input", {
+                                type: "checkbox",
+                                checked: (site.resourceBonuses||[]).includes(res.id),
+                                onChange: e => {
+                                    const cur = site.resourceBonuses || [];
+                                    const next = e.target.checked ? [...cur, res.id] : cur.filter(r => r !== res.id);
+                                    setSite({ ...site, resourceBonuses: next });
+                                },
+                                className: "h-5 w-5 mt-0.5 rounded border-amber-400 dark:border-amber-600 flex-shrink-0"
+                            }),
+                            React.createElement("div", null,
+                                React.createElement("div", { className: "font-semibold text-sm text-amber-800 dark:text-amber-200" }, res.label),
+                                React.createElement("div", { className: "text-xs text-amber-700/70 dark:text-amber-400/60" },
+                                    res.ivBonus > 0 ? `+${res.ivBonus}% IV` : '',
+                                    res.evBonus > 0 ? `+${res.evBonus}% ÖV` : ''
+                                )
+                            )
+                        )
+                    )
                 )
             ),
 
@@ -4653,7 +4713,7 @@ const SummaryTab = ({ stronghold }) => {
         defenseBonus, attackChanceBonus, maxAttackRoll, garrisonCR, attackCR,
         totalMerchantGold, comparisonValue, salaryReductionPercentage, baseStaffTotalWeekly,
         totalConstructionDays: constructionDaysLeft, strongholdTreasury, staff,
-        grandTotal, siteModifier
+        grandTotal, siteModifier, resourceBonusMults, site
     } = stronghold;
     
     const [pendingDeletion, setPendingDeletion] = useState(null);
@@ -4872,6 +4932,7 @@ const SummaryTab = ({ stronghold }) => {
                         <div style="font-weight:bold;color:#166534;margin-bottom:4pt;font-size:9pt;">📈 Einnahmen</div>
                         ${row('Industrieprofit', '+' + industrialPotential.toFixed(2) + ' GP/W', 'green')}
                         ${row('Ökonomischer Profit', '+' + economicPotential.toFixed(2) + ' GP/W', 'green')}
+                        ${(resourceBonusMults.ivPct > 0 || resourceBonusMults.evPct > 0) ? row('📍 Standortvorteil', (resourceBonusMults.ivPct > 0 ? `+${resourceBonusMults.ivPct}% IV ` : '') + (resourceBonusMults.evPct > 0 ? `+${resourceBonusMults.evPct}% ÖV` : ''), 'amber') : ''}
                         ${row('Händlergold / Woche', totalMerchantGold.toFixed(2) + ' GP', 'green')}
                     </div>
                     <div>
@@ -5066,6 +5127,26 @@ const SummaryTab = ({ stronghold }) => {
                             React.createElement("h4", { className: "font-bold text-center text-lg text-green-800 dark:text-green-300 mb-2" }, "📈 Income"),
                             React.createElement(SummaryRow, { label: "Industrial Profit", value: `+${industrialPotential.toFixed(2)} gp` }),
                             React.createElement(SummaryRow, { label: "Economic Profit", value: `+${economicPotential.toFixed(2)} gp` }),
+                            (resourceBonusMults.ivPct > 0 || resourceBonusMults.evPct > 0) && React.createElement("div", { className: "mt-2 pt-2 border-t border-amber-400/30" },
+                                React.createElement("div", { className: "flex justify-between text-xs text-amber-700 dark:text-amber-400 font-semibold" },
+                                    React.createElement("span", null, "📍 Standortvorteil"),
+                                    React.createElement("span", null,
+                                        resourceBonusMults.ivPct > 0 ? `IV ×${resourceBonusMults.iv.toFixed(2)} ` : '',
+                                        resourceBonusMults.evPct > 0 ? `ÖV ×${resourceBonusMults.ev.toFixed(2)}` : ''
+                                    )
+                                ),
+                                (site.resourceBonuses || []).map(id => {
+                                    const r = RESOURCE_BONUSES[id];
+                                    if (!r) return null;
+                                    return React.createElement("div", { key: id, className: "flex justify-between text-xs text-amber-600/80 dark:text-amber-500/70 mt-0.5" },
+                                        React.createElement("span", null, r.label),
+                                        React.createElement("span", null,
+                                            r.ivBonus > 0 ? `+${r.ivBonus}% IV` : '',
+                                            r.evBonus > 0 ? `+${r.evBonus}% ÖV` : ''
+                                        )
+                                    );
+                                })
+                            ),
                             React.createElement(SummaryTotalRow, { label: "TOTAL PROFIT", value: `+${weeklyProfit.toFixed(2)} gp`, isNegative: false })
                         ),
                         React.createElement("div", { className: "bg-black/10 dark:bg-black/20 p-4 rounded" },
@@ -5130,7 +5211,9 @@ const EconomyTab = ({ stronghold }) => {
         strongholdTreasury,
         depositToTreasury,
         withdrawFromTreasury,
-        economicComponentsBreakdown
+        economicComponentsBreakdown,
+        resourceBonusMults,
+        site,
     } = stronghold;
 
     const [transactionAmount, setTransactionAmount] = useState('');
@@ -5225,6 +5308,30 @@ const EconomyTab = ({ stronghold }) => {
                         React.createElement("div", { className: "space-y-3 bg-black/10 dark:bg-black/20 p-4 rounded" },
                             React.createElement(InfoRow, { label: "Industrieller Wert (IV)", value: `${industrialValue.toFixed(0)} GP`, tooltip: "Gesamtwert aller industriellen Gebäude, skaliert nach Arbeiterzahl." }),
                             React.createElement(InfoRow, { label: "Ökonomischer Wert (EV)", value: `${economicValue.toFixed(0)} GP`, tooltip: "Gesamtwert aller ökonomischen Gebäude, skaliert nach Arbeiterzahl." }),
+
+                            // Resource bonus breakdown
+                            (resourceBonusMults.ivPct > 0 || resourceBonusMults.evPct > 0) && React.createElement("div", { className: "mt-1 mb-1 p-2 bg-amber-100/60 dark:bg-amber-900/30 rounded border border-amber-400/50 dark:border-amber-600/40" },
+                                React.createElement("div", { className: "text-xs font-bold text-amber-800 dark:text-amber-300 mb-1" }, "📍 Standortvorteil (Ressourcen)"),
+                                (site.resourceBonuses || []).map(id => {
+                                    const r = RESOURCE_BONUSES[id];
+                                    if (!r) return null;
+                                    return React.createElement("div", { key: id, className: "flex justify-between text-xs text-amber-700 dark:text-amber-400" },
+                                        React.createElement("span", null, r.label),
+                                        React.createElement("span", { className: "font-semibold" },
+                                            r.ivBonus > 0 ? `+${r.ivBonus}% IV` : '',
+                                            r.evBonus > 0 ? `+${r.evBonus}% ÖV` : ''
+                                        )
+                                    );
+                                }),
+                                React.createElement("div", { className: "flex justify-between text-xs font-bold text-amber-800 dark:text-amber-300 border-t border-amber-400/40 mt-1 pt-1" },
+                                    React.createElement("span", null, "Gesamt"),
+                                    React.createElement("span", null,
+                                        resourceBonusMults.ivPct > 0 ? `+${resourceBonusMults.ivPct}% IV ` : '',
+                                        resourceBonusMults.evPct > 0 ? `+${resourceBonusMults.evPct}% ÖV` : ''
+                                    )
+                                )
+                            ),
+
                             React.createElement("hr", { className: "border-wood-light/50 dark:border-parchment-bg/30 my-2" }),
                             React.createElement(InfoRow, { label: "Industrielles Potential", value: `${industrialPotential.toFixed(2)} GP`, tooltip: "Eigenständiger Profit aus industriellen Gebäuden. Berechnet als: Industrieller Wert × 1%." }),
                             React.createElement(InfoRow, { label: "Ökonomisches Potential", value: `${economicPotential.toFixed(2)} GP`, tooltip: "Eigenständiger Profit aus ökonomischen Gebäuden, modifiziert durch industrielle Effizienz. Berechnet als: Ökonomischer Wert × 5% × (min(1, Industrieller Wert / Ökonomischer Wert))." }),
@@ -5287,7 +5394,17 @@ const EconomyTab = ({ stronghold }) => {
                                             React.createElement("div", { className: "flex-1 h-px bg-wood/30 dark:bg-gold-dark/30" })
                                         );
                                     }
-                                    return React.createElement("p", { key: index, className: "text-sm pl-2 text-wood-text dark:text-parchment-bg/90 border-b border-wood/10 dark:border-parchment-bg/10 pb-1" }, log);
+                                    const logStyle = (() => {
+                                        if (log.includes('🚨 ANGRIFF')) return 'text-red-700 dark:text-red-300 font-semibold bg-red-100/60 dark:bg-red-900/30 rounded px-1';
+                                        if (log.includes('ACHTUNG')) return 'text-orange-700 dark:text-orange-300 font-semibold';
+                                        if (log.includes('Einnahmen') || log.includes('Nettoeinkommen')) return 'text-green-800 dark:text-green-300';
+                                        if (log.includes('Kein Angriff')) return 'text-blue-700 dark:text-blue-300';
+                                        if (log.includes('Reparatur') || log.includes('Einzahlung') || log.includes('Auszahlung')) return 'text-purple-700 dark:text-purple-300';
+                                        if (log.includes('Wartung')) return 'text-amber-700 dark:text-amber-300';
+                                        if (log.includes('Händlergold')) return 'text-cyan-700 dark:text-cyan-300';
+                                        return 'text-wood-text dark:text-parchment-bg/90';
+                                    })();
+                                    return React.createElement("p", { key: index, className: `text-sm pl-2 border-b border-wood/10 dark:border-parchment-bg/10 pb-1 ${logStyle}` }, log);
                                 })
                         )
                     )
