@@ -3289,6 +3289,28 @@ const StaffTab = ({ stronghold }) => {
             })));
     }, [components]);
 
+    const [staffSort, setStaffSort] = useState('default');
+    const [posSort, setPosSort] = useState('default');
+
+    const sortedStaff = useMemo(() => {
+        const arr = [...availableStaff];
+        if (staffSort === 'cr_desc')   return arr.sort((a,b) => (b.cr||0) - (a.cr||0));
+        if (staffSort === 'cr_asc')    return arr.sort((a,b) => (a.cr||0) - (b.cr||0));
+        if (staffSort === 'skilled')   return arr.sort((a,b) => (b.hirelingKey==='skilled'?1:0) - (a.hirelingKey==='skilled'?1:0));
+        if (staffSort === 'mounts')    return arr.sort((a,b) => (b.isMount?1:0) - (a.isMount?1:0));
+        if (staffSort === 'cost_desc') return arr.sort((a,b) => (b.totalCost||0) - (a.totalCost||0));
+        return arr;
+    }, [availableStaff, staffSort]);
+
+    const sortedPositions = useMemo(() => {
+        const arr = [...openPositions];
+        if (posSort === 'filled_first')   return arr.sort((a,b) => (b.filledBy?1:0) - (a.filledBy?1:0));
+        if (posSort === 'unfilled_first') return arr.sort((a,b) => (a.filledBy?1:0) - (b.filledBy?1:0));
+        if (posSort === 'role')           return arr.sort((a,b) => a.role.localeCompare(b.role));
+        if (posSort === 'building')       return arr.sort((a,b) => (a.componentCustomName||a.componentName).localeCompare(b.componentCustomName||b.componentName));
+        return arr;
+    }, [openPositions, posSort]);
+
     const handleDragStart = (e, staffId) => {
         e.dataTransfer.setData("staffId", staffId);
     };
@@ -3384,9 +3406,22 @@ const StaffTab = ({ stronghold }) => {
             React.createElement(MountPurchaseForm, { stronghold: stronghold }),
             React.createElement("div", { className: "grid lg:grid-cols-2 gap-8" },
                 React.createElement("div", { onDrop: handleDropOnAvailable, onDragOver: allowDrop },
-                    React.createElement("h3", { className: "text-2xl font-medieval text-wood-dark dark:text-gold-light mb-4" }, "✅ Available Staff & Mounts"),
+                    React.createElement("div", { className: "flex items-center justify-between mb-4 gap-2 flex-wrap" },
+                        React.createElement("h3", { className: "text-2xl font-medieval text-wood-dark dark:text-gold-light" }, "✅ Available Staff & Mounts"),
+                        React.createElement("select", {
+                            value: staffSort, onChange: e => setStaffSort(e.target.value),
+                            className: "text-xs p-1.5 border border-gold dark:border-gray-500 rounded bg-white/80 dark:bg-gray-700 dark:text-parchment-light"
+                        },
+                            React.createElement("option", { value: "default" }, "🔀 Standardreihenfolge"),
+                            React.createElement("option", { value: "skilled" }, "⭐ Fachkräfte zuerst"),
+                            React.createElement("option", { value: "mounts" }, "🐎 Reittiere zuerst"),
+                            React.createElement("option", { value: "cr_desc" }, "⚔️ CR absteigend"),
+                            React.createElement("option", { value: "cr_asc" }, "⚔️ CR aufsteigend"),
+                            React.createElement("option", { value: "cost_desc" }, "💰 Kosten absteigend")
+                        )
+                    ),
                     React.createElement("div", { className: "bg-wood/5 dark:bg-gray-800/20 p-4 rounded-lg min-h-[300px] border-2 border-dashed border-wood-light/50 dark:border-gray-600/50 space-y-2" },
-                        availableStaff.length > 0 ? availableStaff.map(s => {
+                        sortedStaff.length > 0 ? sortedStaff.map(s => {
                             const isSkilled = s.hirelingKey === 'skilled';
                             const isMount = !!s.isMount;
                             const crLabel = s.cr > 0 ? ` (CR ${s.cr})` : '';
@@ -3423,9 +3458,21 @@ const StaffTab = ({ stronghold }) => {
                     )
                 ),
                 React.createElement("div", null,
-                    React.createElement("h3", { className: "text-2xl font-medieval text-wood-dark dark:text-gold-light mb-4" }, "📋 Open Positions"),
+                    React.createElement("div", { className: "flex items-center justify-between mb-4 gap-2 flex-wrap" },
+                        React.createElement("h3", { className: "text-2xl font-medieval text-wood-dark dark:text-gold-light" }, "📋 Open Positions"),
+                        React.createElement("select", {
+                            value: posSort, onChange: e => setPosSort(e.target.value),
+                            className: "text-xs p-1.5 border border-gold dark:border-gray-500 rounded bg-white/80 dark:bg-gray-700 dark:text-parchment-light"
+                        },
+                            React.createElement("option", { value: "default" }, "🔀 Standardreihenfolge"),
+                            React.createElement("option", { value: "unfilled_first" }, "❌ Unbesetzte zuerst"),
+                            React.createElement("option", { value: "filled_first" }, "✅ Besetzte zuerst"),
+                            React.createElement("option", { value: "role" }, "🔤 Nach Rolle (A–Z)"),
+                            React.createElement("option", { value: "building" }, "🏰 Nach Gebäude (A–Z)")
+                        )
+                    ),
                     React.createElement("div", { className: "bg-wood/5 dark:bg-gray-800/20 p-4 rounded-lg min-h-[300px] border border-wood-light/50 dark:border-gray-600 space-y-2" },
-                        openPositions.length > 0 ? openPositions.map(job => {
+                        sortedPositions.length > 0 ? sortedPositions.map(job => {
                             const assignedStaff = job.filledBy ? staff.find(s => s.id === job.filledBy) : null;
                             const assignedCrLabel = (assignedStaff && assignedStaff.cr > 0) ? ` (CR ${assignedStaff.cr})` : '';
                             return (
@@ -3929,7 +3976,132 @@ const EnchantmentMapView = ({ stronghold }) => {
         reader.readAsDataURL(file);
     };
 
-    const onImgLoad = (e) => setImgSize({ w: e.target.naturalWidth, h: e.target.naturalHeight });
+    // ── Export map as PNG ────────────────────────────────────────────────────
+    const exportMap = () => {
+        if (!mapImage) return;
+        const img = new Image();
+        img.onload = () => {
+            const W = img.naturalWidth;
+            const H = img.naturalHeight;
+            const canvas = document.createElement('canvas');
+            canvas.width = W; canvas.height = H;
+            const ctx = canvas.getContext('2d');
+
+            // 1. Draw base image
+            ctx.drawImage(img, 0, 0, W, H);
+
+            // 2. Draw each element
+            drawn.forEach(el => {
+                ctx.save();
+                ctx.strokeStyle = el.color || '#ef4444';
+                ctx.lineWidth   = el.sw || 3;
+                ctx.lineCap     = 'round';
+                ctx.lineJoin    = 'round';
+                ctx.fillStyle   = 'none';
+
+                if (el.type === 'freehand' && el.pts?.length > 1) {
+                    ctx.beginPath();
+                    el.pts.forEach(([x,y],i) => i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y));
+                    ctx.stroke();
+                } else if (el.type === 'line') {
+                    ctx.beginPath(); ctx.moveTo(el.x1,el.y1); ctx.lineTo(el.x2,el.y2); ctx.stroke();
+                } else if (el.type === 'circle') {
+                    const r = Math.hypot(el.x2-el.x1, el.y2-el.y1);
+                    ctx.beginPath(); ctx.arc(el.x1,el.y1,r,0,Math.PI*2); ctx.stroke();
+                } else if (el.type === 'rect') {
+                    const x=Math.min(el.x1,el.x2), y=Math.min(el.y1,el.y2);
+                    ctx.strokeRect(x,y,Math.abs(el.x2-el.x1),Math.abs(el.y2-el.y1));
+                } else if (el.type === 'text' && el.content) {
+                    const fs = el.fs || 24;
+                    ctx.font = `bold ${fs}px "Cinzel", serif`;
+                    ctx.textBaseline = 'top';
+                    // Outline
+                    ctx.strokeStyle = 'rgba(0,0,0,0.75)';
+                    ctx.lineWidth = 3;
+                    el.content.split('\n').forEach((line, i) => {
+                        ctx.strokeText(line, el.x, el.y + i * fs * 1.25);
+                    });
+                    // Fill
+                    ctx.fillStyle = el.color || '#ef4444';
+                    el.content.split('\n').forEach((line, i) => {
+                        ctx.fillText(line, el.x, el.y + i * fs * 1.25);
+                    });
+                }
+                ctx.restore();
+            });
+
+            // 3. Draw pins with name labels
+            pins.forEach(pin => {
+                const enc = completed.find(e => e.id === pin.enchantmentId);
+                if (!enc) return;
+                const col = pinColor(enc);
+                const px = (pin.x / 100) * W;
+                const py = (pin.y / 100) * H;
+                const r  = 14; // pin circle radius
+                const tipY = py; // tip of the pin
+                const cx = px;
+                const cy = py - r * 1.8; // center of the circle part
+
+                ctx.save();
+                // Drop shadow
+                ctx.shadowColor = 'rgba(0,0,0,0.6)';
+                ctx.shadowBlur  = 6;
+                ctx.shadowOffsetX = 2;
+                ctx.shadowOffsetY = 2;
+
+                // Pin teardrop shape
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, Math.PI * 0.3, Math.PI * 0.7, true); // top arc
+                ctx.lineTo(px, tipY); // lines to tip
+                ctx.closePath();
+                ctx.fillStyle = col;
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                // White inner dot
+                ctx.shadowColor = 'transparent';
+                ctx.beginPath();
+                ctx.arc(cx, cy, r * 0.42, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255,255,255,0.92)';
+                ctx.fill();
+
+                // Category letter
+                const letter = (ENCHANTMENT_CATEGORY_LABELS[enc.category]||'?')[0];
+                ctx.font = `bold ${Math.round(r*0.7)}px "Cinzel", sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = col;
+                ctx.fillText(letter, cx, cy);
+
+                ctx.restore();
+
+                // Name label next to pin
+                const label = enc.customName || enc.name;
+                const fs2 = Math.max(12, Math.round(W / 80)); // scale font to image size
+                ctx.save();
+                ctx.font = `bold ${fs2}px "Cinzel", serif`;
+                ctx.textBaseline = 'middle';
+                ctx.textAlign = 'left';
+                const labelX = px + r + 4;
+                const labelY = cy;
+                // Outline
+                ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+                ctx.lineWidth = 3;
+                ctx.strokeText(label, labelX, labelY);
+                // Fill
+                ctx.fillStyle = '#ffffff';
+                ctx.fillText(label, labelX, labelY);
+                ctx.restore();
+            });
+            const link = document.createElement('a');
+            link.download = 'festungskarte.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        };
+        img.src = mapImage;
+    };
 
     // ── Mouse down ─────────────────────────────────────────────────────────
     const onMouseDown = (e) => {
@@ -4207,7 +4379,12 @@ const EnchantmentMapView = ({ stronghold }) => {
                 type:'button',
                 onClick:()=>{ removeDrawElement(selectedId); setSelectedId(null); },
                 className:'ml-1 text-xs px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded font-bold'
-            }, '🗑️ Löschen')
+            }, '🗑️ Löschen'),
+            mapImage && React.createElement('button', {
+                type:'button', onClick: exportMap,
+                title: 'Karte mit allen Zeichnungen als PNG exportieren',
+                className:'ml-auto text-xs px-2.5 py-1 bg-gradient-to-br from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 text-white font-bold rounded border border-green-800 shadow transition-all'
+            }, '⬇️ Karte exportieren')
         ),
         React.createElement('input', { ref:fileInputRef, type:'file', accept:'image/*', onChange:e=>{handleFile(e.target.files?.[0]); e.target.value='';}, className:'hidden' }),
 
