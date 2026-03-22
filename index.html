@@ -950,9 +950,7 @@ const useStronghold = () => {
   const exportSlot = useCallback((name) => {
     const slotToExport = saveSlotsRef.current.find(s => s.name === name);
     if (!slotToExport) return;
-    // Strip undoStack from export — players don't need rewind history
-    const { undoStack: _undo, ...exportData } = slotToExport;
-    const data = JSON.stringify(exportData, null, 2);
+    const data = JSON.stringify(slotToExport, null, 2);
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -977,14 +975,14 @@ const useStronghold = () => {
               newName = `${importedSlot.name} (Importiert ${counter})`;
               counter++;
           }
-          const newSave = { ...importedSlot, name: newName, undoStack: [] };
+          const newSave = { ...importedSlot, name: newName };
           const newSaveSlots = [...saveSlotsRef.current, newSave];
           setSaveSlots(newSaveSlots);
           setState(newSave.state);
           setActiveSaveName(newSave.name);
           setWorldDateState(newSave.worldDate || null);
           setWorldDateLabelState(newSave.worldDateLabel || '');
-          setUndoStack([]);
+          setUndoStack(newSave.undoStack || []);
           localStorage.setItem('strongholdSaves', JSON.stringify(newSaveSlots));
           localStorage.setItem('activeStrongholdSaveName', newSave.name);
       } catch (error) {
