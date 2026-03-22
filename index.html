@@ -402,9 +402,9 @@ const COMPONENTS = {
         "Shop, basic": { cost: 400, ss: 1, perks: [PERK_LIST.COMMERCE], jobs: [{ role: 'Merchant', count: 1 }] },
         "Shop, fancy": { cost: 4000, ss: 1, perks: [PERK_LIST.COMMERCE], jobs: [{ role: 'Merchant', count: 2 }] },
         "Shop, luxury": { cost: 16000, ss: 1, perks: [PERK_LIST.COMMERCE], jobs: [{ role: 'Merchant', count: 4 }] },
-        "Tavern, basic": { cost: 900, ss: 1 },
-        "Tavern, fancy": { cost: 4000, ss: 1 },
-        "Tavern, luxury": { cost: 20000, ss: 1 },
+        "Tavern, basic": { cost: 900, ss: 1, jobs: [{ role: "Tavernkeeper", count: 1 }] },
+        "Tavern, fancy": { cost: 4000, ss: 1, jobs: [{ role: "Tavernkeeper", count: 2 }] },
+        "Tavern, luxury": { cost: 20000, ss: 1, jobs: [{ role: "Tavernkeeper", count: 4 }] },
     }
 };
 const COMPONENT_CLASSIFICATIONS = {
@@ -506,7 +506,7 @@ const TERRAIN_VALUE_EFFECTS = {
     cold:        { iv: -5,  ev: -5,  sv:   0 },
     warm:        { iv:  5,  ev:  0,  sv:   0 },
     forest:      { iv:  5,  ev:  0,  sv:   0 },
-    desert:      { iv:-10,  ev: -5,  sv:   0 },
+    desert:      { iv:-10,  ev: -5,  sv:  -5 },
     marsh:       { iv: -5,  ev:-10,  sv:   0 },
     mountains:   { iv:  5,  ev:-15,  sv:   0 },
     arctic:      { iv:-15,  ev:-25,  sv: -10 },
@@ -659,7 +659,7 @@ const CLIMATE_DESCRIPTIONS = {
     cold:        "Erhöht die Baukosten um 5%, −5% IV, −5% ÖV. Kürzere Bausaison, aufwändigere Isolierung und schwierigere Logistik treiben die Kosten hoch. Handel und Produktion leiden unter dem langen Winter.",
     warm:        "Senkt die Baukosten um 5%, +5% IV. Längere Arbeitstage, üppige Vegetation und günstige Baubedingungen machen warme Regionen produktiv und erschwinglich.",
     arctic:      "Erhöht die Baukosten um 15%, +25% MV, −15% IV, −25% ÖV, −10% SV. Permafrostboden, monatelange Dunkelheit und arktische Stürme machen Bau und Versorgung extrem schwierig. Kaum Ressourcen, kein Handel, soziale Isolation – aber nahezu uneinnehmbar.",
-    desert:      "Erhöht die Baukosten um 10%, +5% MV, −10% IV, −5% ÖV. Wassermangel und extreme Temperaturen treiben Baukosten und reduzieren Produktivität. Doch Angreifer leiden unter denselben Bedingungen.",
+    desert:      "Erhöht die Baukosten um 10%, +5% MV, −10% IV, −5% ÖV, −5% SV. Wassermangel, extreme Temperaturen und die Abgeschiedenheit treiben Baukosten und reduzieren Produktivität. Die karge Umgebung senkt auch die Moral. Doch Angreifer leiden unter denselben Bedingungen.",
     forest:      "Kein Kostenmodifikator, +5% IV. Reichliches Baumaterial (Holz, Wild, Kräuter) steigert die Produktion. Das Roden des Geländes gleicht etwaige Mehrkosten aus.",
     hill:        "Erhöht die Baukosten um 5%, +5% MV. Unebenes Terrain erschwert den Transport leicht, bietet aber gute Verteidigungspositionen und natürlichen Steinzugang.",
     marsh:       "Erhöht die Baukosten um 10%, +10% MV, −5% IV, −10% ÖV. Pfahlgründungen und Kanäle sind aufwendig. Feuchte Böden reduzieren die Produktivität und Handelswege sind schwer zugänglich – aber Sümpfe sind als natürliche Barriere kaum zu überwinden.",
@@ -1508,7 +1508,10 @@ const useStronghold = () => {
     }, [calculateScaledValue, damageShare, resourceBonusMults, terrainValueEffects, customValueMults]);
 
     const industrialPotential = useMemo(() => industrialValueForProfit * 0.01, [industrialValueForProfit]);
-    const economicPotential = useMemo(() => economicValueForProfit * 0.05 * (economicValueForProfit > 0 ? Math.min(1, industrialValueForProfit / economicValueForProfit) : 0), [economicValueForProfit, industrialValueForProfit]);
+    const economicPotential = useMemo(() => {
+        const raw = economicValueForProfit * 0.05 * (economicValueForProfit > 0 ? Math.min(1, industrialValueForProfit / economicValueForProfit) : 0);
+        return Math.min(raw, industrialValueForProfit * 0.01); // ÖV-Profit kann IV-Profit nie übersteigen
+    }, [economicValueForProfit, industrialValueForProfit]);
     const weeklyProfit = useMemo(() => industrialPotential + economicPotential, [industrialPotential, economicPotential]);
 
     const comparisonValue = useMemo(() => (militaryValue + industrialValue + economicValue) * 2, [militaryValue, industrialValue, economicValue]);
@@ -1676,7 +1679,7 @@ const useStronghold = () => {
             
             const industrialPotSim = currentIV_scaled * 0.01;
             const efficiency = currentEV_scaled > 0 ? Math.min(1, currentIV_scaled / currentEV_scaled) : 0;
-            const economicPotSim = currentEV_scaled * 0.05 * efficiency;
+            const economicPotSim = Math.min(currentEV_scaled * 0.05 * efficiency, industrialPotSim);
             const profit = industrialPotSim + economicPotSim;
             newLog.push(`Woche ${weekNumber}${dateStamp} (Wirtschaft): Einnahmen von ${profit.toFixed(2)} GP erzielt.`);
 
@@ -3654,8 +3657,8 @@ const ROOM_MECHANICS = {
     "Shop, basic":            "Schaltet COMMERCE frei. HÄNDLERGOLD: 25% des effektiven Shopwerts stehen wöchentlich als Händlergold bereit. Der effektive Wert skaliert mit besetzten Händlern (0 Händler = 0 Händlergold). Bei 1 Händler auf 400 sq ft (Basisgröße, Wert ≈ 400 GP): Händlergold = 400 × 25% = 100 GP/Woche. ÖKONOMISCHER PROFIT: ÖW × 5% × min(1, IW/ÖW)/Woche.",
     "Shop, fancy":            "Schaltet COMMERCE frei. Benötigt 2 Händler bei Basis-Fläche. Gleiches Händlergold-Prinzip (25% des effektiven Werts). Höherer Basis-Wert = mehr Händlergold.",
     "Shop, luxury":           "Schaltet COMMERCE frei. Benötigt 4 Händler bei Basis-Fläche. Höchstes Händlergold-Potenzial. Händlergold wird jede Woche zurückgesetzt.",
-    "Tavern, basic":          "Kein Ressourcen-Output. Ökonomischer-Wert-Beitrag. Wie alle ökonomischen Gebäude: Profit nur wenn IW ≥ ÖW. Formel: Ökoprofit = ÖW × 5% × min(1, IW/ÖW)/Woche.",
-    "Tavern, fancy":          "Kein Ressourcen-Output. Höherer Ökonomischer-Wert-Beitrag.",
+    "Tavern, basic":          "Benötigt 1 Tavernkeeper. Skaliert wie alle wirtschaftlichen Gebäude: 0 Tavernkeeper = 0 Ertrag. Ökonomischer-Wert-Beitrag. Ökoprofit = ÖW × 5% × min(1, IW/ÖW)/Woche.",
+    "Tavern, fancy":          "Benötigt 2 Tavernkeeper bei Basis-Fläche. Höherer Ökonomischer-Wert-Beitrag.",
     "Tavern, luxury":         "Kein Ressourcen-Output. Höchster Ökonomischer-Wert-Beitrag aller Tavernen.",
 };
 
@@ -5291,10 +5294,10 @@ const SummaryTab = ({ stronghold }) => {
                 React.createElement("div", { className: "space-y-8" },
                     React.createElement(SummarySection, { title: "Asset Values", icon: "💎" },
                         React.createElement(SummaryRow, { label: "Militärischer Wert", value: `${militaryValue.toFixed(0)} gp` }),
-                        (terrainMvBonus !== 0 || featureMvBonus !== 0) && React.createElement("div", { className: "flex justify-between text-xs bg-blue-50/60 dark:bg-blue-900/20 rounded px-2 py-0.5 -mt-1 mb-0.5" },
+                        (terrainMvBonus !== 0 || featureMvBonus !== 0 || resourceBonusMults.coastalMv !== 0) && React.createElement("div", { className: "flex justify-between text-xs bg-blue-50/60 dark:bg-blue-900/20 rounded px-2 py-0.5 -mt-1 mb-0.5" },
                             React.createElement("span", { className: "text-blue-700 dark:text-blue-400" }, "🏔️ MV-Standortboni"),
-                            React.createElement("span", { className: `font-semibold ${(terrainMvBonus+featureMvBonus) >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'}` },
-                                `${(terrainMvBonus+featureMvBonus) > 0 ? '+' : ''}${terrainMvBonus+featureMvBonus}% MV`
+                            React.createElement("span", { className: `font-semibold ${(terrainMvBonus+featureMvBonus+resourceBonusMults.coastalMv) >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'}` },
+                                `${(terrainMvBonus+featureMvBonus+resourceBonusMults.coastalMv) > 0 ? '+' : ''}${terrainMvBonus+featureMvBonus+resourceBonusMults.coastalMv}% MV`
                             )
                         ),
                         React.createElement(SummaryRow, { label: "Industrieller Wert", value: `${industrialValue.toFixed(0)} gp` }),
@@ -5718,6 +5721,7 @@ const DefenseTab = ({ stronghold }) => {
         terrainMvBonus,
         featureMvBonus,
         customValueMults,
+        resourceBonusMults,
         site,
         simulateNextWeek,
         rewindLastWeek,
@@ -5787,11 +5791,12 @@ const DefenseTab = ({ stronghold }) => {
                         React.createElement("h3", { className: "text-2xl font-semibold text-center mb-4 text-red-900 dark:text-red-200" }, "Status & Angriffschance"),
                         React.createElement("div", { className: "space-y-3 bg-black/10 dark:bg-black/20 p-4 rounded" },
                             React.createElement(InfoRow, { label: "Militärischer Wert (MV)", value: `${militaryValue.toFixed(0)} GP`, tooltip: "Gesamtwert aller militärischen Gebäude und Mauern, inkl. aller Boni." }),
-                            (terrainMvBonus !== 0 || featureMvBonus !== 0) && React.createElement("div", { className: "mx-1 mb-1 p-2 bg-blue-100/60 dark:bg-blue-900/30 rounded border border-blue-400/50 dark:border-blue-600/40" },
+                            (terrainMvBonus !== 0 || featureMvBonus !== 0 || resourceBonusMults.coastalMv !== 0) && React.createElement("div", { className: "mx-1 mb-1 p-2 bg-blue-100/60 dark:bg-blue-900/30 rounded border border-blue-400/50 dark:border-blue-600/40" },
                                 React.createElement("div", { className: "text-xs font-bold text-blue-800 dark:text-blue-300 mb-1" }, "🏔️ MV-Standortboni"),
                                 terrainMvBonus !== 0 && React.createElement("div", { className: "flex justify-between text-xs text-blue-700 dark:text-blue-400" },
                                     React.createElement("span", null,
                                         site.climate === 'arctic' ? '🧊 Arktis/Eiswüste'
+                                        : site.climate === 'underground' ? '🕳️ Unterirdisch'
                                         : site.climate ? site.climate.charAt(0).toUpperCase() + site.climate.slice(1) : ''
                                     ),
                                     React.createElement("span", { className: `font-semibold ${terrainMvBonus > 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'}` },
@@ -5804,10 +5809,17 @@ const DefenseTab = ({ stronghold }) => {
                                             `${FEATURE_MV_BONUS[f].pct > 0 ? '+' : ''}${FEATURE_MV_BONUS[f].pct}% MV`)
                                     )
                                 ),
+                                resourceBonusMults.coastalMv !== 0 && React.createElement("div", { className: "flex justify-between text-xs text-red-600 dark:text-red-400 mt-0.5" },
+                                    React.createElement("span", null,
+                                        (site.resourceBonuses||[]).includes('trade') && (site.resourceBonuses||[]).includes('coastal')
+                                            ? '⚠️ Hafen + Handelsroute' : '⚓ Offener Hafen (Seerouten)'
+                                    ),
+                                    React.createElement("span", { className: "font-semibold" }, `${resourceBonusMults.coastalMv}% MV`)
+                                ),
                                 React.createElement("div", { className: "flex justify-between text-xs font-bold text-blue-800 dark:text-blue-200 border-t border-blue-400/30 mt-1 pt-1" },
                                     React.createElement("span", null, "Gesamt"),
-                                    React.createElement("span", { className: (terrainMvBonus + featureMvBonus) >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400' },
-                                        `${(terrainMvBonus + featureMvBonus) > 0 ? '+' : ''}${terrainMvBonus + featureMvBonus}% MV`)
+                                    React.createElement("span", { className: (terrainMvBonus + featureMvBonus + resourceBonusMults.coastalMv) >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400' },
+                                        `${(terrainMvBonus + featureMvBonus + resourceBonusMults.coastalMv) > 0 ? '+' : ''}${terrainMvBonus + featureMvBonus + resourceBonusMults.coastalMv}% MV`)
                                 )
                             ),
                             customValueMults.mv !== 0 && React.createElement("div", { className: "mx-1 mb-1 p-2 bg-purple-100/60 dark:bg-purple-900/30 rounded border border-purple-400/50 dark:border-purple-600/40" },
