@@ -3976,6 +3976,8 @@ const EnchantmentMapView = ({ stronghold }) => {
         reader.readAsDataURL(file);
     };
 
+    const onImgLoad = (e) => setImgSize({ w: e.target.naturalWidth, h: e.target.naturalHeight });
+
     // ── Export map as PNG ────────────────────────────────────────────────────
     const exportMap = () => {
         if (!mapImage) return;
