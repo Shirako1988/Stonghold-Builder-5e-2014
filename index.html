@@ -4342,19 +4342,22 @@ const EnchantmentMapView = ({ stronghold }) => {
             tool==='text'
                 ? React.createElement('label', { className:'flex items-center gap-1', title:'Schriftgröße' },
                     React.createElement('span', { className:'text-xs text-wood-text/60 dark:text-parchment-bg/50' }, 'Aa'),
-                    React.createElement('input', { type:'range', min:10, max:120, value:fontSize, onChange:e=>setFontSize(+e.target.value), className:'w-16 h-3 accent-wood dark:accent-gold' }),
-                    React.createElement('span', { className:'text-xs text-wood-text/60 dark:text-parchment-bg/50 w-6' }, fontSize)
+                    React.createElement('input', { type:'range', min:10, max:120, value:fontSize, onChange:e=>setFontSize(+e.target.value), className:'w-14 h-3 accent-wood dark:accent-gold' }),
+                    React.createElement('input', { type:'number', min:10, max:300, value:fontSize,
+                        onChange:e=>setFontSize(Math.max(10,Math.min(300,+e.target.value||10))),
+                        className:'w-12 text-xs text-center p-0.5 border border-gold/60 dark:border-gray-600 rounded bg-white/80 dark:bg-gray-700 dark:text-parchment-light' })
                   )
                 : (() => {
-                    // If a text element is selected in select mode, show its font size slider
                     const selEl = tool==='select' && selectedId ? drawn.find(e=>e.id===selectedId) : null;
                     if (selEl && selEl.type==='text') {
                         return React.createElement('label', { className:'flex items-center gap-1', title:'Schriftgröße des ausgewählten Textes' },
                             React.createElement('span', { className:'text-xs text-amber-600 dark:text-amber-400 font-semibold' }, 'Aa'),
                             React.createElement('input', { type:'range', min:10, max:120, value:selEl.fs||24,
                                 onChange:e=>{ updateDrawElement(selEl.id, { fs: +e.target.value }); e.target.blur(); },
-                                className:'w-16 h-3 accent-wood dark:accent-gold' }),
-                            React.createElement('span', { className:'text-xs text-wood-text/60 dark:text-parchment-bg/50 w-6' }, selEl.fs||24)
+                                className:'w-14 h-3 accent-wood dark:accent-gold' }),
+                            React.createElement('input', { type:'number', min:10, max:300, value:selEl.fs||24,
+                                onChange:e=>{ updateDrawElement(selEl.id, { fs: Math.max(10,Math.min(300,+e.target.value||10)) }); },
+                                className:'w-12 text-xs text-center p-0.5 border border-amber-400/60 dark:border-amber-600/60 rounded bg-white/80 dark:bg-gray-700 dark:text-parchment-light' })
                         );
                     }
                     if (selEl && selEl.type !== 'text') {
@@ -4362,14 +4365,18 @@ const EnchantmentMapView = ({ stronghold }) => {
                             React.createElement('span', { className:'text-xs text-amber-600 dark:text-amber-400 font-semibold' }, '〰️'),
                             React.createElement('input', { type:'range', min:1, max:12, value:selEl.sw||3,
                                 onChange:e=>{ updateDrawElement(selEl.id, { sw: +e.target.value }); e.target.blur(); },
-                                className:'w-16 h-3 accent-wood dark:accent-gold' }),
-                            React.createElement('span', { className:'text-xs text-wood-text/60 dark:text-parchment-bg/50 w-4' }, selEl.sw||3)
+                                className:'w-14 h-3 accent-wood dark:accent-gold' }),
+                            React.createElement('input', { type:'number', min:1, max:99, value:selEl.sw||3,
+                                onChange:e=>{ updateDrawElement(selEl.id, { sw: Math.max(1,Math.min(99,+e.target.value||1)) }); },
+                                className:'w-12 text-xs text-center p-0.5 border border-amber-400/60 dark:border-amber-600/60 rounded bg-white/80 dark:bg-gray-700 dark:text-parchment-light' })
                         );
                     }
                     return React.createElement('label', { className:'flex items-center gap-1', title:`Strichstärke: ${strokeWidth}px` },
                         React.createElement('span', { className:'text-xs text-wood-text/60 dark:text-parchment-bg/50' }, '〰️'),
-                        React.createElement('input', { type:'range', min:1, max:12, value:strokeWidth, onChange:e=>setStrokeWidth(+e.target.value), className:'w-16 h-3 accent-wood dark:accent-gold' }),
-                        React.createElement('span', { className:'text-xs text-wood-text/60 dark:text-parchment-bg/50 w-4' }, strokeWidth)
+                        React.createElement('input', { type:'range', min:1, max:12, value:strokeWidth, onChange:e=>setStrokeWidth(+e.target.value), className:'w-14 h-3 accent-wood dark:accent-gold' }),
+                        React.createElement('input', { type:'number', min:1, max:99, value:strokeWidth,
+                            onChange:e=>setStrokeWidth(Math.max(1,Math.min(99,+e.target.value||1))),
+                            className:'w-12 text-xs text-center p-0.5 border border-gold/60 dark:border-gray-600 rounded bg-white/80 dark:bg-gray-700 dark:text-parchment-light' })
                     );
                   })(),
             React.createElement('div', { className:'h-5 w-px bg-wood/20 dark:bg-gray-600' }),
