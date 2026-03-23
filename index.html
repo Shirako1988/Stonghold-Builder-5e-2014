@@ -446,9 +446,9 @@ const COMPONENT_CLASSIFICATIONS = {
     "Shop, basic": "economic",
     "Shop, fancy": "economic",
     "Shop, luxury": "economic",
-    "Tavern, basic": "economic",
-    "Tavern, fancy": "economic",
-    "Tavern, luxury": "economic",
+    "Tavern, basic": "economic_social",
+    "Tavern, fancy": "economic_social",
+    "Tavern, luxury": "economic_social",
     "Dock, basic": "economic",
     "Dock, extended": "economic",
     "Dock, extended dry": "economic",
@@ -458,7 +458,9 @@ const COMPONENT_CLASSIFICATIONS = {
     "Library, luxury": "social",
 };
 const getClassificationForComponent = (name) => {
-    return COMPONENT_CLASSIFICATIONS[name] || 'social';
+    const raw = COMPONENT_CLASSIFICATIONS[name] || 'social';
+    // economic_social is stored internally but shown as economic in the UI
+    return raw === 'economic_social' ? 'economic' : raw;
 };
 const HIRELING_DATA = {
     'unskilled': { name: 'Unskilled Hireling', cost: 1.5, cr: 0.125 }, // 6gp/month -> 1.5gp/week
@@ -654,9 +656,9 @@ const ROOM_DESCRIPTIONS = {
         "Shop, basic": "Ein kleiner, einfacher Laden mit groben Holzregalen und einer Verkaufstheke. Bietet den Bewohnern und Besuchern der Festung die Möglichkeit, grundlegende Waren zu handeln.",
         "Shop, fancy": "Ein ansprechendes Geschäft mit einem großen Schaufenster, polierten Holzböden und Glasvitrinen. Hier werden hochwertigere Waren in einem einladenden Ambiente angeboten.",
         "Shop, luxury": "Ein exklusives Geschäft mit Marmorböden und maßgefertigten, verschlossenen Vitrinen. Kunden werden mit edlen Weinen bewirtet, während sie die feinsten und teuersten Waren begutachten.",
-        "Tavern, basic": "Eine einfache Schänke mit groben Tischen und einem knisternden Kamin. Hier treffen sich die einfachen Leute der Festung auf ein Bier und eine warme Mahlzeit.",
-        "Tavern, fancy": "Ein gehobenes Gasthaus mit einer polierten Bar, bequemen Stühlen und einer Auswahl an Weinen. Der ideale Ort für Reisende und wohlhabendere Bewohner.",
-        "Tavern, luxury": "Eine atemberaubende 'Bibliothek der Spirituosen', die nur die feinsten Getränke und Gourmet-Mahlzeiten anbietet. Hier verkehren Adlige und reiche Kaufleute in einem exklusiven Ambiente.",
+        "Tavern, basic": "Eine einfache Schänke mit groben Tischen und einem knisternden Kamin. Hier treffen sich die einfachen Leute auf ein Bier und eine warme Mahlzeit. Zählt 40% zum ÖV und 60% zum SV – denn eine Schänke macht Leute glücklicher als reich.",
+        "Tavern, fancy": "Ein gehobenes Gasthaus mit polierter Bar und feinen Weinen. Reisende, Händler und Informanten kehren hier ein. 40% ÖV / 60% SV – und der Ruf zieht mehr Kundschaft in die Shops.",
+        "Tavern, luxury": "Eine legendäre 'Bibliothek der Spirituosen' für Adlige und reiche Kaufleute. Gerüchte, Kontakte und Aufträge entstehen hier täglich. 40% ÖV / 60% SV – und die angesehene Kundschaft macht jeden Shop in der Festung profitabler.",
     }
 };
 const MATERIAL_DESCRIPTIONS = {
@@ -806,6 +808,32 @@ const calculateScaledBenefits = (componentName, category, area) => {
 
     return { resources: scaledResources, jobs: scaledJobs, perks: scaledPerks };
 };
+// ── State migration: ensure all components have pureCost ──────────────────────
+const computePureCost = (component) => {
+    if (component.pureCost !== undefined) return component.pureCost;
+    // Find component data to get base cost per sq ft
+    for (const cat of Object.values(COMPONENTS)) {
+        const data = cat[component.name];
+        if (data) {
+            const baseSsArea = Math.pow((data.ss || 1) * 20, 2);
+            const costPerSqFt = baseSsArea > 0 ? data.cost / baseSsArea : 0;
+            const area = component.area || (component.length * component.width) || baseSsArea;
+            return costPerSqFt * area;
+        }
+    }
+    return component.baseCost; // fallback
+};
+
+const migrateState = (state) => {
+    if (!state) return state;
+    const components = (state.components || []).map(c => ({
+        ...c,
+        pureCost: computePureCost(c),
+    }));
+    return { ...state, components };
+};
+
+
 const useStronghold = () => {
   const [state, setState] = useState(INITIAL_STATE);
   const [saveSlots, setSaveSlots] = useState([]);
@@ -839,7 +867,7 @@ const useStronghold = () => {
             };
             setSaveSlots([legacySave]);
             setActiveSaveName(legacySave.name);
-            setState(oldState);
+            setState(migrateState(oldState));
             setWorldDateState(legacySave.worldDate);
             setWorldDateLabelState(legacySave.worldDateLabel);
             localStorage.removeItem('strongholdBuilder');
@@ -854,13 +882,13 @@ const useStronghold = () => {
 
         if (activeSave) {
             setActiveSaveName(activeSave.name);
-            setState(activeSave.state);
+            setState(migrateState(activeSave.state));
             setWorldDateState(activeSave.worldDate || null);
             setWorldDateLabelState(activeSave.worldDateLabel || '');
             setUndoStack(activeSave.undoStack || []);
         } else if (loadedSaves.length > 0) {
             setActiveSaveName(loadedSaves[0].name);
-            setState(loadedSaves[0].state);
+            setState(migrateState(loadedSaves[0].state));
             setWorldDateState(loadedSaves[0].worldDate || null);
             setWorldDateLabelState(loadedSaves[0].worldDateLabel || '');
             setUndoStack(loadedSaves[0].undoStack || []);
@@ -920,7 +948,7 @@ const useStronghold = () => {
   const loadSlot = useCallback((name) => {
       const slotToLoad = saveSlotsRef.current.find(s => s.name === name);
       if (slotToLoad) {
-          setState(slotToLoad.state);
+          setState(migrateState(slotToLoad.state));
           setActiveSaveName(name);
           setWorldDateState(slotToLoad.worldDate || null);
           setWorldDateLabelState(slotToLoad.worldDateLabel || '');
@@ -1008,7 +1036,7 @@ const useStronghold = () => {
           const newSave = { ...importedSlot, name: newName };
           const newSaveSlots = [...saveSlotsRef.current, newSave];
           setSaveSlots(newSaveSlots);
-          setState(newSave.state);
+          setState(migrateState(newSave.state));
           setActiveSaveName(newSave.name);
           setWorldDateState(newSave.worldDate || null);
           setWorldDateLabelState(newSave.worldDateLabel || '');
@@ -1408,20 +1436,21 @@ const useStronghold = () => {
     const calculateFullValue = useCallback((classification) => {
         return state.components
             .filter(c => c.classification === classification && c.constructionStatus === 'completed')
-            .reduce((sum, c) => sum + c.baseCost, 0);
+            .reduce((sum, c) => sum + (c.pureCost ?? c.baseCost), 0);
     }, [state.components]);
 
     const calculateScaledValue = useCallback((classification) => {
         return state.components
             .filter(c => c.classification === classification && c.constructionStatus === 'completed')
             .reduce((sum, c) => {
+                const pv = c.pureCost ?? c.baseCost;
                 if (!c.jobSlots || c.jobSlots.length === 0) {
-                    return sum + c.baseCost;
+                    return sum + pv;
                 }
                 const totalJobs = c.jobSlots.length;
                 const filledJobs = c.jobSlots.filter(j => j.filledBy).length;
                 const efficiency = totalJobs > 0 ? filledJobs / totalJobs : 1;
-                return sum + (c.baseCost * efficiency);
+                return sum + (pv * efficiency);
             }, 0);
     }, [state.components]);
 
@@ -1441,8 +1470,52 @@ const useStronghold = () => {
         return componentValue + wallValue + (enchantmentValueByCategory.military || 0);
     }, [state.components, state.walls, calculateFullValue, enchantmentValueByCategory]);
     const baseIndustrialValue = useMemo(() => calculateFullValue('industrial') + (enchantmentValueByCategory.industrial || 0), [calculateFullValue, enchantmentValueByCategory]);
-    const baseEconomicValue = useMemo(() => calculateFullValue('economic') + (enchantmentValueByCategory.economic || 0), [calculateFullValue, enchantmentValueByCategory]);
-    const baseSocialValue = useMemo(() => calculateFullValue('social') + (enchantmentValueByCategory.social || 0), [calculateFullValue, enchantmentValueByCategory]);
+    const baseEconomicValue = useMemo(() => {
+        const pureEco = calculateFullValue('economic') + (enchantmentValueByCategory.economic || 0);
+        // economic_social (taverns): 40% goes to ÖV, scaled by job efficiency
+        const tavernEcoSplit = state.components
+            .filter(c => c.classification === 'economic_social' && c.constructionStatus === 'completed')
+            .reduce((sum, c) => {
+                const totalJobs = c.jobSlots?.length || 0;
+                const filledJobs = c.jobSlots?.filter(j => j.filledBy).length || 0;
+                const eff = totalJobs > 0 ? filledJobs / totalJobs : 0;
+                return sum + (c.pureCost ?? c.baseCost) * eff * 0.4;
+            }, 0);
+        return pureEco + tavernEcoSplit;
+    }, [calculateFullValue, enchantmentValueByCategory, state.components]);
+
+    const baseSocialValue = useMemo(() => {
+        const pureSocial = calculateFullValue('social') + (enchantmentValueByCategory.social || 0);
+        // economic_social (taverns): 60% goes to SV, scaled by job efficiency
+        const tavernSvSplit = state.components
+            .filter(c => c.classification === 'economic_social' && c.constructionStatus === 'completed')
+            .reduce((sum, c) => {
+                const totalJobs = c.jobSlots?.length || 0;
+                const filledJobs = c.jobSlots?.filter(j => j.filledBy).length || 0;
+                const eff = totalJobs > 0 ? filledJobs / totalJobs : 0;
+                return sum + (c.pureCost ?? c.baseCost) * eff * 0.6;
+            }, 0);
+        return pureSocial + tavernSvSplit;
+    }, [calculateFullValue, enchantmentValueByCategory, state.components]);
+
+    // Tavern bonus on Shop ÖV: (tavernValue / baseExclTaverns) × 200%
+    const tavernBonus = useMemo(() => {
+        const completed = state.components.filter(c => c.constructionStatus === 'completed');
+        const tavernTotal = completed
+            .filter(c => c.classification === 'economic_social')
+            .reduce((sum, c) => {
+                const tj = c.jobSlots?.length || 0;
+                const fj = c.jobSlots?.filter(j => j.filledBy).length || 0;
+                const eff = tj > 0 ? fj / tj : 0;
+                return sum + (c.pureCost ?? c.baseCost) * eff;
+            }, 0);
+        const baseExcl = completed
+            .filter(c => c.classification !== 'economic_social')
+            .reduce((sum, c) => sum + (c.pureCost ?? c.baseCost), 0)
+            + state.walls.filter(w => w.constructionStatus === 'completed').reduce((sum, w) => sum + w.baseCost, 0);
+        const pct = baseExcl > 0 ? (tavernTotal / baseExcl) * 200 : 0;
+        return { pct, tavernTotal, baseExcl };
+    }, [state.components, state.walls]);
 
     // --- PRIEST / CHAPEL LOGIC START ---
     const totalChapelValue = useMemo(() => 
@@ -1507,26 +1580,46 @@ const useStronghold = () => {
         return { mv: sum('mv'), iv: sum('iv'), ev: sum('ev'), sv: sum('sv') };
     }, [state.site.customFeatures]);
 
-    const militaryValue = Math.max(0, (baseMilitaryValue - damageShare) * (1 + (terrainMvBonus + featureMvBonus + resourceBonusMults.coastalMv) / 100) * (1 + customValueMults.mv / 100));
-    const industrialValue = Math.max(0, (baseIndustrialValue - damageShare) * resourceBonusMults.iv * (1 + (terrainValueEffects.iv + customValueMults.iv) / 100));
-    const economicValue = Math.max(0, (baseEconomicValue - damageShare) * resourceBonusMults.ev * (1 + (terrainValueEffects.ev + customValueMults.ev) / 100));
+    const militaryValue = Math.max(0, (baseMilitaryValue - damageShare) * (1 + (terrainMvBonus + featureMvBonus + resourceBonusMults.coastalMv + customValueMults.mv) / 100));
+    const industrialValue = Math.max(0, (baseIndustrialValue - damageShare) * (1 + (resourceBonusMults.ivPct + terrainValueEffects.iv + customValueMults.iv) / 100));
+    const economicValue = Math.max(0, (baseEconomicValue - damageShare) * (1 + (resourceBonusMults.evPct + terrainValueEffects.ev + customValueMults.ev) / 100));
     const socialValue = Math.max(0, baseSocialValue + actualPriestBonus - damageShare) * (1 + (terrainValueEffects.sv + customValueMults.sv) / 100);
     const formulaSV = industrialValue + economicValue;
     const totalValue = militaryValue + industrialValue + economicValue + socialValue;
 
     const industrialValueForProfit = useMemo(() => {
         const scaledBase = calculateScaledValue('industrial');
-        return Math.max(0, scaledBase - damageShare) * resourceBonusMults.iv * (1 + (terrainValueEffects.iv + customValueMults.iv) / 100);
+        const totalPct = resourceBonusMults.ivPct + terrainValueEffects.iv + customValueMults.iv;
+        return Math.max(0, scaledBase - damageShare) * (1 + totalPct / 100);
     }, [calculateScaledValue, damageShare, resourceBonusMults, terrainValueEffects, customValueMults]);
+
     const economicValueForProfit = useMemo(() => {
-        const scaledBase = calculateScaledValue('economic');
-        return Math.max(0, scaledBase - damageShare) * resourceBonusMults.ev * (1 + (terrainValueEffects.ev + customValueMults.ev) / 100);
-    }, [calculateScaledValue, damageShare, resourceBonusMults, terrainValueEffects, customValueMults]);
+        const shopScaled = state.components
+            .filter(c => c.classification === 'economic' && c.constructionStatus === 'completed')
+            .reduce((sum, c) => {
+                const totalJobs = c.jobSlots?.length || 0;
+                const filledJobs = c.jobSlots?.filter(j => j.filledBy).length || 0;
+                const eff = totalJobs > 0 ? filledJobs / totalJobs : 1;
+                return sum + (c.pureCost ?? c.baseCost) * eff;
+            }, 0);
+        const tavernScaled = state.components
+            .filter(c => c.classification === 'economic_social' && c.constructionStatus === 'completed')
+            .reduce((sum, c) => {
+                const totalJobs = c.jobSlots?.length || 0;
+                const filledJobs = c.jobSlots?.filter(j => j.filledBy).length || 0;
+                const eff = totalJobs > 0 ? filledJobs / totalJobs : 0;
+                return sum + (c.pureCost ?? c.baseCost) * eff * 0.4;
+            }, 0);
+        const totalPct = resourceBonusMults.evPct + terrainValueEffects.ev + customValueMults.ev;
+        const shopBonus = shopScaled * (tavernBonus.pct / 100);
+        const totalEv = Math.max(0, shopScaled + tavernScaled + shopBonus - damageShare);
+        return totalEv * (1 + totalPct / 100);
+    }, [state.components, damageShare, resourceBonusMults, terrainValueEffects, customValueMults]);
 
     const industrialPotential = useMemo(() => industrialValueForProfit * 0.01, [industrialValueForProfit]);
     const economicPotential = useMemo(() => {
         const raw = economicValueForProfit * 0.05 * (economicValueForProfit > 0 ? Math.min(1, industrialValueForProfit / economicValueForProfit) : 0);
-        return Math.min(raw, industrialValueForProfit * 0.01); // ÖV-Profit kann IV-Profit nie übersteigen
+        return raw; // ÖV-Profit kann IV-Profit übersteigen (5% Rate vs 1%) – nur der ÖV-WERT ist durch IV-WERT gedeckelt
     }, [economicValueForProfit, industrialValueForProfit]);
     const weeklyProfit = useMemo(() => industrialPotential + economicPotential, [industrialPotential, economicPotential]);
 
@@ -1541,14 +1634,14 @@ const useStronghold = () => {
         const scaledShopValue = state.components
             .filter(c => c.constructionStatus === 'completed' && c.name.toLowerCase().includes('shop'))
             .reduce((sum, c) => {
-                if (!c.jobSlots || c.jobSlots.length === 0) {
-                    return sum + c.baseCost;
-                }
+                const baseForMerchant = c.pureCost ?? c.baseCost;
+                if (!c.jobSlots || c.jobSlots.length === 0) return sum + baseForMerchant;
                 const totalJobs = c.jobSlots.length;
                 const filledJobs = c.jobSlots.filter(j => j.filledBy !== null).length;
                 const efficiency = totalJobs > 0 ? filledJobs / totalJobs : 1;
-                return sum + (c.baseCost * efficiency);
+                return sum + (baseForMerchant * efficiency);
             }, 0);
+        // Merchant gold is purely based on shop value, NOT affected by tavern bonus
         return scaledShopValue * 0.25;
     }, [state.components]);
 
@@ -1568,13 +1661,18 @@ const useStronghold = () => {
 
     const economicComponentsBreakdown = useMemo(() => {
         return state.components
-            .filter(c => c.constructionStatus === 'completed' && ['industrial', 'economic'].includes(c.classification))
+            .filter(c => c.constructionStatus === 'completed' && ['industrial', 'economic', 'economic_social'].includes(c.classification))
             .map(c => {
                 const totalJobs = c.jobSlots?.length || 0;
                 const filledJobs = c.jobSlots?.filter(j => j.filledBy).length || 0;
+                const pv = c.pureCost ?? c.baseCost;
                 const efficiency = totalJobs > 0 ? filledJobs / totalJobs : (totalJobs === 0 ? 1 : 0);
-                const currentValue = c.baseCost * efficiency;
+                const currentValue = pv * efficiency;
                 const isShop = c.name.toLowerCase().includes('shop');
+                const isTavern = c.classification === 'economic_social';
+                // Merchant gold uses pure cost (without site modifier), not affected by tavern bonus
+                const pureBase = c.pureCost ?? c.baseCost;
+                const rawShopValue = isShop ? pureBase * efficiency : 0;
                 
                 return {
                     id: c.id,
@@ -1583,16 +1681,101 @@ const useStronghold = () => {
                     jobRole: c.jobSlots?.[0]?.role || 'Arbeiter',
                     totalJobs,
                     filledJobs,
-                    baseValue: c.baseCost,
+                    baseValue: c.pureCost ?? c.baseCost,
+                    paidCost: c.baseCost,
                     currentValue,
-                    merchantGoldContribution: isShop ? currentValue * 0.25 : 0,
+                    merchantGoldContribution: isShop ? rawShopValue * 0.25 : 0,
+                    tavernNote: isTavern ? '40% → ÖV · 60% → SV' : null,
                 };
             })
             .sort((a, b) => {
-                const order = { industrial: 1, economic: 2 };
-                return order[a.classification] - order[b.classification];
+                const order = { industrial: 1, economic: 2, economic_social: 3 };
+                return (order[a.classification] || 9) - (order[b.classification] || 9);
             });
     }, [state.components]);
+
+    const socialComponentsBreakdown = useMemo(() => {
+        const socialBuildings = state.components
+            .filter(c => c.constructionStatus === 'completed' && c.classification === 'social')
+            .map(c => {
+                const totalJobs = c.jobSlots?.length || 0;
+                const filledJobs = c.jobSlots?.filter(j => j.filledBy).length || 0;
+                const pv = c.pureCost ?? c.baseCost;
+                const efficiency = totalJobs > 0 ? filledJobs / totalJobs : (totalJobs === 0 ? 1 : 0);
+                const currentValue = pv * efficiency;
+                return {
+                    id: c.id,
+                    name: c.name,
+                    classification: c.classification,
+                    jobRole: c.jobSlots?.[0]?.role || 'Arbeiter',
+                    totalJobs,
+                    filledJobs,
+                    baseValue: pv,
+                    paidCost: c.baseCost,
+                    currentValue,
+                    tavernNote: null,
+                };
+            });
+        // Also include economic_social (taverns) with their 60% SV contribution
+        const tavernBuildings = state.components
+            .filter(c => c.constructionStatus === 'completed' && c.classification === 'economic_social')
+            .map(c => {
+                const totalJobs = c.jobSlots?.length || 0;
+                const filledJobs = c.jobSlots?.filter(j => j.filledBy).length || 0;
+                const pv = c.pureCost ?? c.baseCost;
+                const efficiency = totalJobs > 0 ? filledJobs / totalJobs : 0;
+                const currentValue = pv * efficiency * 0.6;
+                return {
+                    id: c.id + '_sv',
+                    name: c.name,
+                    classification: 'economic_social',
+                    jobRole: c.jobSlots?.[0]?.role || 'Arbeiter',
+                    totalJobs,
+                    filledJobs,
+                    baseValue: pv * 0.6,
+                    paidCost: c.baseCost,
+                    currentValue,
+                    tavernNote: '60% des Werts → SV',
+                };
+            });
+        return [...socialBuildings, ...tavernBuildings].sort((a, b) => b.currentValue - a.currentValue);
+    }, [state.components]);
+
+    const militaryComponentsBreakdown = useMemo(() => {
+        const militaryBuildings = state.components
+            .filter(c => c.constructionStatus === 'completed' && c.classification === 'military')
+            .map(c => {
+                const pv = c.pureCost ?? c.baseCost;
+                return {
+                    id: c.id,
+                    name: c.name,
+                    classification: 'military',
+                    jobRole: '',
+                    totalJobs: 0,
+                    filledJobs: 0,
+                    baseValue: pv,
+                    paidCost: c.baseCost,
+                    currentValue: pv,
+                    tavernNote: null,
+                };
+            });
+        // Also include completed walls
+        const wallBuildings = state.walls
+            .filter(w => w.constructionStatus === 'completed')
+            .map(w => ({
+                id: w.id,
+                name: w.customName || `${w.material.charAt(0).toUpperCase() + w.material.slice(1)} Mauer (${w.length}×${w.height}×${w.thickness})`,
+                classification: 'military_wall',
+                jobRole: '',
+                totalJobs: 0,
+                filledJobs: 0,
+                baseValue: w.baseCost,
+                paidCost: w.baseCost,
+                currentValue: w.baseCost,
+                tavernNote: null,
+            }));
+        return [...militaryBuildings, ...wallBuildings].sort((a, b) => b.currentValue - a.currentValue);
+    }, [state.components, state.walls]);
 
   const setWorldDate = useCallback((isoDate, label) => {
       setWorldDateState(isoDate || null);
@@ -1630,18 +1813,19 @@ const useStronghold = () => {
                 return components
                     .filter(c => c.classification === classification && c.constructionStatus === 'completed')
                     .reduce((sum, c) => {
-                        if (!c.jobSlots || c.jobSlots.length === 0) return sum + c.baseCost;
+                        const pv = c.pureCost ?? c.baseCost;
+                        if (!c.jobSlots || c.jobSlots.length === 0) return sum + pv;
                         const totalJobs = c.jobSlots.length;
                         const filledJobs = c.jobSlots.filter(j => j.filledBy).length;
                         const efficiency = totalJobs > 0 ? filledJobs / totalJobs : 1;
-                        return sum + (c.baseCost * efficiency);
+                        return sum + (pv * efficiency);
                     }, 0);
             };
 
             const calculateSimFullValue = (classification, components) => {
                  return components
                     .filter(c => c.classification === classification && c.constructionStatus === 'completed')
-                    .reduce((sum, c) => sum + c.baseCost, 0);
+                    .reduce((sum, c) => sum + (c.pureCost ?? c.baseCost), 0);
             };
             
             const dmgShare_sim = newState.totalDamage > 0 ? newState.totalDamage / 4 : 0;
@@ -1650,8 +1834,11 @@ const useStronghold = () => {
             const wallValue_sim = newState.walls.filter(w => w.constructionStatus === 'completed').reduce((s, w) => s + w.baseCost, 0);
             const baseMV_sim = baseMV_sim_comp + wallValue_sim;
             const baseIV_sim_full = calculateSimFullValue('industrial', newState.components);
-            const baseEV_sim_full = calculateSimFullValue('economic', newState.components);
-            const baseSV_social_sim_full = calculateSimFullValue('social', newState.components);
+            // economic_social: 40% to EV, 60% to SV
+            const baseEV_sim_full = calculateSimFullValue('economic', newState.components)
+                + newState.components.filter(c => c.classification === 'economic_social' && c.constructionStatus === 'completed').reduce((s, c) => s + (c.pureCost ?? c.baseCost) * 0.4, 0);
+            const baseSV_social_sim_full = calculateSimFullValue('social', newState.components)
+                + newState.components.filter(c => c.classification === 'economic_social' && c.constructionStatus === 'completed').reduce((s, c) => s + (c.pureCost ?? c.baseCost) * 0.6, 0);
 
             // --- SIM PRIEST LOGIC ---
             const simChapelValue = newState.components
@@ -1689,13 +1876,28 @@ const useStronghold = () => {
             newLog.push(`__WEEK__${weekNumber}__${dateStamp}`);
 
             const baseIV_sim_scaled = calculateSimScaledValue('industrial', newState.components);
-            const baseEV_sim_scaled = calculateSimScaledValue('economic', newState.components);
-            const currentIV_scaled = Math.max(0, baseIV_sim_scaled - dmgShare_sim);
-            const currentEV_scaled = Math.max(0, baseEV_sim_scaled - dmgShare_sim);
+            const shopScaledSim = calculateSimScaledValue('economic', newState.components);
+            const tavernScaledSim = newState.components
+                .filter(c => c.classification === 'economic_social' && c.constructionStatus === 'completed')
+                .reduce((sum, c) => {
+                    const tj = c.jobSlots?.length || 0;
+                    const fj = c.jobSlots?.filter(j => j.filledBy).length || 0;
+                    const eff = tj > 0 ? fj / tj : 0;
+                    return sum + (c.pureCost ?? c.baseCost) * eff * 0.4;
+                }, 0);
+            const simTavernTotal = newState.components.filter(c => c.classification === 'economic_social' && c.constructionStatus === 'completed').reduce((s, c) => s + (c.pureCost ?? c.baseCost), 0);
+            const simBaseExcl = newState.components.filter(c => c.classification !== 'economic_social' && c.constructionStatus === 'completed').reduce((s, c) => s + (c.pureCost ?? c.baseCost), 0) + wallValue_sim;
+            const simTavernBonusPct = simBaseExcl > 0 ? (simTavernTotal / simBaseExcl) * 200 : 0;
+            const simShopBonus = shopScaledSim * (simTavernBonusPct / 100);
+            const baseEV_sim_scaled = shopScaledSim + tavernScaledSim + simShopBonus;
+            const ivTotalPct = (resourceBonusMults?.ivPct || 0) + (terrainValueEffects?.iv || 0) + (customValueMults?.iv || 0);
+            const evTotalPct = (resourceBonusMults?.evPct || 0) + (terrainValueEffects?.ev || 0) + (customValueMults?.ev || 0);
+            const currentIV_scaled = Math.max(0, baseIV_sim_scaled - dmgShare_sim) * (1 + ivTotalPct / 100);
+            const currentEV_scaled = Math.max(0, baseEV_sim_scaled - dmgShare_sim) * (1 + evTotalPct / 100);
             
             const industrialPotSim = currentIV_scaled * 0.01;
             const efficiency = currentEV_scaled > 0 ? Math.min(1, currentIV_scaled / currentEV_scaled) : 0;
-            const economicPotSim = Math.min(currentEV_scaled * 0.05 * efficiency, industrialPotSim);
+            const economicPotSim = currentEV_scaled * 0.05 * efficiency;
             const profit = industrialPotSim + economicPotSim;
             newLog.push(`Woche ${weekNumber}${dateStamp} (Wirtschaft): Einnahmen von ${profit.toFixed(2)} GP erzielt.`);
 
@@ -1930,8 +2132,9 @@ const useStronghold = () => {
     totalConstructionDays, militaryValue, industrialValue, economicValue, socialValue, totalValue,
     industrialPotential, economicPotential, weeklyProfit, defenseBonus, attackChanceBonus, maxAttackRoll,
     garrisonCR, attackCR, resources, getAllPerks, totalMerchantGold, comparisonValue, salaryReductionPercentage,
-    economicComponentsBreakdown, requiredServants, currentServants, missingServants, maintenancePenaltyMultiplier,
+    economicComponentsBreakdown, socialComponentsBreakdown, militaryComponentsBreakdown, requiredServants, currentServants, missingServants, maintenancePenaltyMultiplier,
     priestCount, potentialPriestBonus, actualPriestBonus, totalChapelValue,
+    baseSocialValue,
     worldDate, worldDateLabel, setWorldDate, undoDepth: undoStack.length,
     enchantmentPins: state.enchantmentPins || [],
     drawElements: state.drawElements || [],
@@ -1940,6 +2143,18 @@ const useStronghold = () => {
     terrainValueEffects,
     featureMvBonus,
     customValueMults,
+    baseMilitaryValue,
+    industrialValueForProfit,
+    economicValueForProfit,
+    tavernBonus,
+    baseScaledIV: calculateScaledValue('industrial'),
+    baseScaledEV: (() => {
+        const shopScaled = state.components.filter(c => c.classification === 'economic' && c.constructionStatus === 'completed').reduce((sum, c) => { const tj = c.jobSlots?.length||0; const fj = c.jobSlots?.filter(j=>j.filledBy).length||0; const eff = tj>0?fj/tj:1; return sum+(c.pureCost??c.baseCost)*eff; }, 0);
+        const tavernScaled = state.components.filter(c => c.classification === 'economic_social' && c.constructionStatus === 'completed').reduce((sum, c) => { const tj = c.jobSlots?.length||0; const fj = c.jobSlots?.filter(j=>j.filledBy).length||0; const eff = tj>0?fj/tj:0; return sum+(c.pureCost??c.baseCost)*eff*0.4; }, 0);
+        return shopScaled + tavernScaled;
+    })(),
+    baseScaledShopEV: state.components.filter(c => c.classification === 'economic' && c.constructionStatus === 'completed').reduce((sum, c) => { const tj = c.jobSlots?.length||0; const fj = c.jobSlots?.filter(j=>j.filledBy).length||0; const eff = tj>0?fj/tj:1; return sum+(c.pureCost??c.baseCost)*eff; }, 0),
+
   };
 };
 
@@ -2390,13 +2605,23 @@ const generateComponentSummary = (name, category) => {
     if (parts.length === 0) return '';
     return `(${parts.join(' | ')})`;
 };
-const CalculatedBenefitsDisplay = ({ area, benefits, componentName, calculatedBaseCost }) => {
+const CalculatedBenefitsDisplay = ({ area, benefits, componentName, calculatedBaseCost, tavernBonus }) => {
     const { resources, jobs, perks } = benefits;
     
     const isShop = componentName.toLowerCase().includes('shop');
+    const isTavern = ['Tavern, basic', 'Tavern, fancy', 'Tavern, luxury'].includes(componentName);
     const merchantGold = calculatedBaseCost * 0.25;
+    const tavernEvContrib = isTavern ? calculatedBaseCost * 0.4 : 0;
+    const tavernSvContrib = isTavern ? calculatedBaseCost * 0.6 : 0;
+    // Hypothetical bonus: what would it be if this tavern were added?
+    const hypotheticalTavernTotal = isTavern && tavernBonus
+        ? tavernBonus.tavernTotal + calculatedBaseCost
+        : 0;
+    const hypotheticalShopBonus = isTavern && tavernBonus && tavernBonus.baseExcl > 0
+        ? (hypotheticalTavernTotal / tavernBonus.baseExcl) * 200
+        : 0;
     
-    const hasBenefits = Object.keys(resources).length > 0 || jobs.length > 0 || perks.length > 0 || (isShop && merchantGold > 0);
+    const hasBenefits = Object.keys(resources).length > 0 || jobs.length > 0 || perks.length > 0 || (isShop && merchantGold > 0) || isTavern;
 
     return (
         React.createElement("div", { className: "bg-blue-900/10 dark:bg-blue-900/30 p-4 rounded-lg border-l-4 border-blue-600 dark:border-blue-400" },
@@ -2425,6 +2650,34 @@ const CalculatedBenefitsDisplay = ({ area, benefits, componentName, calculatedBa
                         React.createElement("div", { className: "border-t border-blue-600/20 dark:border-blue-400/20 pt-2 mt-2" },
                             React.createElement("p", null, React.createElement("strong", null, "Wirtschaft:"), ` +${merchantGold.toFixed(0)} GP Händlergold/Woche`),
                             React.createElement("p", null, React.createElement("strong", null, "Wirtschaft:"), ` Max. Gegenstandswert ${merchantGold.toFixed(0)} GP`)
+                        )
+                    ),
+                    isTavern && (
+                        React.createElement("div", { className: "border-t border-amber-400/30 pt-2 mt-2 space-y-1" },
+                            React.createElement("p", null,
+                                React.createElement("strong", null, "🍺 Wert-Split:"),
+                                ` ${tavernEvContrib.toFixed(0)} GP → ÖV · ${tavernSvContrib.toFixed(0)} GP → SV`
+                            ),
+                            React.createElement("p", { className: "text-sm text-amber-700 dark:text-amber-400 pl-4" },
+                                "40% des Werts fließt in ÖV (Ertrag), 60% in SV (Moral & Gehaltsreduktion)."
+                            ),
+                            hypotheticalShopBonus > 0
+                                ? React.createElement(React.Fragment, null,
+                                    React.createElement("p", null,
+                                        React.createElement("strong", null, "📈 Shop-Bonus nach Bau:"),
+                                        React.createElement("span", { className: "text-green-700 dark:text-green-400 font-semibold" }, ` +${hypotheticalShopBonus.toFixed(1)}%`),
+                                        " auf ÖV aller Shops",
+                                        tavernBonus.pct > 0 && React.createElement("span", { className: "text-xs text-wood-text/50 dark:text-parchment-bg/40 ml-1" },
+                                            `(aktuell: +${tavernBonus.pct.toFixed(1)}%)`
+                                        )
+                                    ),
+                                    React.createElement("p", { className: "text-xs text-amber-700/70 dark:text-amber-400/60 italic pl-4" },
+                                        `(${hypotheticalTavernTotal.toFixed(0)} GP Taverne ÷ ${tavernBonus.baseExcl.toFixed(0)} GP Base) × 200%`
+                                    )
+                                )
+                                : React.createElement("p", { className: "text-sm text-wood-text/60 dark:text-parchment-bg/50 italic pl-4" },
+                                    "Shop-Bonus: wird aktiv sobald Shops vorhanden sind."
+                                )
                         )
                     )
                 )
@@ -2510,8 +2763,19 @@ const AddedComponentsList = ({ stronghold }) => {
                     React.createElement("div", { className: "flex-1 min-w-0" },
                         React.createElement("div", { className: "font-semibold text-wood-dark dark:text-gold-light" }, c.name),
                         React.createElement(InlineRename, { item: c, onRename: renameComponent, placeholder: c.name }),
-                        React.createElement("div", { className: "text-xs text-wood-text/60 dark:text-parchment-bg/50 mt-1" },
-                            `${c.area} sq ft · ${c.totalCost.toFixed(0)} gp · `,
+                        React.createElement("div", { className: "text-xs text-wood-text/60 dark:text-parchment-bg/50 mt-1 flex flex-wrap gap-x-2 items-center" },
+                            React.createElement("span", null, `${c.area} sq ft`),
+                            React.createElement("span", { className: "opacity-40" }, "·"),
+                            React.createElement("span", { title: "Bezahlter Baupreis (inkl. Standortmod & Rush)" },
+                                `Bezahlt: ${c.totalCost.toFixed(0)} gp`
+                            ),
+                            c.pureCost !== undefined && Math.abs(c.pureCost - c.baseCost) > 1 && React.createElement(React.Fragment, null,
+                                React.createElement("span", { className: "opacity-40" }, "·"),
+                                React.createElement("span", { className: "text-amber-700 dark:text-amber-400", title: "Tatsächlicher Gebäudewert (ohne Standortmod) – dieser Wert zählt zu MV/IV/ÖV/SV" },
+                                    `Wert: ${c.pureCost.toFixed(0)} gp`
+                                )
+                            ),
+                            React.createElement("span", { className: "opacity-40" }, "·"),
                             React.createElement("span", { className: `${c.constructionStatus === 'completed' ? 'text-green-700 dark:text-green-400' : c.constructionStatus === 'in_progress' ? 'text-amber-700 dark:text-amber-400' : 'text-gray-500'}` },
                                 c.constructionStatus === 'completed' ? '✅ Fertig' : c.constructionStatus === 'in_progress' ? '🔨 Im Bau' : '⏳ Ausstehend'
                             )
@@ -2589,7 +2853,7 @@ const RoomBuilderForm = ({ stronghold }) => {
     const [heroName, setHeroName] = useState('');
     const isHeroQuarter = COMPONENTS[category]?.[componentName]?.heroQuarter === true;
 
-    const { siteModifier, addComponent } = stronghold;
+    const { siteModifier, addComponent, tavernBonus } = stronghold;
 
     useEffect(() => {
         const componentData = COMPONENTS[category]?.[componentName];
@@ -2646,15 +2910,17 @@ const RoomBuilderForm = ({ stronghold }) => {
     };
 
     const handleAddComponent = () => {
+        const rawClassification = COMPONENT_CLASSIFICATIONS[componentName] || classification;
         const newComponent = {
             name: componentName,
             customName: isHeroQuarter && heroName.trim() ? heroName.trim() : undefined,
             category,
-            classification,
+            classification: rawClassification,
             length,
             width,
             area,
             baseCost: adjustedCost,
+            pureCost: calculatedBaseCost,
             rushPercent,
             totalCost,
             constructionStatus: 'pending',
@@ -2748,7 +3014,8 @@ const RoomBuilderForm = ({ stronghold }) => {
                 area: area, 
                 benefits: scaledBenefits, 
                 componentName: componentName,
-                calculatedBaseCost: calculatedBaseCost
+                calculatedBaseCost: calculatedBaseCost,
+                tavernBonus: tavernBonus,
             }),
             React.createElement("div", { className: "bg-blue-900/10 dark:bg-blue-900/30 p-4 rounded-lg border-l-4 border-blue-600 dark:border-blue-400" },
                 React.createElement("h4", { className: "text-xl font-semibold text-blue-800 dark:text-blue-200" }, "📖 Room Description"),
@@ -3425,6 +3692,7 @@ const StaffTab = ({ stronghold }) => {
                 React.createElement(ResourceRow, { label: "Stall Space (für Mounts)", resourceKey: "stallSpace" }),
                 React.createElement(ResourceRow, { label: "Nahrung", resourceKey: "food" }),
                 React.createElement(ResourceRow, { label: "Essensplätze", resourceKey: "diningHallSeat" }),
+                React.createElement(ResourceRow, { label: "Bäder", resourceKey: "bath" }),
                 
                 React.createElement("div", { className: "border-t border-wood-light/30 dark:border-gray-500/30 my-2" }),
                 
@@ -3570,7 +3838,12 @@ const SocialTab = ({ stronghold }) => {
         priestCount,
         potentialPriestBonus,
         actualPriestBonus,
-        totalChapelValue
+        totalChapelValue,
+        customValueMults,
+        terrainValueEffects,
+        site,
+        baseSocialValue,
+        socialComponentsBreakdown,
     } = stronghold;
 
     const savings = baseStaffTotalWeekly - staffTotalWeekly;
@@ -3587,20 +3860,36 @@ const SocialTab = ({ stronghold }) => {
         React.createElement("div", null,
             React.createElement("h2", { className: "text-3xl font-medieval text-wood-dark dark:text-gold-light mb-2" }, "🤝 Soziales & Moral"),
             React.createElement("p", { className: "mb-6" }, "Sozialer Wert (SV) = Basis-SV (alle sozialen Gebäude) + Priester-Bonus. GEHALTSREDUKTION: Ersparnis% = min(100%, SV ÷ ((MV + IV + EV) × 2) × 100%). Bei SV = MV+IV+EV wäre die Ersparnis 50%, bei SV = 2×(MV+IV+EV) wären es 100% (kostenlose Gehälter). PRIESTER-BONUS: Jeder Priester in einer Kapelle erhöht den SV um Basis-SV × 10%. Der Gesamtbonus ist gedeckelt auf den Gesamt-Bauwert aller Kapellen. Mehr/teurere Kapellen = höheres Cap = mehr nutzbarer Priester-Bonus."),
-            React.createElement("div", { className: "grid md:grid-cols-1 lg:grid-cols-2 gap-8" },
+            React.createElement("div", { className: "grid md:grid-cols-2 gap-8" },
                 React.createElement("div", { className: "space-y-6" },
                     // Gehaltsreduktion Box
                     React.createElement("div", { className: "bg-blue-900/10 dark:bg-blue-900/30 p-6 rounded-lg border-2 border-blue-800/50 dark:border-blue-500/50 shadow-lg" },
                         React.createElement("h3", { className: "text-2xl font-semibold text-center mb-4 text-blue-900 dark:text-blue-200" }, "Berechnung der Gehaltsreduktion"),
                         React.createElement("div", { className: "space-y-3 bg-black/10 dark:bg-black/20 p-4 rounded" },
-                            React.createElement(InfoRowSocial, { 
-                                label: "Sozialer Wert (Gesamt)", 
-                                value: `${socialValue.toFixed(0)} GP`, 
-                                tooltip: "Der Gesamtwert aller fertiggestellten sozialen Gebäude plus Boni (z.B. durch Priester)." 
-                            }),
+                            // SV breakdown: Base → Priester-Bonus → Boni% → Final
+                            React.createElement("div", { className: "p-2 bg-black/10 dark:bg-black/20 rounded" },
+                                React.createElement("div", { className: "flex justify-between text-sm text-wood-text/70 dark:text-parchment-bg/60" },
+                                    React.createElement("span", null, "👥 Basis SV"),
+                                    React.createElement("span", null, `${(baseSocialValue).toFixed(0)} SV`)
+                                ),
+                                actualPriestBonus > 0 && React.createElement("div", { className: "flex justify-between text-sm mt-0.5 text-purple-700 dark:text-purple-400" },
+                                    React.createElement("span", null, "🙏 Priester-Bonus"),
+                                    React.createElement("span", { className: "font-semibold text-green-700 dark:text-green-400" }, `+${actualPriestBonus.toFixed(0)} SV`)
+                                ),
+                                (terrainValueEffects.sv !== 0 || customValueMults.sv !== 0) && React.createElement("div", { className: "flex justify-between text-sm mt-0.5" },
+                                    React.createElement("span", { className: "text-wood-text/70 dark:text-parchment-bg/60" }, "📊 Boni gesamt"),
+                                    React.createElement("span", { className: `font-semibold ${(terrainValueEffects.sv + customValueMults.sv) >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'}` },
+                                        `${(terrainValueEffects.sv + customValueMults.sv) > 0 ? '+' : ''}${terrainValueEffects.sv + customValueMults.sv}%`
+                                    )
+                                ),
+                                React.createElement("div", { className: "flex justify-between font-bold text-base border-t border-white/20 mt-1 pt-1 text-blue-800 dark:text-blue-200" },
+                                    React.createElement("span", null, "👥 SV nach Boni"),
+                                    React.createElement("span", null, `${socialValue.toFixed(0)} SV`)
+                                )
+                            ),
                             React.createElement(InfoRowSocial, { 
                                 label: "Vergleichswert", 
-                                value: `${comparisonValue.toFixed(0)} GP`, 
+                                value: comparisonValue.toFixed(0), 
                                 tooltip: "Die doppelte Summe des militärischen, industriellen und ökonomischen Wertes. Dient als Maßstab für die 'produktive' Größe der Festung." 
                             }),
                             React.createElement("div", { className: "flex justify-between items-baseline border-t-2 border-blue-800/40 dark:border-blue-400/40 pt-3 mt-3 font-bold text-xl text-blue-800 dark:text-blue-200" },
@@ -3626,37 +3915,76 @@ const SocialTab = ({ stronghold }) => {
                             React.createElement("div", { className: "flex justify-between items-center py-2 border-b border-wood-light/30 dark:border-parchment-bg/20", title: "Der Bonus ist auf den Gesamtwert aller Kapellen begrenzt." },
                                 React.createElement("span", null, "Aktueller Bonuswert:"),
                                 React.createElement("span", { className: `font-bold text-lg ${isCapped ? 'text-red-600 dark:text-red-400' : 'text-green-700 dark:text-green-400'}` }, 
-                                    `${actualPriestBonus.toFixed(0)} GP`
+                                    `${actualPriestBonus.toFixed(0)} SV`
                                 )
                             ),
                             React.createElement(InfoRowSocial, { 
                                 label: "Kapellen-Limit (Cap)", 
-                                value: `${totalChapelValue.toFixed(0)} GP`,
+                                value: `${totalChapelValue.toFixed(0)} SV`,
                                 tooltip: "Der maximale Bonus, den deine Kapellen kanalisieren können."
                             }),
                             isCapped && (
                                 React.createElement("div", { className: "mt-2 text-sm text-red-800 dark:text-red-300 font-bold text-center animate-pulse" },
-                                    `Limit erreicht! Baue mehr Kapellen, um ${Math.round(potentialPriestBonus - actualPriestBonus)} GP Bonus freizuschalten.`
+                                    `Limit erreicht! Baue mehr Kapellen, um ${Math.round(potentialPriestBonus - actualPriestBonus)} SV Bonus freizuschalten.`
                                 )
+                            )
+                        )
+                    ),
+                    // Auswirkung auf Gehälter (in left column)
+                    React.createElement("div", { className: "bg-green-900/10 dark:bg-green-900/30 p-6 rounded-lg border-2 border-green-800/50 dark:border-green-500/50 shadow-lg" },
+                        React.createElement("h3", { className: "text-2xl font-semibold text-center mb-4 text-green-900 dark:text-green-200" }, "Auswirkung auf Gehälter"),
+                         React.createElement("div", { className: "space-y-3 bg-black/10 dark:bg-black/20 p-4 rounded" },
+                            React.createElement(InfoRowSocial, { 
+                                label: "Ursprüngliche Gehälter", 
+                                value: `${baseStaffTotalWeekly.toFixed(2)} GP/Woche`
+                            }),
+                            React.createElement(InfoRowSocial, { 
+                                label: "Einsparung", 
+                                value: `-${savings.toFixed(2)} GP/Woche`,
+                                className: 'text-yellow-600 dark:text-yellow-400'
+                            }),
+                            React.createElement("div", { className: "flex justify-between items-baseline border-t-2 border-green-800/40 dark:border-green-400/40 pt-3 mt-3 font-bold text-xl text-green-800 dark:text-green-200" },
+                                React.createElement("span", null, "Endgültige Gehälter:"),
+                                React.createElement("span", null, `${staffTotalWeekly.toFixed(2)} GP/Woche`)
                             )
                         )
                     )
                 ),
-                React.createElement("div", { className: "bg-green-900/10 dark:bg-green-900/30 p-6 rounded-lg border-2 border-green-800/50 dark:border-green-500/50 shadow-lg h-min" },
-                    React.createElement("h3", { className: "text-2xl font-semibold text-center mb-4 text-green-900 dark:text-green-200" }, "Auswirkung auf Gehälter"),
-                     React.createElement("div", { className: "space-y-3 bg-black/10 dark:bg-black/20 p-4 rounded" },
-                        React.createElement(InfoRowSocial, { 
-                            label: "Ursprüngliche Gehälter", 
-                            value: `${baseStaffTotalWeekly.toFixed(2)} GP/Woche`
-                        }),
-                        React.createElement(InfoRowSocial, { 
-                            label: "Einsparung", 
-                            value: `-${savings.toFixed(2)} GP/Woche`,
-                            className: 'text-yellow-600 dark:text-yellow-400'
-                        }),
-                        React.createElement("div", { className: "flex justify-between items-baseline border-t-2 border-green-800/40 dark:border-green-400/40 pt-3 mt-3 font-bold text-xl text-green-800 dark:text-green-200" },
-                            React.createElement("span", null, "Endgültige Gehälter:"),
-                            React.createElement("span", null, `${staffTotalWeekly.toFixed(2)} GP/Woche`)
+                // Right column: SV Building List
+                React.createElement("div", { className: "space-y-8" },
+                    React.createElement("div", null,
+                        React.createElement("h3", { className: "text-2xl font-medieval text-wood-dark dark:text-gold-light mb-4" }, "👥 Gebäude mit SV-Beitrag"),
+                        React.createElement("div", { className: "bg-parchment-light/80 dark:bg-gray-800/30 p-4 rounded-lg border border-wood-light dark:border-gray-600 max-h-[600px] overflow-y-auto space-y-3 shadow-inner" },
+                            socialComponentsBreakdown.length > 0 ? (
+                                socialComponentsBreakdown.map(item => {
+                                    const efficiencyPercentage = item.baseValue > 0 ? (item.currentValue / item.baseValue) * 100 : 0;
+                                    const colorClass = item.classification === 'economic_social' ? 'border-amber-500' : 'border-blue-500';
+                                    return React.createElement("div", { key: item.id, className: `bg-parchment-light/50 dark:bg-gray-700/50 p-3 rounded-md border-l-4 ${colorClass} shadow-sm space-y-2` },
+                                        React.createElement("div", { className: "flex justify-between items-start" },
+                                            React.createElement("div", null,
+                                                React.createElement("div", { className: "font-semibold text-wood dark:text-gold-light text-lg" }, item.name),
+                                                item.totalJobs > 0 && React.createElement("div", { className: "text-sm text-wood-text/80 dark:text-parchment-bg/70" }, `${item.filledJobs}/${item.totalJobs} ${item.jobRole}(s) besetzt`)
+                                            )
+                                        ),
+                                        React.createElement("div", null,
+                                            React.createElement("div", { className: "text-sm flex justify-between text-wood-text/90 dark:text-parchment-bg/80 mb-1" },
+                                                React.createElement("span", null, "SV-Beitrag:"),
+                                                React.createElement("span", { className: "font-bold" }, `${item.currentValue.toFixed(0)} / ${item.baseValue.toFixed(0)} GP`)
+                                            ),
+                                            React.createElement("div", { className: "w-full h-4 bg-parchment dark:bg-gray-800 rounded-full overflow-hidden border border-wood-light dark:border-gray-600" },
+                                                React.createElement("div", { style: { width: `${efficiencyPercentage}%` }, className: "h-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-300 text-right pr-2 text-white text-xs flex items-center justify-end" },
+                                                    `${efficiencyPercentage.toFixed(0)}%`
+                                                )
+                                            )
+                                        ),
+                                        item.tavernNote && React.createElement("div", { className: "text-xs text-amber-700 dark:text-amber-400 font-semibold pt-1 border-t border-wood/10 dark:border-parchment-bg/10" },
+                                            `🍺 ${item.tavernNote}`
+                                        )
+                                    );
+                                })
+                            ) : (
+                                React.createElement("p", { className: "text-center text-wood-text/70 dark:text-parchment-bg/60 italic pt-16" }, "Keine Gebäude mit SV-Beitrag fertiggestellt.")
+                            )
                         )
                     )
                 )
@@ -3749,8 +4077,8 @@ const ROOM_MECHANICS = {
     "Shop, basic":            "Schaltet COMMERCE frei. HÄNDLERGOLD: 25% des effektiven Shopwerts stehen wöchentlich als Händlergold bereit. Der effektive Wert skaliert mit besetzten Händlern (0 Händler = 0 Händlergold). Bei 1 Händler auf 400 sq ft (Basisgröße, Wert ≈ 400 GP): Händlergold = 400 × 25% = 100 GP/Woche. ÖKONOMISCHER PROFIT: ÖW × 5% × min(1, IW/ÖW)/Woche.",
     "Shop, fancy":            "Schaltet COMMERCE frei. Benötigt 2 Händler bei Basis-Fläche. Gleiches Händlergold-Prinzip (25% des effektiven Werts). Höherer Basis-Wert = mehr Händlergold.",
     "Shop, luxury":           "Schaltet COMMERCE frei. Benötigt 4 Händler bei Basis-Fläche. Höchstes Händlergold-Potenzial. Händlergold wird jede Woche zurückgesetzt.",
-    "Tavern, basic":          "Benötigt 1 Tavernkeeper. Skaliert wie alle wirtschaftlichen Gebäude: 0 Tavernkeeper = 0 Ertrag. Ökonomischer-Wert-Beitrag. Ökoprofit = ÖW × 5% × min(1, IW/ÖW)/Woche.",
-    "Tavern, fancy":          "Benötigt 2 Tavernkeeper bei Basis-Fläche. Höherer Ökonomischer-Wert-Beitrag.",
+    "Tavern, basic":          "Benötigt 1 Tavernkeeper. 40% des Werts → ÖV, 60% → SV. Taverne bleibt ökonomische Kategorie. Zusätzlich: alle Tavernen erhöhen den ÖV aller Shops proportional zu ihrem Anteil am Gesamtwert der Festung (×2). IV-Cap gilt weiterhin.",
+    "Tavern, fancy":          "Benötigt 2 Tavernkeeper bei Basis-Fläche. 40% ÖV / 60% SV. Stärkerer Tavernen-Bonus auf Shop-ÖV.",
     "Tavern, luxury":         "Kein Ressourcen-Output. Höchster Ökonomischer-Wert-Beitrag aller Tavernen.",
 };
 
@@ -5386,7 +5714,6 @@ const SummaryTab = ({ stronghold }) => {
                         <div style="font-weight:bold;color:#166534;margin-bottom:4pt;font-size:9pt;">📈 Einnahmen</div>
                         ${row('Industrieprofit', '+' + industrialPotential.toFixed(2) + ' GP/W', 'green')}
                         ${row('Ökonomischer Profit', '+' + economicPotential.toFixed(2) + ' GP/W', 'green')}
-                        ${(resourceBonusMults.ivPct > 0 || resourceBonusMults.evPct > 0) ? row('📍 Standortvorteil', (resourceBonusMults.ivPct > 0 ? `+${resourceBonusMults.ivPct}% IV ` : '') + (resourceBonusMults.evPct > 0 ? `+${resourceBonusMults.evPct}% ÖV` : ''), 'amber') : ''}
                         ${row('Händlergold / Woche', totalMerchantGold.toFixed(2) + ' GP', 'green')}
                     </div>
                     <div>
@@ -5524,33 +5851,13 @@ const SummaryTab = ({ stronghold }) => {
              React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-8" },
                 React.createElement("div", { className: "space-y-8" },
                     React.createElement(SummarySection, { title: "Asset Values", icon: "💎" },
-                        React.createElement(SummaryRow, { label: "Militärischer Wert", value: `${militaryValue.toFixed(0)} gp` }),
-                        (terrainMvBonus !== 0 || featureMvBonus !== 0 || resourceBonusMults.coastalMv !== 0) && React.createElement("div", { className: "flex justify-between text-xs bg-blue-50/60 dark:bg-blue-900/20 rounded px-2 py-0.5 -mt-1 mb-0.5" },
-                            React.createElement("span", { className: "text-blue-700 dark:text-blue-400" }, "🏔️ MV-Standortboni"),
-                            React.createElement("span", { className: `font-semibold ${(terrainMvBonus+featureMvBonus+resourceBonusMults.coastalMv) >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'}` },
-                                `${(terrainMvBonus+featureMvBonus+resourceBonusMults.coastalMv) > 0 ? '+' : ''}${terrainMvBonus+featureMvBonus+resourceBonusMults.coastalMv}% MV`
-                            )
-                        ),
-                        React.createElement(SummaryRow, { label: "Industrieller Wert", value: `${industrialValue.toFixed(0)} gp` }),
-                        React.createElement(SummaryRow, { label: "Ökonomischer Wert", value: `${economicValue.toFixed(0)} gp` }),
-                        React.createElement(SummaryRow, { label: "Sozialer Wert", value: `${socialValue.toFixed(0)} gp` }),
-                        // Custom value modifiers summary
-                        (customValueMults.mv !== 0 || customValueMults.iv !== 0 || customValueMults.ev !== 0 || customValueMults.sv !== 0) && React.createElement("div", { className: "mt-1 p-2 bg-purple-50/60 dark:bg-purple-900/20 rounded border border-purple-300/50 dark:border-purple-600/40" },
-                            React.createElement("div", { className: "text-xs font-bold text-purple-800 dark:text-purple-300 mb-1" }, "✏️ Eigene Modifikatoren"),
-                            (site.customFeatures||[]).filter(f => f.active && (f.effects||[]).some(e => ['mv','iv','ev','sv'].includes(e.target))).map(f =>
-                                (f.effects||[]).filter(e => ['mv','iv','ev','sv'].includes(e.target)).map((e, i) => {
-                                    const labels = { mv: 'MV', iv: 'IV', ev: 'ÖV', sv: 'SV' };
-                                    return React.createElement("div", { key: f.id+i, className: "flex justify-between text-xs" },
-                                        React.createElement("span", { className: "text-purple-700 dark:text-purple-400" }, f.name),
-                                        React.createElement("span", { className: `font-semibold ${e.pct >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'}` },
-                                            `${e.pct > 0 ? '+' : ''}${e.pct}% ${labels[e.target]}`)
-                                    );
-                                })
-                            )
-                        ),
+                        React.createElement(SummaryRow, { label: "Militärischer Wert", value: `${militaryValue.toFixed(0)} MV` }),
+                        React.createElement(SummaryRow, { label: "Industrieller Wert", value: `${industrialValue.toFixed(0)} IV` }),
+                        React.createElement(SummaryRow, { label: "Ökonomischer Wert", value: `${economicValue.toFixed(0)} ÖV` }),
+                        React.createElement(SummaryRow, { label: "Sozialer Wert", value: `${socialValue.toFixed(0)} SV` }),
                         React.createElement("div", { className: "flex justify-between items-baseline border-t-2 border-wood-light/50 dark:border-gold-dark/50 pt-2 mt-2 font-bold text-xl" },
                             React.createElement("span", null, "TOTAL VALUE:"),
-                            React.createElement("span", null, `${totalValue.toFixed(0)} gp`)
+                            React.createElement("span", null, totalValue.toFixed(0))
                         )
                     ),
                     React.createElement(SummarySection, { title: "Resource Management", icon: "📦" },
@@ -5601,26 +5908,6 @@ const SummaryTab = ({ stronghold }) => {
                             React.createElement("h4", { className: "font-bold text-center text-lg text-green-800 dark:text-green-300 mb-2" }, "📈 Income"),
                             React.createElement(SummaryRow, { label: "Industrial Profit", value: `+${industrialPotential.toFixed(2)} gp` }),
                             React.createElement(SummaryRow, { label: "Economic Profit", value: `+${economicPotential.toFixed(2)} gp` }),
-                            (resourceBonusMults.ivPct > 0 || resourceBonusMults.evPct > 0) && React.createElement("div", { className: "mt-2 pt-2 border-t border-amber-400/30" },
-                                React.createElement("div", { className: "flex justify-between text-xs text-amber-700 dark:text-amber-400 font-semibold" },
-                                    React.createElement("span", null, "📍 Standortvorteil"),
-                                    React.createElement("span", null,
-                                        resourceBonusMults.ivPct > 0 ? `IV ×${resourceBonusMults.iv.toFixed(2)} ` : '',
-                                        resourceBonusMults.evPct > 0 ? `ÖV ×${resourceBonusMults.ev.toFixed(2)}` : ''
-                                    )
-                                ),
-                                (site.resourceBonuses || []).map(id => {
-                                    const r = RESOURCE_BONUSES[id];
-                                    if (!r) return null;
-                                    return React.createElement("div", { key: id, className: "flex justify-between text-xs text-amber-600/80 dark:text-amber-500/70 mt-0.5" },
-                                        React.createElement("span", null, r.label),
-                                        React.createElement("span", null,
-                                            r.ivBonus > 0 ? `+${r.ivBonus}% IV` : '',
-                                            r.evBonus > 0 ? `+${r.evBonus}% ÖV` : ''
-                                        )
-                                    );
-                                })
-                            ),
                             React.createElement(SummaryTotalRow, { label: "TOTAL PROFIT", value: `+${weeklyProfit.toFixed(2)} gp`, isNegative: false })
                         ),
                         React.createElement("div", { className: "bg-black/10 dark:bg-black/20 p-4 rounded" },
@@ -5678,6 +5965,13 @@ const EconomyTab = ({ stronghold }) => {
         industrialPotential,
         economicPotential,
         weeklyProfit,
+        industrialValueForProfit,
+        economicValueForProfit,
+        baseScaledIV,
+        baseScaledEV,
+        baseScaledShopEV,
+        tavernBonus,
+        shopScaledEV,
         simulationLog,
         totalMerchantGold,
         merchantGoldSpentThisWeek,
@@ -5690,6 +5984,7 @@ const EconomyTab = ({ stronghold }) => {
         site,
         customValueMults,
         terrainValueEffects,
+
     } = stronghold;
 
     const [transactionAmount, setTransactionAmount] = useState('');
@@ -5708,7 +6003,10 @@ const EconomyTab = ({ stronghold }) => {
 
     const BreakdownItem = ({ item }) => {
         const efficiencyPercentage = item.baseValue > 0 ? (item.currentValue / item.baseValue) * 100 : 0;
-        const colorClass = item.classification === 'military' ? 'border-red-500' : item.classification === 'industrial' ? 'border-blue-500' : 'border-green-500';
+        const colorClass = item.classification === 'military' ? 'border-red-500'
+            : item.classification === 'industrial' ? 'border-blue-500'
+            : item.classification === 'economic_social' ? 'border-amber-500'
+            : 'border-green-500';
 
         return (
             React.createElement("div", { className: `bg-parchment-light/50 dark:bg-gray-700/50 p-3 rounded-md border-l-4 ${colorClass} shadow-sm space-y-2` },
@@ -5723,6 +6021,10 @@ const EconomyTab = ({ stronghold }) => {
                         React.createElement("span", null, "Aktueller Wert:"),
                         React.createElement("span", { className: "font-bold" }, `${item.currentValue.toFixed(0)} / ${item.baseValue.toFixed(0)} GP`)
                     ),
+                    item.paidCost && Math.abs(item.paidCost - item.baseValue) > 1 && React.createElement("div", { className: "text-xs text-wood-text/50 dark:text-parchment-bg/40 flex justify-between mb-1" },
+                        React.createElement("span", null, "Baukosten (bezahlt):"),
+                        React.createElement("span", null, `${item.paidCost.toFixed(0)} GP`)
+                    ),
                     React.createElement("div", { className: "w-full h-4 bg-parchment dark:bg-gray-800 rounded-full overflow-hidden border border-wood-light dark:border-gray-600" },
                         React.createElement("div", { style: { width: `${efficiencyPercentage}%` }, className: "h-full bg-gradient-to-r from-yellow-400 to-amber-600 transition-all duration-300 text-right pr-2 text-white text-xs flex items-center justify-end" },
                             `${efficiencyPercentage.toFixed(0)}%`
@@ -5730,8 +6032,13 @@ const EconomyTab = ({ stronghold }) => {
                     )
                 ),
                 item.merchantGoldContribution > 0 && (
-                     React.createElement("div", { className: "text-sm text-green-800 dark:text-green-300 font-semibold pt-1 border-t border-wood/10 dark:border-parchment-bg/10" },
+                    React.createElement("div", { className: "text-sm text-green-800 dark:text-green-300 font-semibold pt-1 border-t border-wood/10 dark:border-parchment-bg/10" },
                         `Händlergold: +${item.merchantGoldContribution.toFixed(2)} GP`
+                    )
+                ),
+                item.tavernNote && (
+                    React.createElement("div", { className: "text-xs text-amber-700 dark:text-amber-400 font-semibold pt-1 border-t border-wood/10 dark:border-parchment-bg/10" },
+                        `🍺 ${item.tavernNote}`
                     )
                 )
             )
@@ -5782,8 +6089,8 @@ const EconomyTab = ({ stronghold }) => {
                     React.createElement("div", { className: "bg-gold/80 dark:bg-gray-800/50 p-6 rounded-lg border-2 border-wood-dark dark:border-gold-dark shadow-lg" },
                         React.createElement("h3", { className: "text-2xl font-semibold text-center mb-4 text-wood-dark dark:text-gold-light" }, "Wöchentliche Einnahmen (Zusammenfassung)"),
                         React.createElement("div", { className: "space-y-3 bg-black/10 dark:bg-black/20 p-4 rounded" },
-                            React.createElement(InfoRow, { label: "Industrieller Wert (IV)", value: `${industrialValue.toFixed(0)} GP`, tooltip: "Gesamtwert aller industriellen Gebäude, skaliert nach Arbeiterzahl." }),
-                            React.createElement(InfoRow, { label: "Ökonomischer Wert (EV)", value: `${economicValue.toFixed(0)} GP`, tooltip: "Gesamtwert aller ökonomischen Gebäude, skaliert nach Arbeiterzahl." }),
+                            React.createElement(InfoRow, { label: "Industrieller Wert (IV)", value: `${industrialValue.toFixed(0)} IV`, tooltip: "Gesamtwert aller industriellen Gebäude, skaliert nach Arbeiterzahl." }),
+                            React.createElement(InfoRow, { label: "Ökonomischer Wert (ÖV)", value: `${economicValue.toFixed(0)} ÖV`, tooltip: "Gesamtwert aller ökonomischen Gebäude, skaliert nach Arbeiterzahl." }),
 
                             // Terrain IV/EV effects
                             (terrainValueEffects.iv !== 0 || terrainValueEffects.ev !== 0) && React.createElement("div", { className: "mt-1 mb-1 p-2 bg-blue-100/60 dark:bg-blue-900/30 rounded border border-blue-400/50 dark:border-blue-600/40" },
@@ -5823,7 +6130,6 @@ const EconomyTab = ({ stronghold }) => {
                                 )
                             ),
 
-                            // Custom feature IV/EV bonuses
                             (customValueMults.iv !== 0 || customValueMults.ev !== 0) && React.createElement("div", { className: "mt-1 mb-1 p-2 bg-purple-100/60 dark:bg-purple-900/30 rounded border border-purple-400/50 dark:border-purple-600/40" },
                                 React.createElement("div", { className: "text-xs font-bold text-purple-800 dark:text-purple-300 mb-1" }, "✏️ Eigene Wert-Modifikatoren"),
                                 (site.customFeatures||[]).filter(f => f.active && (f.effects||[]).some(e => e.target === 'iv' || e.target === 'ev')).map(f =>
@@ -5849,9 +6155,77 @@ const EconomyTab = ({ stronghold }) => {
                             ),
 
                             React.createElement("hr", { className: "border-wood-light/50 dark:border-parchment-bg/30 my-2" }),
-                            React.createElement(InfoRow, { label: "Industrielles Potential", value: `${industrialPotential.toFixed(2)} GP`, tooltip: "Eigenständiger Profit aus industriellen Gebäuden. Berechnet als: Industrieller Wert × 1%." }),
-                            React.createElement(InfoRow, { label: "Ökonomisches Potential", value: `${economicPotential.toFixed(2)} GP`, tooltip: "Eigenständiger Profit aus ökonomischen Gebäuden, modifiziert durch industrielle Effizienz. Berechnet als: Ökonomischer Wert × 5% × (min(1, Industrieller Wert / Ökonomischer Wert))." }),
-                            React.createElement("div", { className: "flex justify-between items-baseline border-t-2 border-wood-light/50 dark:border-gold-dark/50 pt-3 mt-3 font-bold text-xl text-green-800 dark:text-green-300", title: "Gesamteinnahmen aus beiden Potentialen (Industrielles Potential + Ökonomisches Potential)" },
+
+                            // IV Profit breakdown
+                            React.createElement("div", { className: "p-2 bg-blue-50/60 dark:bg-blue-900/20 rounded border border-blue-300/50 dark:border-blue-700/40" },
+                                React.createElement("div", { className: "text-xs font-bold text-blue-800 dark:text-blue-300 mb-1" }, "🏭 Industrielles Potential"),
+                                React.createElement("div", { className: "flex justify-between text-xs text-blue-700 dark:text-blue-400" },
+                                    React.createElement("span", null, "Basis IV (skaliert)"),
+                                    React.createElement("span", null, `${baseScaledIV.toFixed(0)} IV`)
+                                ),
+                                (() => {
+                                    const totalPct = resourceBonusMults.ivPct + terrainValueEffects.iv + customValueMults.iv;
+                                    const bonusGP = industrialValueForProfit - baseScaledIV;
+                                    return Math.abs(bonusGP) >= 0.5 ? React.createElement("div", { className: "flex justify-between text-xs mt-0.5" },
+                                        React.createElement("span", { className: "text-blue-600 dark:text-blue-400" },
+                                            `Boni gesamt (${totalPct > 0 ? '+' : ''}${totalPct}%)`
+                                        ),
+                                        React.createElement("span", { className: `font-semibold ${bonusGP >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'}` },
+                                            `${bonusGP >= 0 ? '+' : ''}${bonusGP.toFixed(0)} GP`)
+                                    ) : null;
+                                })(),
+                                React.createElement("div", { className: "flex justify-between text-xs font-bold text-blue-800 dark:text-blue-200 border-t border-blue-400/30 mt-1 pt-1" },
+                                    React.createElement("span", null, "= IV Final"),
+                                    React.createElement("span", null, `${industrialValueForProfit.toFixed(0)} IV`)
+                                ),
+                                React.createElement("div", { className: "flex justify-between text-xs mt-1 pt-1 border-t border-blue-400/20" },
+                                    React.createElement("span", { className: "text-blue-700 dark:text-blue-400" }, "Rate × 1%"),
+                                    React.createElement("span", { className: "font-bold text-green-700 dark:text-green-400" }, `+${industrialPotential.toFixed(2)} GP/W`)
+                                )
+                            ),
+
+                            // EV Profit breakdown
+                            React.createElement("div", { className: "p-2 bg-green-50/60 dark:bg-green-900/20 rounded border border-green-300/50 dark:border-green-700/40" },
+                                React.createElement("div", { className: "text-xs font-bold text-green-800 dark:text-green-300 mb-1" }, "💰 Ökonomisches Potential"),
+                                React.createElement("div", { className: "flex justify-between text-xs text-green-700 dark:text-green-400" },
+                                    React.createElement("span", null, "Basis ÖV (skaliert)"),
+                                    React.createElement("span", null, `${baseScaledEV.toFixed(0)} ÖV`)
+                                ),
+                                (() => {
+                                    const totalPct = resourceBonusMults.evPct + terrainValueEffects.ev + customValueMults.ev;
+                                    const multBonusGP = baseScaledEV * (totalPct / 100);
+                                    const tavernBonusGP = baseScaledShopEV * (tavernBonus.pct / 100) * (1 + totalPct / 100);
+                                    return React.createElement(React.Fragment, null,
+                                        Math.abs(multBonusGP) >= 0.5 && React.createElement("div", { className: "flex justify-between text-xs mt-0.5" },
+                                            React.createElement("span", { className: "text-green-600 dark:text-green-400" }, `Boni gesamt (+${totalPct}%)`),
+                                            React.createElement("span", { className: `font-semibold ${multBonusGP >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'}` },
+                                                `${multBonusGP >= 0 ? '+' : ''}${multBonusGP.toFixed(0)} ÖV`)
+                                        ),
+                                        tavernBonusGP >= 0.5 && React.createElement("div", { className: "flex justify-between text-xs mt-0.5" },
+                                            React.createElement("span", { className: "text-amber-700 dark:text-amber-400" }, `🍺 Taverne-Bonus (${tavernBonus.pct.toFixed(1)}% auf Shop-ÖV)`),
+                                            React.createElement("span", { className: "font-semibold text-green-700 dark:text-green-400" },
+                                                `+${tavernBonusGP.toFixed(0)} ÖV`)
+                                        )
+                                    );
+                                })(),
+                                React.createElement("div", { className: "flex justify-between text-xs font-bold text-green-800 dark:text-green-200 border-t border-green-400/30 mt-1 pt-1" },
+                                    React.createElement("span", null, "= ÖV Final (für Profit)"),
+                                    React.createElement("span", null, `${economicValueForProfit.toFixed(0)} ÖV`)
+                                ),
+
+                                React.createElement("div", { className: "flex justify-between text-xs text-green-700 dark:text-green-400 mt-1" },
+                                    React.createElement("span", null, "Effizienz (min(1, IV/ÖV))"),
+                                    React.createElement("span", { className: `font-semibold ${economicValueForProfit > 0 && industrialValueForProfit < economicValueForProfit ? 'text-amber-600 dark:text-amber-400' : ''}` },
+                                        economicValueForProfit > 0 ? `${(Math.min(1, industrialValueForProfit / economicValueForProfit) * 100).toFixed(0)}%` : '—'
+                                    )
+                                ),
+                                React.createElement("div", { className: "flex justify-between text-xs mt-1 pt-1 border-t border-green-400/20" },
+                                    React.createElement("span", { className: "text-green-700 dark:text-green-400" }, "Rate × 5%"),
+                                    React.createElement("span", { className: "font-bold text-green-700 dark:text-green-400" }, `+${economicPotential.toFixed(2)} GP/W`)
+                                )
+                            ),
+
+                                                        React.createElement("div", { className: "flex justify-between items-baseline border-t-2 border-wood-light/50 dark:border-gold-dark/50 pt-3 mt-3 font-bold text-xl text-green-800 dark:text-green-300", title: "Gesamteinnahmen aus beiden Potentialen" },
                                 React.createElement("span", null, "Wöchentlicher Gewinn:"),
                                 React.createElement("span", null, `${weeklyProfit.toFixed(2)} GP`)
                             )
@@ -5953,10 +6327,12 @@ const DefenseTab = ({ stronghold }) => {
         featureMvBonus,
         customValueMults,
         resourceBonusMults,
+        baseMilitaryValue,
         site,
         simulateNextWeek,
         rewindLastWeek,
         undoDepth,
+        militaryComponentsBreakdown,
     } = stronghold;
 
     const handleSimulate = () => simulateNextWeek();
@@ -6021,7 +6397,23 @@ const DefenseTab = ({ stronghold }) => {
                     React.createElement("div", { className: "bg-red-900/10 dark:bg-red-900/30 p-6 rounded-lg border-2 border-red-800/50 dark:border-red-500/50 shadow-lg mb-8" },
                         React.createElement("h3", { className: "text-2xl font-semibold text-center mb-4 text-red-900 dark:text-red-200" }, "Status & Angriffschance"),
                         React.createElement("div", { className: "space-y-3 bg-black/10 dark:bg-black/20 p-4 rounded" },
-                            React.createElement(InfoRow, { label: "Militärischer Wert (MV)", value: `${militaryValue.toFixed(0)} GP`, tooltip: "Gesamtwert aller militärischen Gebäude und Mauern, inkl. aller Boni." }),
+                            // MV breakdown: Base → Boni → Final
+                            React.createElement("div", { className: "p-2 bg-black/10 dark:bg-black/20 rounded" },
+                                React.createElement("div", { className: "flex justify-between text-sm text-wood-text/70 dark:text-parchment-bg/60" },
+                                    React.createElement("span", null, "⚔️ Basis MV"),
+                                    React.createElement("span", null, `${baseMilitaryValue.toFixed(0)} MV`)
+                                ),
+                                (terrainMvBonus + featureMvBonus + resourceBonusMults.coastalMv + customValueMults.mv) !== 0 && React.createElement("div", { className: "flex justify-between text-sm mt-0.5" },
+                                    React.createElement("span", { className: "text-wood-text/70 dark:text-parchment-bg/60" }, "📊 Boni gesamt"),
+                                    React.createElement("span", { className: `font-semibold ${(terrainMvBonus + featureMvBonus + resourceBonusMults.coastalMv + customValueMults.mv) >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'}` },
+                                        `${(terrainMvBonus + featureMvBonus + resourceBonusMults.coastalMv + customValueMults.mv) > 0 ? '+' : ''}${terrainMvBonus + featureMvBonus + resourceBonusMults.coastalMv + customValueMults.mv}%`
+                                    )
+                                ),
+                                React.createElement("div", { className: "flex justify-between font-bold text-base border-t border-white/20 mt-1 pt-1 text-red-800 dark:text-red-200" },
+                                    React.createElement("span", null, "⚔️ MV nach Boni"),
+                                    React.createElement("span", null, `${militaryValue.toFixed(0)} MV`)
+                                )
+                            ),
                             (terrainMvBonus !== 0 || featureMvBonus !== 0 || resourceBonusMults.coastalMv !== 0) && React.createElement("div", { className: "mx-1 mb-1 p-2 bg-blue-100/60 dark:bg-blue-900/30 rounded border border-blue-400/50 dark:border-blue-600/40" },
                                 React.createElement("div", { className: "text-xs font-bold text-blue-800 dark:text-blue-300 mb-1" }, "🏔️ MV-Standortboni"),
                                 terrainMvBonus !== 0 && React.createElement("div", { className: "flex justify-between text-xs text-blue-700 dark:text-blue-400" },
@@ -6070,7 +6462,7 @@ const DefenseTab = ({ stronghold }) => {
                                         `${customValueMults.mv > 0 ? '+' : ''}${customValueMults.mv}% MV`)
                                 )
                             ),
-                            React.createElement(InfoRow, { label: "Formel Wert (IV + EV)", value: `${socialValueForDisplay.toFixed(0)} GP`, tooltip: "Gesamtwert aller industriellen und ökonomischen Gebäude (IV + EV)." }),
+                            React.createElement(InfoRow, { label: "Formel Wert (IV + EV)", value: `${socialValueForDisplay.toFixed(0)} IV+ÖV`, tooltip: "Gesamtwert aller industriellen und ökonomischen Gebäude (IV + EV)." }),
                             React.createElement("hr", { className: "border-red-800/30 dark:border-red-400/30 my-2" }),
                             React.createElement(InfoRow, { label: "Verteidigungsbonus", value: `${(defenseBonus * 100).toFixed(1)}%`, tooltip: "Stärkt (oder schwächt) deine Garnison basierend auf dem Verhältnis von MV zu (IV+EV)." }),
                             React.createElement(InfoRow, { label: "Angriffschancebonus", value: `${(attackChanceBonus * 100).toFixed(1)}%`, tooltip: "Erhöht die Wahrscheinlichkeit eines Angriffs, wenn der soziale Wert den militärischen übersteigt." }),
@@ -6122,11 +6514,43 @@ const DefenseTab = ({ stronghold }) => {
                     )
                 ),
 
-                React.createElement("div", null,
+                React.createElement("div", { className: "space-y-8" },
+                    // MV Building List
+                    React.createElement("div", null,
+                        React.createElement("h3", { className: "text-2xl font-medieval text-wood-dark dark:text-gold-light mb-4" }, "⚔️ Gebäude mit MV-Beitrag"),
+                        React.createElement("div", { className: "bg-parchment-light/80 dark:bg-gray-800/30 p-4 rounded-lg border border-wood-light dark:border-gray-600 max-h-[600px] overflow-y-auto space-y-3 shadow-inner" },
+                            militaryComponentsBreakdown.length > 0 ? (
+                                militaryComponentsBreakdown.map(item => {
+                                    const colorClass = item.classification === 'military_wall' ? 'border-stone-500' : 'border-red-500';
+                                    const typeLabel = item.classification === 'military_wall' ? '🧱 Mauer' : '🏰 Gebäude';
+                                    return React.createElement("div", { key: item.id, className: `bg-parchment-light/50 dark:bg-gray-700/50 p-3 rounded-md border-l-4 ${colorClass} shadow-sm space-y-2` },
+                                        React.createElement("div", { className: "flex justify-between items-start" },
+                                            React.createElement("div", null,
+                                                React.createElement("div", { className: "font-semibold text-wood dark:text-gold-light text-lg" }, item.name),
+                                                React.createElement("div", { className: "text-xs text-wood-text/60 dark:text-parchment-bg/50" }, typeLabel)
+                                            ),
+                                            React.createElement("div", { className: "text-right" },
+                                                React.createElement("span", { className: "font-bold text-lg text-red-800 dark:text-red-300" }, `${item.currentValue.toFixed(0)} MV`),
+                                                item.paidCost && Math.abs(item.paidCost - item.baseValue) > 1 && React.createElement("div", { className: "text-xs text-wood-text/50 dark:text-parchment-bg/40" },
+                                                    `Baukosten: ${item.paidCost.toFixed(0)} GP`
+                                                )
+                                            )
+                                        )
+                                    );
+                                })
+                            ) : (
+                                React.createElement("p", { className: "text-center text-wood-text/70 dark:text-parchment-bg/60 italic pt-16" }, "Keine militärischen Gebäude oder Mauern fertiggestellt.")
+                            )
+                        )
+                    ),
+
+                    // Event Log
+                    React.createElement("div", null,
                      React.createElement("h3", { className: "text-2xl font-medieval text-wood-dark dark:text-gold-light mb-4" }, "📜 Ereignisprotokoll"),
                      React.createElement("div", { className: "bg-parchment-light/80 dark:bg-gray-800/30 p-4 rounded-lg border border-wood-light dark:border-gray-600 h-[600px] overflow-y-auto space-y-0.5 shadow-inner" },
                         renderLog()
                      )
+                )
                 )
             )
         )
