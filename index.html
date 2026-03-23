@@ -333,6 +333,14 @@ const COMPONENTS = {
         "Common area, basic": { cost: 500, ss: 1 },
         "Common area, fancy": { cost: 3000, ss: 1 },
     },
+    "Abenteurer-Quartiere": {
+        "Einfaches Gemach":      { cost: 700,   ss: 1, minSize: { length: 20, width: 20 }, heroQuarter: true },
+        "Komfortables Gemach":   { cost: 4000,  ss: 1, minSize: { length: 20, width: 20 }, heroQuarter: true },
+        "Luxus-Gemach":          { cost: 20000, ss: 2, minSize: { length: 20, width: 20 }, heroQuarter: true },
+        "Kleines Stadthaus":     { cost: 800,   ss: 1, minSize: { length: 30, width: 30 }, heroQuarter: true },
+        "Stadthaus":             { cost: 5000,  ss: 1, minSize: { length: 30, width: 30 }, heroQuarter: true },
+        "Herrenhaus":            { cost: 25000, ss: 2, minSize: { length: 30, width: 30 }, heroQuarter: true },
+    },
     "Food & Dining": {
         "Kitchen, basic": { cost: 2000, ss: 1, provides: { food: 15 }, jobs: [{ role: 'Cook', count: 1 }] },
         "Kitchen, fancy": { cost: 12000, ss: 1, provides: { food: 15 }, jobs: [{ role: 'Cook', count: 1 }] },
@@ -564,6 +572,14 @@ const ROOM_DESCRIPTIONS = {
         "Bedroom suite, basic": "Eine geräumige Suite mit angeschlossenem Ankleideraum und einer einfachen Latrine. Die Einrichtung ist rustikal und robust, mit einem breiten Bett, Kommoden und einer kleinen Sitzecke.",
         "Bedroom suite, fancy": "Eine elegante Suite mit begehbarem Kleiderschrank und geschmackvoll verziertem Privat-WC. Das Bett ruht auf einem kunstvoll geschnitzten Rahmen, und gepolsterte Sitzmöbel laden zum Verweilen ein.",
         "Bedroom suite, luxury": "Eine palastartige Suite, die keine Wünsche offenlässt. Ein Himmelbett mit Seidenvorhängen dominiert den Raum, ergänzt durch Möbel mit Marmorplatten, einen privaten Kamin und Kunstwerke von unschätzbarem Wert.",
+    },
+    "Abenteurer-Quartiere": {
+        "Einfaches Gemach":    "Ein schlichtes aber sauberes Zimmer mit stabilem Bett, einer Truhe für Ausrüstung und einem kleinen Kamin. Rohe Holzwände, einfache Möbel – kein Luxus, aber ein eigener Rückzugsort.",
+        "Komfortables Gemach": "Ein gepflegtes Zimmer mit bequemem Bett, Schreibtisch für Karten und Notizen, einem Waschbecken und einer kleinen Sitzecke. Verputzte Wände, ein ordentlicher Teppich – angenehm ohne übertrieben zu sein.",
+        "Luxus-Gemach":        "Ein opulentes Zimmer mit Himmelbett, Ankleidebereich, privatem Badezimmer und getrennter Sitzecke. Poliertes Holz, feine Vorhänge, ein persönlicher Kamin – für den Abenteurer dem die Welt gehört.",
+        "Kleines Stadthaus":   "Ein einfaches aber eigenständiges Häuschen mit Küche, Wohnraum und Schlafkammer. Einfache Ausstattung, ein kleiner Herd, ein eigener Eingang. Bescheiden – aber unbestreitbar das Eigene.",
+        "Stadthaus":           "Ein komfortables Stadthaus mit vollständiger Küche, Esszimmer und mehreren Schlafkammern. Saubere Holzvertäfelung, ein großer Kamin, eine kleine Bibliothek – gediegener Wohnkomfort für den erfolgreichen Abenteurer.",
+        "Herrenhaus":          "Ein herrschaftliches Anwesen mit repräsentativem Eingang, mehreren Wohn- und Schlafräumen, einer professionellen Küche, einem Innenhof und Platz für Bedienstete. Die Wände tragen Trophäen vergangener Abenteuer – ein Zuhause das dem Ruf seines Besitzers würdig ist.",
         "Servants' quarters": "Ein einfacher, gemeinschaftlicher Wohnbereich für das Personal. Dünne Wände trennen kleine Nischen ab, die jeweils Platz für ein Bett, eine Kommode und einen Stuhl bieten und ein Minimum an Privatsphäre gewährleisten.",
         "Barracks": "Ein offener Schlafsaal für die Garnison, ausgestattet mit robusten Etagenbetten aus Holz und persönlichen Truhen. Der Geruch von Leder, Waffenöl und hart arbeitenden Soldaten liegt in der Luft.",
         "Common area, basic": "Ein schlichter, vielseitig nutzbarer Raum mit kahlen Wänden und einfachen Holzbänken. Er dient als Wartebereich oder Treffpunkt und ist meist von geschäftigem Treiben erfüllt.",
@@ -2570,6 +2586,9 @@ const RoomBuilderForm = ({ stronghold }) => {
     const [width, setWidth] = useState(minWidth);
     const [rushPercent, setRushPercent] = useState(0);
 
+    const [heroName, setHeroName] = useState('');
+    const isHeroQuarter = COMPONENTS[category]?.[componentName]?.heroQuarter === true;
+
     const { siteModifier, addComponent } = stronghold;
 
     useEffect(() => {
@@ -2623,11 +2642,13 @@ const RoomBuilderForm = ({ stronghold }) => {
         const newCategory = e.target.value;
         setCategory(newCategory);
         setComponentName(Object.keys(COMPONENTS[newCategory])[0]);
+        setHeroName('');
     };
 
     const handleAddComponent = () => {
         const newComponent = {
             name: componentName,
+            customName: isHeroQuarter && heroName.trim() ? heroName.trim() : undefined,
             category,
             classification,
             length,
@@ -2640,6 +2661,7 @@ const RoomBuilderForm = ({ stronghold }) => {
             startDate: undefined,
         };
         addComponent(newComponent);
+        if (isHeroQuarter) setHeroName('');
     };
 
     const handleDimensionBlur = (
@@ -2681,6 +2703,23 @@ const RoomBuilderForm = ({ stronghold }) => {
                     React.createElement("option", { value: "social" }, "Sozial")
                 )
             ),
+
+            // Hero name field – only shown for Abenteurer-Quartiere
+            isHeroQuarter && React.createElement("div", { className: "p-4 bg-amber-50/60 dark:bg-amber-900/20 rounded-lg border-2 border-amber-400/60 dark:border-amber-600/50" },
+                React.createElement("label", { className: "block font-semibold mb-2 text-amber-800 dark:text-amber-300 text-lg" },
+                    "🦸 Für wen ist dieses Gemach?"
+                ),
+                React.createElement("input", {
+                    type: "text",
+                    value: heroName,
+                    onChange: e => setHeroName(e.target.value),
+                    placeholder: "z.B. Thorin Eisenfaust, Lady Seraphine, …",
+                    className: "w-full p-3 border-2 border-amber-400 dark:border-amber-600 rounded-md bg-white/80 dark:bg-gray-700 dark:text-parchment-light focus:outline-none"
+                }),
+                React.createElement("p", { className: "text-xs text-amber-700/70 dark:text-amber-400/60 mt-1 italic" },
+                    "Der Name erscheint direkt im Raum-Eintrag. Dieses Quartier bietet keinen Schlafplatz für Personal – es ist rein privat."
+                )
+            ),
             React.createElement("div", { className: "grid md:grid-cols-2 gap-6" },
                 React.createElement("div", null,
                     React.createElement("label", { htmlFor: "length", className: "block font-semibold mb-2 text-wood dark:text-gold-light text-lg" }, "Length (feet)"),
@@ -2711,6 +2750,17 @@ const RoomBuilderForm = ({ stronghold }) => {
                 componentName: componentName,
                 calculatedBaseCost: calculatedBaseCost
             }),
+            React.createElement("div", { className: "bg-blue-900/10 dark:bg-blue-900/30 p-4 rounded-lg border-l-4 border-blue-600 dark:border-blue-400" },
+                React.createElement("h4", { className: "text-xl font-semibold text-blue-800 dark:text-blue-200" }, "📖 Room Description"),
+                React.createElement("p", { className: "mt-2 text-wood-text/80 dark:text-parchment-bg/70 italic" }, description),
+                ROOM_MECHANICS[componentName] && React.createElement("div", { className: "mt-3 pt-3 border-t border-blue-500/30 dark:border-blue-400/30" },
+                    React.createElement("h5", { className: "text-sm font-bold text-blue-700 dark:text-blue-300 mb-1 flex items-center gap-1" },
+                        React.createElement("span", null, "⚙️"),
+                        React.createElement("span", null, "Spielmechanik")
+                    ),
+                    React.createElement("p", { className: "text-sm text-blue-900/80 dark:text-blue-100/80" }, ROOM_MECHANICS[componentName])
+                )
+            ),
             React.createElement("div", { className: "bg-green-900/10 dark:bg-green-900/30 p-4 rounded-lg border-l-4 border-green-600 dark:border-green-400 space-y-4" },
                 React.createElement("h4", { className: "text-xl font-semibold text-green-800 dark:text-green-200" }, "🏗️ Construction Options"),
                 React.createElement("div", null,
@@ -2721,17 +2771,6 @@ const RoomBuilderForm = ({ stronghold }) => {
                 ),
                  React.createElement("div", { className: "flex justify-between font-bold" }, React.createElement("span", null, "⏱️ Construction Time:"), React.createElement("span", null, `${constructionDays} days`)),
                 React.createElement("div", { className: "flex justify-between font-bold text-lg" }, React.createElement("span", null, "💰 Total Cost (with Rush):"), React.createElement("span", null, `${totalCost.toFixed(0)} gp`))
-            ),
-             React.createElement("div", { className: "bg-blue-900/10 dark:bg-blue-900/30 p-4 rounded-lg border-l-4 border-blue-600 dark:border-blue-400" },
-                React.createElement("h4", { className: "text-xl font-semibold text-blue-800 dark:text-blue-200" }, "📖 Room Description"),
-                React.createElement("p", { className: "mt-2 text-wood-text/80 dark:text-parchment-bg/70 italic" }, description),
-                ROOM_MECHANICS[componentName] && React.createElement("div", { className: "mt-3 pt-3 border-t border-blue-500/30 dark:border-blue-400/30" },
-                    React.createElement("h5", { className: "text-sm font-bold text-blue-700 dark:text-blue-300 mb-1 flex items-center gap-1" },
-                        React.createElement("span", null, "⚙️"),
-                        React.createElement("span", null, "Spielmechanik")
-                    ),
-                    React.createElement("p", { className: "text-sm text-blue-900/80 dark:text-blue-100/80" }, ROOM_MECHANICS[componentName])
-                )
             ),
             React.createElement("button", { onClick: handleAddComponent, className: "w-full sm:w-auto bg-gradient-to-br from-wood-light to-wood-dark text-parchment-bg dark:from-gold dark:to-gold-dark dark:text-wood-dark font-bold py-3 px-6 rounded-lg border-2 border-wood-dark dark:border-gold-dark hover:from-gold-dark hover:to-gold-light hover:text-wood-dark dark:hover:from-gold-light dark:hover:to-gold transition-all duration-300 transform hover:-translate-y-0.5 shadow-md" },
                 "➕ Add to Stronghold"
@@ -3636,6 +3675,12 @@ const ROOM_MECHANICS = {
     "Bedroom suite, basic":   "Stellt 1 Suiten-Platz für Anführer (CR ≥ 3) bereit. Hochrangige Kreaturen benötigen eine Suite statt eines normalen Schlafzimmers.",
     "Bedroom suite, fancy":   "Stellt 1 Suiten-Platz für Anführer (CR ≥ 3) bereit.",
     "Bedroom suite, luxury":  "Stellt 1 Suiten-Platz für Anführer (CR ≥ 3) bereit. Höchster Sozialer-Wert-Beitrag aller Schlafquartiere.",
+    "Einfaches Gemach":        "Persönliches Gemach für einen Abenteurer oder Helden. Kein Schlafplatz für Personal – rein privat. Zählt zum Sozialen Wert.",
+    "Komfortables Gemach":     "Persönliches Gemach mit Komfort. Kein Schlafplatz für Personal – rein privat. Höherer Sozialer Wert.",
+    "Luxus-Gemach":            "Luxuriöses Privatgemach. Kein Schlafplatz für Personal – rein privat. Signifikanter Sozialer Wert.",
+    "Kleines Stadthaus":       "Eigenständiges Häuschen innerhalb oder nahe der Festung. Kein Schlafplatz für Personal – privates Eigentum. Trägt zum Sozialen Wert bei.",
+    "Stadthaus":               "Vollständiges Stadthaus für einen Abenteurer. Kein Schlafplatz für Personal – privates Eigentum. Hoher Sozialer Wert.",
+    "Herrenhaus":              "Imposantes Herrenhaus für einen wohlhabenden Helden. Kein Schlafplatz für Personal – privates Eigentum. Höchster Sozialer Wert der Kategorie.",
     "Servants' quarters":     "Stellt 8 Dienerquartier-Plätze pro Basis-Fläche (900 sq ft) bereit. Ungelernte Arbeitskräfte (Unskilled Hirelings) benötigen diese Unterkunft. Skaliert linear: doppelte Fläche = doppelte Kapazität.",
     "Barracks":               "Stellt 8 Kasernenplätze pro Basis-Fläche (900 sq ft) bereit. Militärisches Personal (CR ≤ 1/2) benötigt Kasernenschlafplätze. Skaliert linear.",
     "Common area, basic":     "Kein direkter Ressourcen-Output. Trägt zum Sozialen Wert der Festung bei, der Gehälter um bis zu 100% reduzieren kann.",
