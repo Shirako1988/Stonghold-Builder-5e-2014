@@ -2831,7 +2831,7 @@ const AddedComponentsList = ({ stronghold }) => {
                         React.createElement("div", { className: "font-semibold text-wood-dark dark:text-gold-light" }, c.name),
                         React.createElement(InlineRename, { item: c, onRename: renameComponent, placeholder: c.name }),
                         React.createElement("div", { className: "text-xs text-wood-text/60 dark:text-parchment-bg/50 mt-1 flex flex-wrap gap-x-2 items-center" },
-                            React.createElement("span", null, `${c.area} sq ft`),
+                            React.createElement("span", null, `${c.length}×${c.width} ft (${c.area} sq ft)`),
                             React.createElement("span", { className: "opacity-40" }, "·"),
                             React.createElement("span", { title: "Bezahlter Baupreis (inkl. Standortmod & Rush)" },
                                 `Bezahlt: ${c.totalCost.toFixed(0)} gp`
