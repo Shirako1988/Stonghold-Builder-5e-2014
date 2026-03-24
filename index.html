@@ -439,9 +439,9 @@ const COMPONENT_CLASSIFICATIONS = {
     "Stable, basic": "industrial",
     "Stable, fancy": "industrial",
     "Stable, luxury": "industrial",
-    "Kitchen, basic": "industrial",
-    "Kitchen, fancy": "industrial",
-    "Kitchen, luxury": "industrial",
+    "Kitchen, basic": "social",
+    "Kitchen, fancy": "social",
+    "Kitchen, luxury": "social",
     // Economic
     "Shop, basic": "economic",
     "Shop, fancy": "economic",
@@ -458,9 +458,54 @@ const COMPONENT_CLASSIFICATIONS = {
     "Library, luxury": "social",
 };
 const getClassificationForComponent = (name) => {
+    const allowed = COMPONENT_ALLOWED_CLASSIFICATIONS[name];
+    if (allowed) return allowed[0]; // first entry is default
     const raw = COMPONENT_CLASSIFICATIONS[name] || 'social';
-    // economic_social is stored internally but shown as economic in the UI
     return raw === 'economic_social' ? 'economic' : raw;
+};
+const COMPONENT_ALLOWED_CLASSIFICATIONS = {
+    // Military only
+    "Barracks": ["military"],
+    "Armory, basic": ["military"],
+    "Armory, fancy": ["military"],
+    "Guard post": ["military"],
+    "Gatehouse": ["military"],
+    "Barbican": ["military"],
+    "Training area, combat": ["military"],
+    "Training area, rogue": ["military"],
+    "Prison cell": ["military"],
+    "Torture chamber": ["military"],
+    // Industrial only
+    "Smithy, basic": ["industrial"],
+    "Smithy, fancy": ["industrial"],
+    "Alchemical laboratory, basic": ["industrial"],
+    "Alchemical laboratory, fancy": ["industrial"],
+    "Magic laboratory, basic": ["industrial"],
+    "Magic laboratory, fancy": ["industrial"],
+    "Workplace, basic": ["industrial"],
+    "Workplace, fancy": ["industrial"],
+    "Stable, basic": ["industrial"],
+    "Stable, fancy": ["industrial"],
+    "Stable, luxury": ["industrial"],
+    // Kitchen: social default, industrial option
+    "Kitchen, basic": ["social", "industrial"],
+    "Kitchen, fancy": ["social", "industrial"],
+    "Kitchen, luxury": ["social", "industrial"],
+    // Economic only
+    "Shop, basic": ["economic"],
+    "Shop, fancy": ["economic"],
+    "Shop, luxury": ["economic"],
+    "Dock, basic": ["economic"],
+    "Dock, extended": ["economic"],
+    "Dock, extended dry": ["economic"],
+    // Economic_social (taverns - locked, special split)
+    "Tavern, basic": ["economic_social"],
+    "Tavern, fancy": ["economic_social"],
+    "Tavern, luxury": ["economic_social"],
+    // Social only
+    "Library, basic": ["social"],
+    "Library, fancy": ["social"],
+    "Library, luxury": ["social"],
 };
 const HIRELING_DATA = {
     'unskilled': { name: 'Unskilled Hireling', cost: 1.5, cr: 0.125 }, // 6gp/month -> 1.5gp/week
@@ -1466,7 +1511,7 @@ const useStronghold = () => {
 
     const baseMilitaryValue = useMemo(() => {
         const componentValue = calculateFullValue('military');
-        const wallValue = state.walls.filter(w => w.constructionStatus === 'completed').reduce((sum, w) => sum + w.baseCost, 0);
+        const wallValue = state.walls.filter(w => w.constructionStatus === 'completed').reduce((sum, w) => sum + (w.pureCost ?? w.baseCost), 0);
         return componentValue + wallValue + (enchantmentValueByCategory.military || 0);
     }, [state.components, state.walls, calculateFullValue, enchantmentValueByCategory]);
     const baseIndustrialValue = useMemo(() => calculateFullValue('industrial') + (enchantmentValueByCategory.industrial || 0), [calculateFullValue, enchantmentValueByCategory]);
@@ -1512,7 +1557,7 @@ const useStronghold = () => {
         const baseExcl = completed
             .filter(c => c.classification !== 'economic_social')
             .reduce((sum, c) => sum + (c.pureCost ?? c.baseCost), 0)
-            + state.walls.filter(w => w.constructionStatus === 'completed').reduce((sum, w) => sum + w.baseCost, 0);
+            + state.walls.filter(w => w.constructionStatus === 'completed').reduce((sum, w) => sum + (w.pureCost ?? w.baseCost), 0);
         const pct = baseExcl > 0 ? (tavernTotal / baseExcl) * 200 : 0;
         return { pct, tavernTotal, baseExcl };
     }, [state.components, state.walls]);
@@ -1764,14 +1809,14 @@ const useStronghold = () => {
             .filter(w => w.constructionStatus === 'completed')
             .map(w => ({
                 id: w.id,
-                name: w.customName || `${w.material.charAt(0).toUpperCase() + w.material.slice(1)} Mauer (${w.length}×${w.height}×${w.thickness})`,
+                name: w.customName || `${(w.material || w.type || w.name || 'Unknown').charAt(0).toUpperCase() + (w.material || w.type || w.name || 'Unknown').slice(1)} Mauer (${w.length}×${w.height}×${w.thickness})`,
                 classification: 'military_wall',
                 jobRole: '',
                 totalJobs: 0,
                 filledJobs: 0,
-                baseValue: w.baseCost,
-                paidCost: w.baseCost,
-                currentValue: w.baseCost,
+                baseValue: w.pureCost ?? w.baseCost,
+                paidCost: w.totalCost,
+                currentValue: w.pureCost ?? w.baseCost,
                 tavernNote: null,
             }));
         return [...militaryBuildings, ...wallBuildings].sort((a, b) => b.currentValue - a.currentValue);
@@ -1831,7 +1876,7 @@ const useStronghold = () => {
             const dmgShare_sim = newState.totalDamage > 0 ? newState.totalDamage / 4 : 0;
 
             const baseMV_sim_comp = calculateSimFullValue('military', newState.components);
-            const wallValue_sim = newState.walls.filter(w => w.constructionStatus === 'completed').reduce((s, w) => s + w.baseCost, 0);
+            const wallValue_sim = newState.walls.filter(w => w.constructionStatus === 'completed').reduce((s, w) => s + (w.pureCost ?? w.baseCost), 0);
             const baseMV_sim = baseMV_sim_comp + wallValue_sim;
             const baseIV_sim_full = calculateSimFullValue('industrial', newState.components);
             // economic_social: 40% to EV, 60% to SV
@@ -2003,6 +2048,8 @@ const useStronghold = () => {
             if (efficiency > 0) {
                 for (const [resource, value] of Object.entries(scaledResources)) { 
                     if (resource !== 'stallSpace') {
+                        // Industrial kitchens produce for commerce, not for feeding staff
+                        if (resource === 'food' && c.classification === 'industrial') continue;
                         capacity[resource] = (capacity[resource] || 0) + Math.floor(value * efficiency);
                     }
                 }
@@ -2605,8 +2652,10 @@ const generateComponentSummary = (name, category) => {
     if (parts.length === 0) return '';
     return `(${parts.join(' | ')})`;
 };
-const CalculatedBenefitsDisplay = ({ area, benefits, componentName, calculatedBaseCost, tavernBonus }) => {
+const CalculatedBenefitsDisplay = ({ area, benefits, componentName, calculatedBaseCost, tavernBonus, classification }) => {
     const { resources, jobs, perks } = benefits;
+    const isKitchen = componentName.toLowerCase().includes('kitchen');
+    const isIndustrialKitchen = isKitchen && classification === 'industrial';
     
     const isShop = componentName.toLowerCase().includes('shop');
     const isTavern = ['Tavern, basic', 'Tavern, fancy', 'Tavern, luxury'].includes(componentName);
@@ -2628,12 +2677,19 @@ const CalculatedBenefitsDisplay = ({ area, benefits, componentName, calculatedBa
             React.createElement("h4", { className: "text-xl font-semibold text-blue-800 dark:text-blue-200" }, `Kalkulierte Vorteile (bei ${area} sq ft)`),
             hasBenefits ? (
                  React.createElement("div", { className: "mt-2 text-wood-text/90 dark:text-parchment-bg/80 space-y-2" },
-                    Object.entries(resources).map(([key, value]) => (
-                        React.createElement("div", { key: key, className: "border-t border-blue-600/20 dark:border-blue-400/20 pt-2 mt-2 first:border-t-0 first:mt-0 first:pt-0" },
+                    Object.entries(resources).map(([key, value]) => {
+                        // Industrial kitchens don't provide food to staff
+                        if (key === 'food' && isIndustrialKitchen) {
+                            return React.createElement("div", { key: key, className: "border-t border-blue-600/20 dark:border-blue-400/20 pt-2 mt-2 first:border-t-0 first:mt-0 first:pt-0" },
+                                React.createElement("p", { className: "line-through text-gray-400 dark:text-gray-500" }, React.createElement("strong", null, "Ressource:"), ` +${value} ${RESOURCE_LABELS[key]}`),
+                                React.createElement("p", { className: "text-sm text-amber-700 dark:text-amber-400 font-semibold pl-4" }, "🏭 Industrielle Küche: Produziert für den Handel, nicht für die Versorgung des Personals.")
+                            );
+                        }
+                        return React.createElement("div", { key: key, className: "border-t border-blue-600/20 dark:border-blue-400/20 pt-2 mt-2 first:border-t-0 first:mt-0 first:pt-0" },
                             React.createElement("p", null, React.createElement("strong", null, "Ressource:"), ` +${value} ${RESOURCE_LABELS[key]}`),
                             React.createElement("p", { className: "text-sm text-wood-text/80 dark:text-parchment-bg/70 italic pl-4" }, RESOURCE_EXPLANATIONS[key] || 'Regeltechnische Erklärung nicht verfügbar.')
-                        )
-                    )),
+                        );
+                    }),
                     jobs.map((job, index) => (
                          React.createElement("div", { key: index, className: "border-t border-blue-600/20 dark:border-blue-400/20 pt-2 mt-2 first:border-t-0 first:mt-0 first:pt-0" },
                             React.createElement("p", null, React.createElement("strong", null, "Arbeitsplätze:"), ` ${job.count} ${job.role}(s)`),
@@ -2814,8 +2870,19 @@ const AddedWallsList = ({ stronghold }) => {
                     React.createElement("div", { className: "flex-1 min-w-0" },
                         React.createElement("div", { className: "font-semibold text-wood-dark dark:text-gold-light" }, w.name),
                         React.createElement(InlineRename, { item: w, onRename: renameWall, placeholder: w.name }),
-                        React.createElement("div", { className: "text-xs text-wood-text/60 dark:text-parchment-bg/50 mt-1" },
-                            `${w.length}×${w.height}×${w.thickness} ft · ${w.totalCost.toFixed(0)} gp · `,
+                        React.createElement("div", { className: "text-xs text-wood-text/60 dark:text-parchment-bg/50 mt-1 flex flex-wrap gap-x-2 items-center" },
+                            React.createElement("span", null, `${w.length}×${w.height}×${w.thickness} ft`),
+                            React.createElement("span", { className: "opacity-40" }, "·"),
+                            React.createElement("span", { title: "Bezahlter Baupreis (inkl. Standortmod & Rush)" },
+                                `Bezahlt: ${w.totalCost.toFixed(0)} gp`
+                            ),
+                            w.pureCost !== undefined && Math.abs(w.pureCost - w.baseCost) > 1 && React.createElement(React.Fragment, null,
+                                React.createElement("span", { className: "opacity-40" }, "·"),
+                                React.createElement("span", { className: "text-amber-700 dark:text-amber-400", title: "Tatsächlicher Mauerwert (ohne Standortmod) – dieser Wert zählt zum MV" },
+                                    `Wert: ${w.pureCost.toFixed(0)} gp`
+                                )
+                            ),
+                            React.createElement("span", { className: "opacity-40" }, "·"),
                             React.createElement("span", { className: `${w.constructionStatus === 'completed' ? 'text-green-700 dark:text-green-400' : w.constructionStatus === 'in_progress' ? 'text-amber-700 dark:text-amber-400' : 'text-gray-500'}` },
                                 w.constructionStatus === 'completed' ? '✅ Fertig' : w.constructionStatus === 'in_progress' ? '🔨 Im Bau' : '⏳ Ausstehend'
                             )
@@ -2834,7 +2901,12 @@ const AddedWallsList = ({ stronghold }) => {
 const RoomBuilderForm = ({ stronghold }) => {
     const [category, setCategory] = useState(Object.keys(COMPONENTS)[0]);
     const [componentName, setComponentName] = useState(Object.keys(COMPONENTS[category])[0]);
-    const [classification, setClassification] = useState(getClassificationForComponent(componentName));
+    const [classification, setClassification] = useState(() => {
+        const name = Object.keys(COMPONENTS[Object.keys(COMPONENTS)[0]])[0];
+        const allowed = COMPONENT_ALLOWED_CLASSIFICATIONS[name];
+        if (allowed) return allowed[0];
+        return getClassificationForComponent(name);
+    });
     
     const { minLength, minWidth } = useMemo(() => {
         const componentData = COMPONENTS[category]?.[componentName];
@@ -2865,7 +2937,11 @@ const RoomBuilderForm = ({ stronghold }) => {
             setLength(newMinSide);
             setWidth(newMinSide);
         }
-        setClassification(getClassificationForComponent(componentName));
+        setClassification(() => {
+            const allowed = COMPONENT_ALLOWED_CLASSIFICATIONS[componentName];
+            if (allowed) return allowed[0];
+            return getClassificationForComponent(componentName);
+        });
     }, [category, componentName]);
 
     const { area, costPerSqFt, calculatedBaseCost, adjustedCost, totalCost, constructionDays, description, scaledBenefits } = useMemo(() => {
@@ -2910,12 +2986,11 @@ const RoomBuilderForm = ({ stronghold }) => {
     };
 
     const handleAddComponent = () => {
-        const rawClassification = COMPONENT_CLASSIFICATIONS[componentName] || classification;
         const newComponent = {
             name: componentName,
             customName: isHeroQuarter && heroName.trim() ? heroName.trim() : undefined,
             category,
-            classification: rawClassification,
+            classification: classification,
             length,
             width,
             area,
@@ -2961,13 +3036,52 @@ const RoomBuilderForm = ({ stronghold }) => {
                 )
             ),
             React.createElement("div", null,
-                React.createElement("label", { htmlFor: "classification", className: "block font-semibold mb-2 text-wood dark:text-gold-light text-lg" }, "Classification"),
-                React.createElement("select", { id: "classification", value: classification, onChange: e => setClassification(e.target.value), className: "w-full p-3 border-2 border-gold dark:border-gray-500 rounded-md bg-white/80 dark:bg-gray-700 dark:text-parchment-light focus:border-wood dark:focus:border-gold-light focus:outline-none focus:ring-2 focus:ring-wood-light dark:focus:ring-gold-light" },
-                    React.createElement("option", { value: "military" }, "Militärisch"),
-                    React.createElement("option", { value: "industrial" }, "Industriell"),
-                    React.createElement("option", { value: "economic" }, "Ökonomisch"),
-                    React.createElement("option", { value: "social" }, "Sozial")
-                )
+                React.createElement("label", { className: "block font-semibold mb-2 text-wood dark:text-gold-light text-lg" }, "Klassifikation"),
+                (() => {
+                    const allowed = COMPONENT_ALLOWED_CLASSIFICATIONS[componentName] || ['social'];
+                    const defaultClass = allowed[0];
+                    const allOptions = [
+                        { key: 'military', label: '⚔️ Militärisch', color: 'red' },
+                        { key: 'industrial', label: '🏭 Industriell', color: 'blue' },
+                        { key: 'economic', label: '💰 Ökonomisch', color: 'green' },
+                        { key: 'social', label: '👥 Sozial', color: 'purple' },
+                    ];
+                    const isEcoSocial = allowed.includes('economic_social');
+                    return React.createElement("div", { className: "flex gap-2 flex-wrap" },
+                        allOptions.map(opt => {
+                            const isAllowed = allowed.includes(opt.key) || (opt.key === 'economic' && isEcoSocial);
+                            const isActive = classification === opt.key || (opt.key === 'economic' && classification === 'economic_social');
+                            const isDefault = opt.key === defaultClass || (opt.key === 'economic' && defaultClass === 'economic_social');
+                            const colorMap = {
+                                red: { active: 'bg-red-600 text-white border-red-800 dark:bg-red-700 dark:border-red-500', enabled: 'bg-red-100 text-red-800 border-red-400 hover:bg-red-200 dark:bg-red-900/40 dark:text-red-300 dark:border-red-600 dark:hover:bg-red-900/60' },
+                                blue: { active: 'bg-blue-600 text-white border-blue-800 dark:bg-blue-700 dark:border-blue-500', enabled: 'bg-blue-100 text-blue-800 border-blue-400 hover:bg-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-600 dark:hover:bg-blue-900/60' },
+                                green: { active: 'bg-green-600 text-white border-green-800 dark:bg-green-700 dark:border-green-500', enabled: 'bg-green-100 text-green-800 border-green-400 hover:bg-green-200 dark:bg-green-900/40 dark:text-green-300 dark:border-green-600 dark:hover:bg-green-900/60' },
+                                purple: { active: 'bg-purple-600 text-white border-purple-800 dark:bg-purple-700 dark:border-purple-500', enabled: 'bg-purple-100 text-purple-800 border-purple-400 hover:bg-purple-200 dark:bg-purple-900/40 dark:text-purple-300 dark:border-purple-600 dark:hover:bg-purple-900/60' },
+                            };
+                            const cls = isActive
+                                ? `${colorMap[opt.color].active} font-bold shadow-md ring-2 ring-offset-1 ring-${opt.color}-400`
+                                : isAllowed
+                                    ? `${colorMap[opt.color].enabled} cursor-pointer`
+                                    : 'bg-gray-200 text-gray-400 border-gray-300 cursor-not-allowed opacity-50 dark:bg-gray-700 dark:text-gray-500 dark:border-gray-600';
+                            return React.createElement("button", {
+                                key: opt.key,
+                                type: "button",
+                                disabled: !isAllowed,
+                                onClick: () => {
+                                    if (isAllowed) {
+                                        if (isEcoSocial) setClassification('economic_social');
+                                        else setClassification(opt.key);
+                                    }
+                                },
+                                className: `flex-1 min-w-[120px] py-2.5 px-3 rounded-lg border-2 text-sm font-semibold transition-all duration-200 ${cls}`
+                            },
+                                opt.label,
+                                isDefault && !isActive ? React.createElement("span", { className: "block text-xs opacity-70 font-normal" }, "Standard") : null,
+                                isEcoSocial && opt.key === 'economic' && isActive ? React.createElement("span", { className: "block text-xs opacity-80 font-normal" }, "40% ÖV · 60% SV") : null
+                            );
+                        })
+                    );
+                })()
             ),
 
             // Hero name field – only shown for Abenteurer-Quartiere
@@ -3016,6 +3130,7 @@ const RoomBuilderForm = ({ stronghold }) => {
                 componentName: componentName,
                 calculatedBaseCost: calculatedBaseCost,
                 tavernBonus: tavernBonus,
+                classification: classification,
             }),
             React.createElement("div", { className: "bg-blue-900/10 dark:bg-blue-900/30 p-4 rounded-lg border-l-4 border-blue-600 dark:border-blue-400" },
                 React.createElement("h4", { className: "text-xl font-semibold text-blue-800 dark:text-blue-200" }, "📖 Room Description"),
@@ -3058,27 +3173,28 @@ const RoomsTab = ({ stronghold }) => {
 
 // --- From components/WallsTab.tsx ---
 const WallsTab = ({ stronghold }) => {
-    const { addWall } = stronghold;
+    const { addWall, siteModifier } = stronghold;
     const [wallType, setWallType] = useState('stone');
     const [length, setLength] = useState(20);
     const [height, setHeight] = useState(10);
     const [thickness, setThickness] = useState(1);
     const [rushPercent, setRushPercent] = useState(0);
 
-    const { volume, baseCostPerFt, baseTotalCost, totalCost, constructionDays, durability, description } = useMemo(() => {
+    const { volume, baseCostPerFt, pureCost, baseTotalCost, totalCost, constructionDays, durability, description } = useMemo(() => {
         const vol = length * height * thickness;
         const costPerFt = WALL_COSTS[wallType] || 0;
-        const baseCost = vol * costPerFt;
-        const total = baseCost * (1 + rushPercent / 100);
-        const days = Math.ceil(calculateConstructionTime(baseCost) * (1 - rushPercent / 100));
+        const pure = vol * costPerFt;
+        const costWithSiteMod = pure * (1 + siteModifier / 100);
+        const total = costWithSiteMod * (1 + rushPercent / 100);
+        const days = Math.ceil(calculateConstructionTime(costWithSiteMod) * (1 - rushPercent / 100));
         const dur = WALL_DURABILITY[wallType] ? {
             hp: (WALL_DURABILITY[wallType].hp / 5) * thickness,
             ac: WALL_DURABILITY[wallType].ac,
             damageThreshold: WALL_DURABILITY[wallType].damageThreshold
         } : null;
         const desc = MATERIAL_DESCRIPTIONS[wallType] || 'Select a material to see its description.';
-        return { volume: vol, baseCostPerFt: costPerFt, baseTotalCost: baseCost, totalCost: total, constructionDays: days, durability: dur, description: desc };
-    }, [wallType, length, height, thickness, rushPercent]);
+        return { volume: vol, baseCostPerFt: costPerFt, pureCost: pure, baseTotalCost: costWithSiteMod, totalCost: total, constructionDays: days, durability: dur, description: desc };
+    }, [wallType, length, height, thickness, rushPercent, siteModifier]);
     
     const handleAddWall = () => {
         const newWall = {
@@ -3087,6 +3203,8 @@ const WallsTab = ({ stronghold }) => {
             length,
             height,
             thickness,
+            material: wallType,
+            pureCost: pureCost,
             baseCost: baseTotalCost,
             rushPercent,
             totalCost,
@@ -3136,7 +3254,8 @@ const WallsTab = ({ stronghold }) => {
                  React.createElement("div", { className: "bg-wood/10 dark:bg-gray-700/30 p-4 rounded-lg border-l-4 border-wood-light dark:border-gray-500 space-y-2" },
                     React.createElement("div", { className: "flex justify-between" }, React.createElement("strong", null, "Volume:"), React.createElement("span", null, `${volume.toFixed(1)} cubic ft`)),
                     React.createElement("div", { className: "flex justify-between" }, React.createElement("strong", null, "Base Cost (per cubic ft):"), React.createElement("span", null, `${baseCostPerFt.toFixed(2)} gp`)),
-                    React.createElement("div", { className: "flex justify-between font-bold" }, React.createElement("strong", null, "Base Total Cost:"), React.createElement("span", null, `${baseTotalCost.toFixed(0)} gp`))
+                    React.createElement("div", { className: "flex justify-between" }, React.createElement("strong", null, "Calculated Base Cost:"), React.createElement("span", null, `${pureCost.toFixed(0)} gp`)),
+                    React.createElement("div", { className: "flex justify-between font-bold" }, React.createElement("strong", null, "Adjusted Cost (Site Mod):"), React.createElement("span", null, `${baseTotalCost.toFixed(0)} gp`))
                  ),
 
                  React.createElement("div", { className: "bg-green-900/10 dark:bg-green-900/30 p-4 rounded-lg border-l-4 border-green-600 dark:border-green-400 space-y-4" },
@@ -4014,9 +4133,9 @@ const ROOM_MECHANICS = {
     "Common area, basic":     "Kein direkter Ressourcen-Output. Trägt zum Sozialen Wert der Festung bei, der Gehälter um bis zu 100% reduzieren kann.",
     "Common area, fancy":     "Kein direkter Ressourcen-Output. Höherer Beitrag zum Sozialen Wert als basic-Variante.",
     // Food & Dining
-    "Kitchen, basic":         "Produziert 15 Nahrung pro Basis-Fläche (400 sq ft) bei 1 Koch. OUTPUT SKALIERT MIT BESETZTEN KÖCHEN: 0/1 Köche = 0 Nahrung, 1/1 = 15 Nahrung. Bei größerer Küche (z.B. 800 sq ft): 2 Köche nötig, 1/2 besetzt = 7 Nahrung, 2/2 = 30 Nahrung. Jedes Personal (inkl. Freiwillige) verbraucht 1 Nahrung/Woche.",
-    "Kitchen, fancy":         "Identischer Mechanismus wie basic-Küche (15 Nahrung/Basis), höherer Wert. Trägt stärker zum Industriellen Wert bei.",
-    "Kitchen, luxury":        "Produziert 30 Nahrung pro Basis-Fläche bei 1 Koch. Effizienteste Küche pro Fläche. Skaliert ebenfalls mit besetzten Köchen.",
+    "Kitchen, basic":         "Versorgt die Festung mit Nahrung. Benötigt einen Koch. Kann als sozial (Personalversorgung) oder industriell (Handel, kein Nahrungsoutput) klassifiziert werden.",
+    "Kitchen, fancy":         "Gehobene Küche mit höherem Wert. Gleiche Nahrungskapazität wie basic. Kann als sozial oder industriell klassifiziert werden.",
+    "Kitchen, luxury":        "Großküche mit doppelter Nahrungskapazität pro Basis-Fläche. Kann als sozial oder industriell klassifiziert werden.",
     "Dining hall, basic":     "Stellt 20 Essensplätze pro Basis-Fläche (800 sq ft) bereit. Bezahltes Personal (nicht Freiwillige) benötigt einen Sitzplatz. Freiwillige benötigen KEINEN Essensplatz. Skaliert linear.",
     "Dining hall, fancy":     "Stellt 20 Essensplätze bereit. Gleiche Kapazität wie basic, höherer Sozialer-Wert-Beitrag.",
     "Dining hall, luxury":    "Stellt 20 Essensplätze bereit. Höchster Sozialer-Wert-Beitrag aller Speisesäle.",
