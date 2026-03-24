@@ -1705,7 +1705,7 @@ const useStronghold = () => {
 
     const baseGarrisonCR = useMemo(() => state.staff.reduce((sum, s) => sum + (s.cr * s.quantity), 0), [state.staff]);
     const garrisonCR = useMemo(() => Math.max(0, baseGarrisonCR * (1 + defenseBonus)), [baseGarrisonCR, defenseBonus]);
-    const attackCR = useMemo(() => Math.max(0.5, Math.min(30, totalValue / 2000)), [totalValue]);
+    const attackCR = useMemo(() => Math.max(0.5, Math.min(30, (militaryValue + industrialValue + economicValue) / 2000)), [militaryValue, industrialValue, economicValue]);
     
     const totalConstructionDays = useMemo(() => {
     const componentDays = state.components.filter(c => c.constructionStatus !== 'completed').reduce((sum, c) => sum + Math.ceil(calculateConstructionTime(c.baseCost) * (1 - c.rushPercent / 100)), 0);
@@ -1922,7 +1922,7 @@ const useStronghold = () => {
             const currentMaxAttackRoll = Math.max(2, Math.min(100, Math.round(25 * (currentAttackChanceBonus + 1))));
             const currentBaseGarrisonCR = newState.staff.reduce((s, st) => s + (st.cr * st.quantity), 0);
             const currentGarrisonCR = Math.max(0, currentBaseGarrisonCR * (1 + currentDefenseBonus));
-            const currentAttackCR = Math.max(0.5, Math.min(30, currentTV / 2000));
+            const currentAttackCR = Math.max(0.5, Math.min(30, (currentMV + currentIV_full + currentEV_full) / 2000));
             
             // Count previous weeks by counting WOCHE_SEPARATOR markers (1 per week)
             const weekNumber = (newState.simulationLog || []).filter(l => l.startsWith('__WEEK__')).length + 1;
@@ -6582,7 +6582,7 @@ const DefenseTab = ({ stronghold }) => {
     return (
         React.createElement("div", null,
             React.createElement("h2", { className: "text-3xl font-medieval text-wood-dark dark:text-gold-light mb-2" }, "🛡️ Verteidigung"),
-            React.createElement("p", { className: "mb-6" }, "VERTEIDIGUNGSBONUS: max(-90%, 200% - (IV+EV)/MV × 100%). Effektiver Garnisons-CR = Basis-CR × (1 + Verteidigungsbonus). ANGRIFFSCHANCE: Angriff wenn W100 ≤ max(2, min(100, round(25 × (1 + Angriffschancebonus)))). ANGRIFFS-CR-SCHÄTZUNG: Gesamtwert ÷ 2000, min 0,5, max 30. SCHADEN bei Angriff: (TV × AtkCR / GarnisonCR) ÷ 10, min TV×1%, max TV×200%. Der Schaden wird zu je 1/4 von MV, IV, ÖV und SV abgezogen – Angriffe treffen Moral und Infrastruktur gleichermaßen. WÖCHENTLICHE SIMULATION: Profit − (Gehälter + Wartung) = Netto-Wocheneinkommen → wird zur Schatzkammer addiert."),
+            React.createElement("p", { className: "mb-6" }, "VERTEIDIGUNGSBONUS: max(-90%, 200% - (IV+EV)/MV × 100%). Effektiver Garnisons-CR = Basis-CR × (1 + Verteidigungsbonus). ANGRIFFSCHANCE: Angriff wenn W100 ≤ max(2, min(100, round(25 × (1 + Angriffschancebonus)))). ANGRIFFS-CR-SCHÄTZUNG: (MV+IV+ÖV) ÷ 2000, min 0,5, max 30. SCHADEN bei Angriff: (TV × AtkCR / GarnisonCR) ÷ 10, min TV×1%, max TV×200%. Der Schaden wird zu je 1/4 von MV, IV, ÖV und SV abgezogen – Angriffe treffen Moral und Infrastruktur gleichermaßen. WÖCHENTLICHE SIMULATION: Profit − (Gehälter + Wartung) = Netto-Wocheneinkommen → wird zur Schatzkammer addiert."),
             React.createElement("div", { className: "grid md:grid-cols-2 gap-8" },
                 React.createElement("div", null,
                     React.createElement("div", { className: "bg-red-900/10 dark:bg-red-900/30 p-6 rounded-lg border-2 border-red-800/50 dark:border-red-500/50 shadow-lg mb-8" },
@@ -6667,7 +6667,7 @@ const DefenseTab = ({ stronghold }) => {
                         React.createElement("h3", { className: "text-2xl font-semibold text-center mb-4 text-blue-900 dark:text-blue-200" }, "Kampfstärke"),
                         React.createElement("div", { className: "space-y-3 bg-black/10 dark:bg-black/20 p-4 rounded" },
                              React.createElement(InfoRow, { label: "Garnisons-CR", value: garrisonCR.toFixed(2), tooltip: "Die effektive Kampfstärke deiner stationierten Truppen, modifiziert durch den Verteidigungsbonus." }),
-                             React.createElement(InfoRow, { label: "Angreifer-CR (geschätzt)", value: attackCR.toFixed(2), tooltip: "Die geschätzte Stärke eines potenziellen Angreifers, basierend auf dem Gesamtwert deiner Festung." }),
+                             React.createElement(InfoRow, { label: "Angreifer-CR (geschätzt)", value: attackCR.toFixed(2), tooltip: "Die geschätzte Stärke eines potenziellen Angreifers, basierend auf dem sichtbaren Wert deiner Festung (MV + IV + ÖV, ohne SV)." }),
                              React.createElement("div", { className: "pt-2" },
                                 React.createElement("h4", { className: "font-semibold text-center text-sm text-wood-dark dark:text-gold-light mb-1" }, "Garnisons-Zusammensetzung"),
                                 React.createElement("div", { className: "max-h-24 overflow-y-auto text-xs space-y-1 pr-2" },
