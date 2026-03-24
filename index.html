@@ -293,6 +293,27 @@ const PERK_LIST = {
     SHIPBUILDING: { id: "SHIPBUILDING", name: "Shipbuilding", description: "Enables the construction of water or air vehicles up to the size of the drydock." },
     COMMERCE: { id: "COMMERCE", name: "Commerce", description: "Unlocks buying and selling goods within the stronghold." },
 };
+// Skill bonuses granted by completed rooms (best tier wins, not cumulative)
+const ROOM_SKILL_BONUSES = {
+    "Alchemical laboratory, basic": { skill: "Alchemie & Gifte", bonus: 2, icon: "🧪" },
+    "Alchemical laboratory, fancy": { skill: "Alchemie & Gifte", bonus: 4, icon: "🧪" },
+    "Magic laboratory, basic": { skill: "Arcana", bonus: 2, icon: "🔮" },
+    "Magic laboratory, fancy": { skill: "Arcana", bonus: 4, icon: "🔮" },
+    "Smithy, basic": { skill: "Metallurgie (Smith's Tools)", bonus: 2, icon: "⚒️" },
+    "Smithy, fancy": { skill: "Metallurgie (Smith's Tools)", bonus: 4, icon: "⚒️" },
+    "Auditorium, fancy": { skill: "Performance", bonus: 2, icon: "🎭" },
+    "Auditorium, luxury": { skill: "Performance", bonus: 4, icon: "🎭" },
+    "Throne room, basic": { skill: "Persuasion", bonus: 2, icon: "👑" },
+    "Throne room, fancy": { skill: "Persuasion", bonus: 4, icon: "👑" },
+    "Throne room, luxury": { skill: "Persuasion", bonus: 6, icon: "👑" },
+    "Kitchen, basic": { skill: "Cook's Utensils", bonus: 2, icon: "🍳" },
+    "Kitchen, fancy": { skill: "Cook's Utensils", bonus: 4, icon: "🍳" },
+    "Kitchen, luxury": { skill: "Cook's Utensils", bonus: 6, icon: "🍳" },
+    "Workplace, fancy": { skill: "Handwerks-Tools", bonus: 2, icon: "🔧" },
+    "Study/Office, basic": { skill: "Sprach-/Tool-Training (Workweeks)", bonus: -1, icon: "📚", isDowntime: true },
+    "Study/Office, fancy": { skill: "Sprach-/Tool-Training (Workweeks)", bonus: -2, icon: "📚", isDowntime: true },
+    "Study/Office, luxury": { skill: "Sprach-/Tool-Training (Workweeks)", bonus: -3, icon: "📚", isDowntime: true },
+};
 const PERK_EXPLANATIONS = {
     SMITHING: "Regeltechnisch: Spieler können die Herstellung von metallischen Waffen, Rüstungen und Werkzeugen an die Fachkraft (Schmied) auslagern. Es gelten die normalen Herstellungsregeln (Zeit- und Kostenaufwand gemäß Spielerhandbuch), als würde ein Spieler den Gegenstand selbst herstellen. Die Arbeit wird lediglich delegiert.",
     ALCHEMY: "Regeltechnisch: Spieler können das Brauen von Tränken und alchemistischen Substanzen an die Fachkraft (Alchemist) auslagern. Es gelten die normalen Herstellungsregeln (Zeit- und Kostenaufwand gemäß Spielerhandbuch), als würde ein Spieler den Gegenstand selbst herstellen. Die Arbeit wird lediglich delegiert.",
@@ -384,9 +405,9 @@ const COMPONENTS = {
         "Throne room, basic": { cost: 2000, ss: 1 },
         "Throne room, fancy": { cost: 12000, ss: 1 },
         "Throne room, luxury": { cost: 80000, ss: 2 },
-        "Courtyard, basic": { cost: 1000, ss: 1 },
-        "Courtyard, fancy": { cost: 6000, ss: 1 },
-        "Courtyard, luxury": { cost: 30000, ss: 1 },
+        "Courtyard, basic": { cost: 500, ss: 1 },
+        "Courtyard, fancy": { cost: 3000, ss: 1 },
+        "Courtyard, luxury": { cost: 15000, ss: 1 },
         "Chapel, basic": { cost: 1000, ss: 1, jobs: [{ role: 'Priest', count: 1 }] },
         "Chapel, fancy": { cost: 6000, ss: 2, jobs: [{ role: 'Priest', count: 1 }] },
         "Chapel, luxury": { cost: 25000, ss: 3, jobs: [{ role: 'Priest', count: 1 }] },
@@ -798,6 +819,7 @@ const INITIAL_STATE = {
   merchantGoldSpentThisWeek: 0,
   strongholdTreasury: 0,
   enchantmentPriceScale: 1.0,
+  craftingOrders: [],
 };
 const calculateConstructionTime = (baseCost) => {
     if (baseCost <= 0) return 0;
@@ -1121,11 +1143,45 @@ const useStronghold = () => {
       const componentToRemove = prevState.components.find(c => c.id === id);
       if (!componentToRemove) return prevState;
 
-      const staffToUnassign = componentToRemove.jobSlots.map(j => j.filledBy).filter(Boolean);
-      const updatedStaff = prevState.staff.map(s => staffToUnassign.includes(s.id) ? { ...s, assignedJobId: null } : s);
+      const staffIdsToUnassign = componentToRemove.jobSlots.map(j => j.filledBy).filter(Boolean);
+      
+      // First unassign all, then merge each back into available stacks
+      let updatedStaff = prevState.staff.map(s => staffIdsToUnassign.includes(s.id) ? { ...s, assignedJobId: null } : s);
+
+      // Merge logic: for each unassigned staff, try to find an existing available stack to merge into
+      const toRemove = new Set();
+      staffIdsToUnassign.forEach(staffId => {
+        if (toRemove.has(staffId)) return;
+        const member = updatedStaff.find(s => s.id === staffId);
+        if (!member) return;
+        const mergeTarget = updatedStaff.find(s =>
+            s.id !== staffId &&
+            !toRemove.has(s.id) &&
+            s.assignedJobId === null &&
+            s.hirelingKey === member.hirelingKey &&
+            s.customRole === member.customRole &&
+            s.isVolunteer === member.isVolunteer &&
+            s.isMount === member.isMount
+        );
+        if (mergeTarget) {
+            mergeTarget.quantity += member.quantity;
+            mergeTarget.totalCost += member.totalCost;
+            toRemove.add(staffId);
+        }
+      });
+      if (toRemove.size > 0) {
+        updatedStaff = updatedStaff.filter(s => !toRemove.has(s.id));
+      }
 
       return { ...prevState, components: prevState.components.filter(c => c.id !== id), staff: updatedStaff };
     });
+  }, []);
+
+  const updateComponentClassification = useCallback((id, newClassification) => {
+    setState(prevState => ({
+      ...prevState,
+      components: prevState.components.map(c => c.id === id ? { ...c, classification: newClassification } : c)
+    }));
   }, []);
 
   const addWall = useCallback((wall) => {
@@ -1331,6 +1387,41 @@ const useStronghold = () => {
 
   const setEnchantmentPriceScale = useCallback((scale) => {
       setState(prev => ({ ...prev, enchantmentPriceScale: Math.max(0.1, Math.min(2.0, scale)) }));
+  }, []);
+
+  // ── Crafting Orders ──────────────────────────────────────────────────────────
+  const addCraftingOrder = useCallback((workerSlotId, workerRole, componentName, itemName, cost, durationDays) => {
+      setState(prev => {
+          const orders = prev.craftingOrders || [];
+          // Find the end date of the last order for this worker
+          const workerOrders = orders.filter(o => o.workerSlotId === workerSlotId);
+          let startDate;
+          if (workerOrders.length > 0) {
+              const lastOrder = workerOrders[workerOrders.length - 1];
+              const lastEnd = new Date(lastOrder.startDate);
+              lastEnd.setDate(lastEnd.getDate() + lastOrder.durationDays);
+              startDate = lastEnd.toISOString().split('T')[0];
+          } else {
+              startDate = worldDateRef.current || new Date().toISOString().split('T')[0];
+          }
+          return {
+              ...prev,
+              craftingOrders: [...orders, {
+                  id: crypto.randomUUID(),
+                  workerSlotId,
+                  workerRole,
+                  componentName,
+                  itemName: itemName || 'Unbenannter Gegenstand',
+                  cost: cost || 0,
+                  durationDays: Math.max(1, durationDays),
+                  startDate,
+              }]
+          };
+      });
+  }, []);
+
+  const removeCraftingOrder = useCallback((orderId) => {
+      setState(prev => ({ ...prev, craftingOrders: (prev.craftingOrders || []).filter(o => o.id !== orderId) }));
   }, []);
 
   const addEnchantment = useCallback((enchantment, isEmbedded = false) => {
@@ -1884,14 +1975,50 @@ const useStronghold = () => {
             
             const dmgShare_sim = newState.totalDamage > 0 ? newState.totalDamage / 4 : 0;
 
+            // --- Compute terrain/resource/custom bonuses from current state (not stale closure) ---
+            const simSite = newState.site || {};
+            const simClimate = simSite.climate || '';
+            const simTerrainFx = TERRAIN_VALUE_EFFECTS[simClimate] || {};
+            const simTerrainMvBonus = (TERRAIN_MV_BONUS[simClimate]?.pct || 0);
+            const simFeatureMvBonus = (simSite.features || []).reduce((sum, f) => sum + (FEATURE_MV_BONUS[f]?.pct || 0), 0);
+            const simResourceBonuses = (simSite.resourceBonuses || []);
+            const simResMults = (() => {
+                let iv = 0, ev = 0, coastalMv = 0;
+                simResourceBonuses.forEach(id => {
+                    const rb = RESOURCE_BONUSES?.[id];
+                    if (rb) { iv += rb.ivBonus || 0; ev += rb.evBonus || 0; }
+                });
+                const hasCoastal = simResourceBonuses.includes('coastal');
+                const hasTrade = simResourceBonuses.includes('trade');
+                coastalMv = hasCoastal ? (hasTrade ? -15 : -5) : 0;
+                return { ivPct: iv, evPct: ev, coastalMv };
+            })();
+            const simCustomMults = (() => {
+                const active = (simSite.customFeatures || []).filter(f => f.active && f.effects?.length > 0);
+                const sum = (t) => active.reduce((s, f) => s + f.effects.filter(e => e.target === t).reduce((ss, e) => ss + (parseFloat(e.pct) || 0), 0), 0);
+                return { mv: sum('mv'), iv: sum('iv'), ev: sum('ev'), sv: sum('sv') };
+            })();
+            const simMvTotalPct = simTerrainMvBonus + simFeatureMvBonus + simResMults.coastalMv + simCustomMults.mv;
+            const simIvTotalPct = simResMults.ivPct + (simTerrainFx.iv || 0) + simCustomMults.iv;
+            const simEvTotalPct = simResMults.evPct + (simTerrainFx.ev || 0) + simCustomMults.ev;
+            const simSvTotalPct = (simTerrainFx.sv || 0) + simCustomMults.sv;
+
+            // --- Enchantment values by category ---
+            const simEnchValues = { military: 0, industrial: 0, economic: 0, social: 0 };
+            (newState.enchantments || []).filter(e => e.constructionStatus === 'completed').forEach(e => {
+                const cat = ENCHANTMENT_VALUE_CATEGORY[e.category] || 'military';
+                simEnchValues[cat] = (simEnchValues[cat] || 0) + (e.totalCost || e.price5e);
+            });
+
+            // --- Base values (components + walls + enchantments) ---
             const baseMV_sim_comp = calculateSimFullValue('military', newState.components);
             const wallValue_sim = newState.walls.filter(w => w.constructionStatus === 'completed').reduce((s, w) => s + (w.pureCost ?? w.baseCost), 0);
-            const baseMV_sim = baseMV_sim_comp + wallValue_sim;
-            const baseIV_sim_full = calculateSimFullValue('industrial', newState.components);
+            const baseMV_sim = baseMV_sim_comp + wallValue_sim + simEnchValues.military;
+            const baseIV_sim_full = calculateSimFullValue('industrial', newState.components) + simEnchValues.industrial;
             // economic_social: 40% to EV, 60% to SV
-            const baseEV_sim_full = calculateSimFullValue('economic', newState.components)
+            const baseEV_sim_full = calculateSimFullValue('economic', newState.components) + simEnchValues.economic
                 + newState.components.filter(c => c.classification === 'economic_social' && c.constructionStatus === 'completed').reduce((s, c) => s + (c.pureCost ?? c.baseCost) * 0.4, 0);
-            const baseSV_social_sim_full = calculateSimFullValue('social', newState.components)
+            const baseSV_social_sim_full = calculateSimFullValue('social', newState.components) + simEnchValues.social
                 + newState.components.filter(c => c.classification === 'economic_social' && c.constructionStatus === 'completed').reduce((s, c) => s + (c.pureCost ?? c.baseCost) * 0.6, 0);
 
             // --- SIM PRIEST LOGIC ---
@@ -1911,10 +2038,11 @@ const useStronghold = () => {
             const simActualBonus = Math.min(simPotentialBonus, simChapelValue);
             // --- END SIM PRIEST LOGIC ---
 
-            const currentMV = Math.max(0, baseMV_sim - dmgShare_sim);
-            const currentIV_full = Math.max(0, baseIV_sim_full - dmgShare_sim);
-            const currentEV_full = Math.max(0, baseEV_sim_full - dmgShare_sim);
-            const currentSV_social = Math.max(0, baseSV_social_sim_full + simActualBonus - dmgShare_sim);
+            // --- Apply terrain/resource/custom bonuses (matching Summary tab exactly) ---
+            const currentMV = Math.max(0, (baseMV_sim - dmgShare_sim)) * (1 + simMvTotalPct / 100);
+            const currentIV_full = Math.max(0, (baseIV_sim_full - dmgShare_sim)) * (1 + simIvTotalPct / 100);
+            const currentEV_full = Math.max(0, (baseEV_sim_full - dmgShare_sim)) * (1 + simEvTotalPct / 100);
+            const currentSV_social = Math.max(0, baseSV_social_sim_full + simActualBonus - dmgShare_sim) * (1 + simSvTotalPct / 100);
             const currentFormulaSV = currentIV_full + currentEV_full;
             const currentTV = currentMV + currentIV_full + currentEV_full + currentSV_social;
             const currentDefenseBonus = currentMV === 0 ? (currentFormulaSV > 0 ? -0.9 : 0) : Math.max(-0.9, 2 - (currentFormulaSV / currentMV));
@@ -1944,8 +2072,8 @@ const useStronghold = () => {
             const simTavernBonusPct = simBaseExcl > 0 ? (simTavernTotal / simBaseExcl) * 200 : 0;
             const simShopBonus = shopScaledSim * (simTavernBonusPct / 100);
             const baseEV_sim_scaled = shopScaledSim + tavernScaledSim + simShopBonus;
-            const ivTotalPct = (resourceBonusMults?.ivPct || 0) + (terrainValueEffects?.iv || 0) + (customValueMults?.iv || 0);
-            const evTotalPct = (resourceBonusMults?.evPct || 0) + (terrainValueEffects?.ev || 0) + (customValueMults?.ev || 0);
+            const ivTotalPct = simIvTotalPct;
+            const evTotalPct = simEvTotalPct;
             const currentIV_scaled = Math.max(0, baseIV_sim_scaled - dmgShare_sim) * (1 + ivTotalPct / 100);
             const currentEV_scaled = Math.max(0, baseEV_sim_scaled - dmgShare_sim) * (1 + evTotalPct / 100);
             
@@ -2177,10 +2305,12 @@ const useStronghold = () => {
 
   return {
     ...state,
-    setSite, addComponent, removeComponent, renameComponent, addWall, removeWall, renameWall, addStaff, removeStaff, assignStaffToJob, unassignStaffFromJob,
+    setSite, addComponent, removeComponent, renameComponent, updateComponentClassification, addWall, removeWall, renameWall, addStaff, removeStaff, assignStaffToJob, unassignStaffFromJob,
     addEnchantment, removeEnchantment, renameEnchantment,
     addEnchantmentPin, moveEnchantmentPin, removeEnchantmentPin,
     addDrawElement, removeDrawElement, updateDrawElement,
+    addCraftingOrder, removeCraftingOrder,
+    craftingOrders: state.craftingOrders || [],
     startNewStronghold, exportSlot, importStronghold, startConstruction, completeConstruction, simulateNextWeek, rewindLastWeek, repairDamage,
     setMerchantGoldSpentThisWeek, depositToTreasury, withdrawFromTreasury,
     saveSlots, activeSaveName, saveCurrentSlot, saveAsNewSlot, loadSlot, deleteSlot, renameSlot, copySlot,
@@ -2860,9 +2990,14 @@ const InlineRename = ({ item, onRename, placeholder }) => {
 };
 
 // List of added components shown in RoomsTab
+const CLASSIFICATION_LABELS_SHORT = { military: '⚔️', industrial: '🏭', economic: '💰', social: '👥', economic_social: '🍺' };
+const CLASSIFICATION_SORT_ORDER = { military: 0, industrial: 1, economic: 2, economic_social: 3, social: 4 };
+
 const AddedComponentsList = ({ stronghold }) => {
-    const { components, removeComponent, renameComponent } = stronghold;
+    const { components, removeComponent, renameComponent, updateComponentClassification } = stronghold;
     const [pendingDelete, setPendingDelete] = useState(null);
+    const [search, setSearch] = useState('');
+    const [sortBy, setSortBy] = useState('added'); // added, name, cost, classification, status
 
     useEffect(() => {
         if (pendingDelete) {
@@ -2871,16 +3006,58 @@ const AddedComponentsList = ({ stronghold }) => {
         }
     }, [pendingDelete]);
 
+    const filtered = useMemo(() => {
+        let list = components;
+        if (search) {
+            const s = search.toLowerCase();
+            list = list.filter(c => c.name.toLowerCase().includes(s) || (c.customName && c.customName.toLowerCase().includes(s)));
+        }
+        if (sortBy === 'name') list = [...list].sort((a, b) => a.name.localeCompare(b.name));
+        else if (sortBy === 'cost') list = [...list].sort((a, b) => b.totalCost - a.totalCost);
+        else if (sortBy === 'classification') list = [...list].sort((a, b) => (CLASSIFICATION_SORT_ORDER[a.classification] ?? 9) - (CLASSIFICATION_SORT_ORDER[b.classification] ?? 9));
+        else if (sortBy === 'status') list = [...list].sort((a, b) => { const o = { completed: 0, in_progress: 1, pending: 2 }; return (o[a.constructionStatus] ?? 9) - (o[b.constructionStatus] ?? 9); });
+        return list;
+    }, [components, search, sortBy]);
+
     if (components.length === 0) return null;
 
+    const isKitchen = (name) => name.toLowerCase().includes('kitchen');
+    const allowedClassifications = (name) => COMPONENT_ALLOWED_CLASSIFICATIONS[name];
+
     return React.createElement("div", { className: "mt-8" },
-        React.createElement("h3", { className: "text-2xl font-medieval text-wood-dark dark:text-gold-light mb-3" }, "🏛️ Hinzugefügte Räume"),
+        React.createElement("h3", { className: "text-2xl font-medieval text-wood-dark dark:text-gold-light mb-3" }, `🏛️ Hinzugefügte Räume (${components.length})`),
+        // Search & Sort bar
+        React.createElement("div", { className: "flex flex-wrap gap-2 mb-3" },
+            React.createElement("input", {
+                type: "text", placeholder: "🔍 Raum suchen...", value: search,
+                onChange: e => setSearch(e.target.value),
+                className: "flex-1 min-w-[140px] p-2 border-2 border-gold dark:border-gray-500 rounded-md bg-white/80 dark:bg-gray-700 dark:text-parchment-light text-sm"
+            }),
+            React.createElement("select", {
+                value: sortBy, onChange: e => setSortBy(e.target.value),
+                className: "p-2 border-2 border-gold dark:border-gray-500 rounded-md bg-white/80 dark:bg-gray-700 dark:text-parchment-light text-sm"
+            },
+                React.createElement("option", { value: "added" }, "Reihenfolge: Hinzugefügt"),
+                React.createElement("option", { value: "name" }, "Sortieren: Name"),
+                React.createElement("option", { value: "cost" }, "Sortieren: Kosten ↓"),
+                React.createElement("option", { value: "classification" }, "Sortieren: Kategorie"),
+                React.createElement("option", { value: "status" }, "Sortieren: Baustatus")
+            )
+        ),
+        search && filtered.length !== components.length && React.createElement("div", { className: "text-xs text-wood-text/50 dark:text-parchment-bg/40 mb-2" },
+            `${filtered.length} von ${components.length} Räumen`
+        ),
         React.createElement("div", { className: "space-y-2" },
-            components.map(c => {
+            filtered.map(c => {
                 const isPending = pendingDelete === c.id;
+                const canSwitch = allowedClassifications(c.name)?.length > 1;
+                const isSocial = c.classification === 'social';
                 return React.createElement("div", { key: c.id, className: "flex items-start justify-between gap-3 p-3 rounded-lg border-2 border-gold/40 dark:border-gray-600 bg-parchment-light/60 dark:bg-gray-700/40" },
                     React.createElement("div", { className: "flex-1 min-w-0" },
-                        React.createElement("div", { className: "font-semibold text-wood-dark dark:text-gold-light" }, c.name),
+                        React.createElement("div", { className: "flex items-center gap-2" },
+                            React.createElement("span", { className: "text-sm", title: c.classification }, CLASSIFICATION_LABELS_SHORT[c.classification] || '❓'),
+                            React.createElement("span", { className: "font-semibold text-wood-dark dark:text-gold-light" }, c.name)
+                        ),
                         React.createElement(InlineRename, { item: c, onRename: renameComponent, placeholder: c.name }),
                         React.createElement("div", { className: "text-xs text-wood-text/60 dark:text-parchment-bg/50 mt-1 flex flex-wrap gap-x-2 items-center" },
                             React.createElement("span", null, `${c.length}×${c.width} ft (${c.area} sq ft)`),
@@ -2898,6 +3075,21 @@ const AddedComponentsList = ({ stronghold }) => {
                             React.createElement("span", { className: `${c.constructionStatus === 'completed' ? 'text-green-700 dark:text-green-400' : c.constructionStatus === 'in_progress' ? 'text-amber-700 dark:text-amber-400' : 'text-gray-500'}` },
                                 c.constructionStatus === 'completed' ? '✅ Fertig' : c.constructionStatus === 'in_progress' ? '🔨 Im Bau' : '⏳ Ausstehend'
                             )
+                        ),
+                        // Kitchen classification toggle
+                        canSwitch && React.createElement("div", { className: "mt-2 flex items-center gap-2" },
+                            React.createElement("span", { className: `text-xs font-semibold ${!isSocial ? 'text-blue-700 dark:text-blue-400' : 'text-wood-text/40 dark:text-parchment-bg/30'}` }, "🏭 Industriell"),
+                            React.createElement("button", {
+                                type: "button",
+                                onClick: () => updateComponentClassification(c.id, isSocial ? 'industrial' : 'social'),
+                                className: `relative w-10 h-5 rounded-full transition-colors duration-200 ${isSocial ? 'bg-purple-500' : 'bg-blue-500'}`,
+                                title: isSocial ? 'Aktuell: Sozial (versorgt Personal). Klicke um auf Industriell umzustellen.' : 'Aktuell: Industriell (Handelsproduktion). Klicke um auf Sozial umzustellen.'
+                            },
+                                React.createElement("span", {
+                                    className: `absolute top-0.5 ${isSocial ? 'right-0.5' : 'left-0.5'} w-4 h-4 rounded-full bg-white shadow transition-all duration-200`
+                                })
+                            ),
+                            React.createElement("span", { className: `text-xs font-semibold ${isSocial ? 'text-purple-700 dark:text-purple-400' : 'text-wood-text/40 dark:text-parchment-bg/30'}` }, "👥 Sozial")
                         )
                     ),
                     React.createElement("button", {
@@ -4198,9 +4390,9 @@ const ROOM_MECHANICS = {
     "Common area, basic":     "Kein direkter Ressourcen-Output. Trägt zum Sozialen Wert der Festung bei, der Gehälter um bis zu 100% reduzieren kann.",
     "Common area, fancy":     "Kein direkter Ressourcen-Output. Höherer Beitrag zum Sozialen Wert als basic-Variante.",
     // Food & Dining
-    "Kitchen, basic":         "Versorgt die Festung mit Nahrung. Benötigt einen Koch. Kann als sozial (Personalversorgung) oder industriell (Handel, kein Nahrungsoutput) klassifiziert werden.",
-    "Kitchen, fancy":         "Gehobene Küche mit höherem Wert. Gleiche Nahrungskapazität wie basic. Kann als sozial oder industriell klassifiziert werden.",
-    "Kitchen, luxury":        "Großküche mit doppelter Nahrungskapazität pro Basis-Fläche. Kann als sozial oder industriell klassifiziert werden.",
+    "Kitchen, basic":         "Versorgt die Festung mit Nahrung. Benötigt einen Koch. Kann als sozial (Personalversorgung) oder industriell (Handel, kein Nahrungsoutput) klassifiziert werden. REGELEFFEKT: Gewährt +2 auf alle Checks mit Koch-Utensilien (Cook's Utensils) innerhalb der Festung. Nicht kumulativ mit höheren Küchen.",
+    "Kitchen, fancy":         "Gehobene Küche mit höherem Wert. Gleiche Nahrungskapazität wie basic. Kann als sozial oder industriell klassifiziert werden. REGELEFFEKT: Gewährt +4 auf alle Checks mit Koch-Utensilien (Cook's Utensils) innerhalb der Festung. Ersetzt den +2 Bonus der Basic-Küche.",
+    "Kitchen, luxury":        "Großküche mit doppelter Nahrungskapazität pro Basis-Fläche. Kann als sozial oder industriell klassifiziert werden. REGELEFFEKT: Gewährt +6 auf alle Checks mit Koch-Utensilien (Cook's Utensils) innerhalb der Festung. Ersetzt alle niedrigeren Boni.",
     "Dining hall, basic":     "Stellt 20 Essensplätze pro Basis-Fläche (800 sq ft) bereit. Bezahltes Personal (nicht Freiwillige) benötigt einen Sitzplatz. Freiwillige benötigen KEINEN Essensplatz. Skaliert linear.",
     "Dining hall, fancy":     "Stellt 20 Essensplätze bereit. Gleiche Kapazität wie basic, höherer Sozialer-Wert-Beitrag.",
     "Dining hall, luxury":    "Stellt 20 Essensplätze bereit. Höchster Sozialer-Wert-Beitrag aller Speisesäle.",
@@ -4213,14 +4405,14 @@ const ROOM_MECHANICS = {
     "Training area, combat":  "Kein Ressourcen-Output. Militärischer-Wert-Beitrag.",
     "Training area, rogue":   "Kein Ressourcen-Output. Militärischer-Wert-Beitrag (obwohl eher sozial thematisiert).",
     // Crafting
-    "Smithy, basic":          "Schaltet Perk SMITHING frei sobald ≥1 Schmied besetzt ist. Ermöglicht das Delegieren von Metallgegenstand-Herstellung an die Fachkraft (Zeit+Kosten wie Selbstherstellung). Skaliert: ≥800 sq ft → 2 Schmiede nötig für vollen Output.",
-    "Smithy, fancy":          "Schaltet SMITHING frei, benötigt 2 Schmiede bei Basis-Fläche. Höherer Industrieller Wert, der den wöchentlichen Profit steigert: Industrieprofit = Industrieller Wert × 1%/Woche.",
-    "Alchemical laboratory, basic": "Schaltet ALCHEMY frei sobald ≥1 Alchemist besetzt. Ermöglicht das Delegieren von Trank-Herstellung. Skaliert mit Größe.",
-    "Alchemical laboratory, fancy": "Schaltet ALCHEMY frei, benötigt 2 Alchemisten bei Basis-Fläche.",
-    "Magic laboratory, basic":      "Schaltet SCROLL_SCRIBING frei sobald ≥1 Schreiber besetzt. Ermöglicht das Delegieren von Schriftrollen-Herstellung.",
-    "Magic laboratory, fancy":      "Schaltet SCROLL_SCRIBING frei, benötigt 2 Schreiber bei Basis-Fläche.",
+    "Smithy, basic":          "Schaltet Perk SMITHING frei sobald ≥1 Schmied besetzt ist. Ermöglicht das Delegieren von Metallgegenstand-Herstellung an die Fachkraft (Zeit+Kosten wie Selbstherstellung). Skaliert: ≥800 sq ft → 2 Schmiede nötig für vollen Output. REGELEFFEKT: Gewährt +2 auf alle Checks bezogen auf Metallurgie (Smith's Tools, Reparaturen, Identifizierung von Metallen/Legierungen) innerhalb der Festung.",
+    "Smithy, fancy":          "Schaltet SMITHING frei, benötigt 2 Schmiede bei Basis-Fläche. Höherer Industrieller Wert, der den wöchentlichen Profit steigert: Industrieprofit = Industrieller Wert × 1%/Woche. REGELEFFEKT: Gewährt +4 auf alle Checks bezogen auf Metallurgie (Smith's Tools, Reparaturen, Identifizierung) innerhalb der Festung. Ersetzt den +2 Bonus der Basic-Schmiede.",
+    "Alchemical laboratory, basic": "Schaltet ALCHEMY frei sobald ≥1 Alchemist besetzt. Ermöglicht das Delegieren von Trank-Herstellung. Skaliert mit Größe. REGELEFFEKT: Gewährt +2 auf alle Checks in Bezug auf Alchemie, Gifte (identifizieren, herstellen, analysieren) und Herbalism Kit-Checks innerhalb der Festung. Nicht kumulativ mit höheren Laboren.",
+    "Alchemical laboratory, fancy": "Schaltet ALCHEMY frei, benötigt 2 Alchemisten bei Basis-Fläche. REGELEFFEKT: Gewährt +4 auf alle Checks in Bezug auf Alchemie, Gifte und Herbalism Kit-Checks innerhalb der Festung. Ersetzt den +2 Bonus des Basic-Labors (nicht kumulativ).",
+    "Magic laboratory, basic":      "Schaltet SCROLL_SCRIBING frei sobald ≥1 Schreiber besetzt. Ermöglicht das Delegieren von Schriftrollen-Herstellung. REGELEFFEKT: Gewährt +2 auf alle Arcana-Checks (Zauberforschung, magische Gegenstände identifizieren, Zauber entschlüsseln) innerhalb der Festung. Nicht kumulativ mit höheren Laboren.",
+    "Magic laboratory, fancy":      "Schaltet SCROLL_SCRIBING frei, benötigt 2 Schreiber bei Basis-Fläche. REGELEFFEKT: Gewährt +4 auf alle Arcana-Checks innerhalb der Festung. Ersetzt den +2 Bonus des Basic-Labors (nicht kumulativ).",
     "Workplace, basic":       "Schaltet TINKERING frei sobald ≥1 Handwerker besetzt. Ermöglicht Herstellung von Stoff/Leder/Holz/Munition/Ausrüstung.",
-    "Workplace, fancy":       "Schaltet TINKERING frei, benötigt 2 Handwerker bei Basis-Fläche.",
+    "Workplace, fancy":       "Schaltet TINKERING frei, benötigt 2 Handwerker bei Basis-Fläche. REGELEFFEKT: Gewährt +2 auf alle Checks mit dem zugehörigen Handwerkswerkzeug (Carpenter's Tools, Leatherworker's Tools, Weaver's Tools, etc.) innerhalb der Festung.",
     // Utilities
     "Bath, basic":            "Stellt 1 Bad bereit. Pro 10 Personalmitglieder (ohne Freiwillige) wird 1 Bad benötigt. Fehlen Bäder, können Mitarbeiter nicht eingestellt werden.",
     "Bath, fancy":            "Stellt 1 Bad bereit. Höherer Sozialer-Wert-Beitrag.",
@@ -4233,9 +4425,9 @@ const ROOM_MECHANICS = {
     "Library, basic":         "Gewährt +1 Research-Bonus pro Basis-Fläche (400 sq ft). Skaliert: doppelte Fläche = +2 Bonus. Kumulativer Bonus aus mehreren Bibliotheken. Kein Personal nötig (passive Wirkung).",
     "Library, fancy":         "Gewährt +2 Research-Bonus pro Basis-Fläche. Effektiver als zwei basic-Bibliotheken bei gleicher Fläche.",
     "Library, luxury":        "Gewährt +3 Research-Bonus pro Basis-Fläche. Maximal effizienter Research-Perk pro Quadratfuß.",
-    "Throne room, basic":     "Kein Ressourcen-Output. Zählt zum Sozialen Wert. Formel Gehaltsreduktion: min(100%, SV / ((MV+IV+EV)×2) × 100%). Je höher der SV, desto günstiger die wöchentlichen Gehälter.",
-    "Throne room, fancy":     "Kein Ressourcen-Output. Sozialer-Wert-Beitrag. Gleiches Prinzip wie basic, aber größerer Wertbeitrag.",
-    "Throne room, luxury":    "Kein Ressourcen-Output. Höchster Sozialer-Wert-Beitrag aller Throne-Räume.",
+    "Throne room, basic":     "Kein Ressourcen-Output. Zählt zum Sozialen Wert. Formel Gehaltsreduktion: min(100%, SV / ((MV+IV+EV)×2) × 100%). Je höher der SV, desto günstiger die wöchentlichen Gehälter. REGELEFFEKT: Gewährt +2 auf Persuasion-Checks innerhalb der Festung. Nicht kumulativ mit höheren Thronsälen.",
+    "Throne room, fancy":     "Kein Ressourcen-Output. Sozialer-Wert-Beitrag. Gleiches Prinzip wie basic, aber größerer Wertbeitrag. REGELEFFEKT: Gewährt +4 auf Persuasion-Checks innerhalb der Festung. Ersetzt den +2 Bonus des Basic-Thronsaals.",
+    "Throne room, luxury":    "Kein Ressourcen-Output. Höchster Sozialer-Wert-Beitrag aller Throne-Räume. REGELEFFEKT: Gewährt +6 auf Persuasion-Checks innerhalb der Festung. Ersetzt alle niedrigeren Boni.",
     "Courtyard, basic":       "Kein Ressourcen-Output. Sozialer-Wert-Beitrag.",
     "Courtyard, fancy":       "Kein Ressourcen-Output. Sozialer-Wert-Beitrag.",
     "Courtyard, luxury":      "Kein Ressourcen-Output. Sozialer-Wert-Beitrag.",
@@ -4243,17 +4435,17 @@ const ROOM_MECHANICS = {
     "Chapel, fancy":          "Erweitert den Kapellen-Cap (Deckelung für Priester-Bonus). Formel wie basic: Priester-Bonus = min(Gesamtkapellenwert, Basis-SV × Priesteranzahl × 25%). Ein teurer Fancy-Chapel erlaubt mehr Priester mit vollem Bonus als mehrere kleine basic-Kapellen.",
     "Chapel, luxury":         "Höchster Kapellen-Einzelwert. Ermöglicht den größten Priester-Bonus-Cap. Bei dieser Kapelle können viele Priester gleichzeitig den vollen 25%-Bonus pro Person einbringen.",
     "Prison cell":            "Kein Ressourcen-Output. Militärischer-Wert-Beitrag.",
-    "Torture chamber":        "Schaltet INTIMIDATION +1 pro Basis-Fläche frei, sobald ≥1 Folterer besetzt. Kumulativer Bonus auf Einschüchterungs-Würfe innerhalb der Festung.",
+    "Torture chamber":        "Schaltet INTIMIDATION +1 pro Basis-Fläche frei, sobald ≥1 Folterer besetzt. Kumulativer Bonus auf Einschüchterungs-Würfe innerhalb der Festung. REGELEFFEKT: Erlaubt dem Folterer, 1× pro Stunde einen neuen Intimidation-Check gegen gefesselte/hilflose Gefangene zu versuchen (normalerweise nur 1 Versuch). Jede Stunde Folter gibt dem Folterer zusätzlich +1 kumulativ auf den nächsten Check.",
     "Stable, basic":          "Stellt 4 Stallplätze bereit. 1 Stallmeister versorgt bis zu 4 Plätze (unabhängig von Stallgröße). Benötigt Stablemaster als Fachkraft. Reittiergrößen: Medium = 1 Platz, Large = 4 Plätze, Huge = 9 Plätze. Schaltet normale Reittiere (Pferde, Ponys, Maultiere) frei.",
     "Stable, fancy":          "Stellt 4 Stallplätze bereit + schaltet EXOTIC_MOUNTS frei. Ermöglicht Kauf von exotischen (nicht-fliegenden) Reittieren. Benötigt Stallmeister.",
     "Stable, luxury":         "Stellt 4 Stallplätze bereit + schaltet FLYING_MOUNTS frei. Ermöglicht Kauf von flugfähigen Reittieren. Benötigt Stallmeister. Schließt exotic Mounts ein.",
     "Trophy hall, basic":     "Kein Ressourcen-Output. Sozialer-Wert-Beitrag.",
     "Trophy hall, fancy (museum)": "Kein Ressourcen-Output. Sozialer-Wert-Beitrag.",
-    "Auditorium, fancy":      "Kein Ressourcen-Output. Sozialer-Wert-Beitrag.",
-    "Auditorium, luxury":     "Kein Ressourcen-Output. Sozialer-Wert-Beitrag.",
-    "Study/Office, basic":    "Kein Ressourcen-Output. Sozialer-Wert-Beitrag.",
-    "Study/Office, fancy":    "Kein Ressourcen-Output. Sozialer-Wert-Beitrag.",
-    "Study/Office, luxury":   "Kein Ressourcen-Output. Sozialer-Wert-Beitrag.",
+    "Auditorium, fancy":      "Kein Ressourcen-Output. Sozialer-Wert-Beitrag. REGELEFFEKT: Gewährt +2 auf alle Performance-Checks innerhalb der Festung. Nicht kumulativ mit höheren Auditorien.",
+    "Auditorium, luxury":     "Kein Ressourcen-Output. Sozialer-Wert-Beitrag. REGELEFFEKT: Gewährt +4 auf alle Performance-Checks innerhalb der Festung. Ersetzt den +2 Bonus des Fancy-Auditoriums.",
+    "Study/Office, basic":    "Kein Ressourcen-Output. Sozialer-Wert-Beitrag. REGELEFFEKT: Reduziert die Downtime zum Erlernen einer Sprache oder Werkzeugprofizienz um 1 Workweek (von 10 auf 9 Workweeks, XGtE-Regeln). Nicht kumulativ mit höheren Studierzimmern.",
+    "Study/Office, fancy":    "Kein Ressourcen-Output. Sozialer-Wert-Beitrag. REGELEFFEKT: Reduziert die Downtime zum Erlernen einer Sprache oder Werkzeugprofizienz um 2 Workweeks (von 10 auf 8 Workweeks). Ersetzt den Bonus des Basic-Büros.",
+    "Study/Office, luxury":   "Kein Ressourcen-Output. Sozialer-Wert-Beitrag. REGELEFFEKT: Reduziert die Downtime zum Erlernen einer Sprache oder Werkzeugprofizienz um 3 Workweeks (von 10 auf 7 Workweeks). Ersetzt alle niedrigeren Boni.",
     // Commercial
     "Dock, basic":            "Kein Ressourcen-Output. Ökonomischer-Wert-Beitrag. Ökonomischer Profit = ÖW × 5% × min(1, IW/ÖW) pro Woche. Docks erhöhen den ÖW, sind aber nur profitabel wenn genug Industrie (IW) vorhanden ist.",
     "Dock, extended":         "Kein Ressourcen-Output. Höherer Ökonomischer-Wert-Beitrag.",
@@ -5466,6 +5658,252 @@ const QueueItemCard = ({ item, currentDate, onCancelClick, startConstruction, co
     );
 };
 
+// ── Crafting Queue ─────────────────────────────────────────────────────────────
+const CRAFTING_PERKS = {
+    SMITHING: { label: '⚒️ Schmiede', roles: ['Smith'] },
+    ALCHEMY: { label: '🧪 Alchemielabor', roles: ['Alchemist'] },
+    SCROLL_Scribing: { label: '📜 Magie-Labor', roles: ['Inscriber'] },
+    TINKERING: { label: '🔧 Werkstatt', roles: ['Tinkerer'] },
+};
+
+const CraftingQueue = ({ stronghold }) => {
+    const { components, craftingOrders, addCraftingOrder, removeCraftingOrder, worldDate } = stronghold;
+    const currentDate = worldDate || new Date().toISOString().split('T')[0];
+    const [newOrder, setNewOrder] = useState({ slotId: '', itemName: '', cost: '', durationDays: 1, durationUnit: 'days' });
+    const [confirmPickup, setConfirmPickup] = useState(null);
+    const [pendingCancel, setPendingCancel] = useState(null);
+
+    useEffect(() => {
+        if (pendingCancel) {
+            const t = setTimeout(() => setPendingCancel(null), 3000);
+            return () => clearTimeout(t);
+        }
+    }, [pendingCancel]);
+
+    // Find all crafting-capable workers from completed buildings
+    const craftingWorkers = useMemo(() => {
+        const workers = [];
+        components.filter(c => c.constructionStatus === 'completed').forEach(comp => {
+            const compData = Object.values(COMPONENTS).reduce((found, cat) => found || cat[comp.name], null);
+            if (!compData?.perks) return;
+            const craftPerks = compData.perks.filter(p => CRAFTING_PERKS[p.id]);
+            if (craftPerks.length === 0) return;
+            const perkInfo = CRAFTING_PERKS[craftPerks[0].id];
+            (comp.jobSlots || []).forEach(slot => {
+                if (slot.filledBy && perkInfo.roles.includes(slot.role)) {
+                    workers.push({
+                        slotId: slot.id,
+                        role: slot.role,
+                        perkId: craftPerks[0].id,
+                        perkLabel: perkInfo.label,
+                        componentName: comp.customName || comp.name,
+                        componentId: comp.id,
+                    });
+                }
+            });
+        });
+        return workers;
+    }, [components]);
+
+    // Group workers by perk
+    const workersByPerk = useMemo(() => {
+        const groups = {};
+        craftingWorkers.forEach(w => {
+            if (!groups[w.perkId]) groups[w.perkId] = { label: w.perkLabel, workers: [] };
+            groups[w.perkId].workers.push(w);
+        });
+        return groups;
+    }, [craftingWorkers]);
+
+    // Compute order status from dates
+    const getOrderStatus = (order) => {
+        const start = new Date(order.startDate);
+        const end = new Date(start);
+        end.setDate(end.getDate() + order.durationDays);
+        const now = new Date(currentDate);
+        if (now >= end) return 'completed';
+        return 'in_progress';
+    };
+
+    const getOrderProgress = (order) => {
+        const start = new Date(order.startDate);
+        const end = new Date(start);
+        end.setDate(end.getDate() + order.durationDays);
+        const now = new Date(currentDate);
+        const totalMs = end - start;
+        const elapsedMs = now - start;
+        return Math.min(100, Math.max(0, (elapsedMs / totalMs) * 100));
+    };
+
+    const getEndDate = (order) => {
+        const start = new Date(order.startDate);
+        start.setDate(start.getDate() + order.durationDays);
+        return start.toISOString().split('T')[0];
+    };
+
+    const handleAddOrder = () => {
+        if (!newOrder.slotId || !newOrder.itemName.trim()) return;
+        const worker = craftingWorkers.find(w => w.slotId === newOrder.slotId);
+        if (!worker) return;
+        const days = newOrder.durationUnit === 'weeks' ? newOrder.durationDays * 7 : newOrder.durationDays;
+        addCraftingOrder(worker.slotId, worker.role, worker.componentName, newOrder.itemName.trim(), parseFloat(newOrder.cost) || 0, days);
+        setNewOrder({ slotId: newOrder.slotId, itemName: '', cost: '', durationDays: 1, durationUnit: newOrder.durationUnit });
+    };
+
+    const ordersForWorker = (slotId) => (craftingOrders || []).filter(o => o.workerSlotId === slotId);
+
+    const completedOrders = (craftingOrders || []).filter(o => getOrderStatus(o) === 'completed');
+    const activeOrders = (craftingOrders || []).filter(o => getOrderStatus(o) === 'in_progress');
+
+    if (craftingWorkers.length === 0) {
+        return React.createElement("div", { className: "mt-8 p-6 bg-wood/5 dark:bg-gray-800/20 rounded-lg border-2 border-dashed border-wood-light/50 dark:border-gray-600" },
+            React.createElement("h3", { className: "text-2xl font-medieval text-wood-dark dark:text-gold-light mb-2" }, "🛠️ Crafting-Aufträge"),
+            React.createElement("p", { className: "text-wood-text/60 dark:text-parchment-bg/50 italic text-center" },
+                "Noch keine Handwerker verfügbar. Baue eine Schmiede, ein Alchemielabor, ein Magie-Labor oder eine Werkstatt und weise Fachkräfte zu."
+            )
+        );
+    }
+
+    return React.createElement("div", { className: "mt-8" },
+        React.createElement("h3", { className: "text-2xl font-medieval text-wood-dark dark:text-gold-light mb-4" }, "🛠️ Crafting-Aufträge"),
+        React.createElement("p", { className: "text-sm text-wood-text/70 dark:text-parchment-bg/60 mb-4" },
+            "Weise deinen Handwerkern Aufträge zu. Der DM gibt Kosten und Dauer ein – die Arbeiter erledigen den Rest während die Helden auf Abenteuer sind!"
+        ),
+
+        // ── Ready for Pickup ─────────────────────────────────────────
+        completedOrders.length > 0 && React.createElement("div", { className: "mb-6 p-4 bg-green-100/60 dark:bg-green-900/30 rounded-lg border-2 border-green-500/60 dark:border-green-400/40" },
+            React.createElement("h4", { className: "font-semibold text-green-800 dark:text-green-300 text-lg mb-3" }, `📦 Abholbereit (${completedOrders.length})`),
+            React.createElement("div", { className: "space-y-2" },
+                completedOrders.map(order => React.createElement("div", {
+                    key: order.id,
+                    className: "flex items-center justify-between gap-3 p-3 rounded-lg bg-green-200/60 dark:bg-green-900/50 border border-green-400/50"
+                },
+                    React.createElement("div", { className: "flex-1" },
+                        React.createElement("div", { className: "font-semibold text-green-900 dark:text-green-200" }, `✅ ${order.itemName}`),
+                        React.createElement("div", { className: "text-xs text-green-700/80 dark:text-green-400/60" },
+                            `${order.workerRole} · ${order.componentName}`,
+                            order.cost > 0 && ` · Kosten: ${order.cost} GP`
+                        )
+                    ),
+                    confirmPickup === order.id
+                        ? React.createElement("button", {
+                            onClick: () => { removeCraftingOrder(order.id); setConfirmPickup(null); },
+                            className: "text-xs font-bold px-3 py-1.5 rounded bg-green-600 text-white hover:bg-green-700 animate-pulse"
+                        }, "Abgeholt ✓")
+                        : React.createElement("button", {
+                            onClick: () => setConfirmPickup(order.id),
+                            className: "text-xs font-bold px-3 py-1.5 rounded bg-green-500 text-white hover:bg-green-600"
+                        }, "Abholen")
+                ))
+            )
+        ),
+
+        // ── New Order Form ───────────────────────────────────────────
+        React.createElement("div", { className: "mb-6 p-4 bg-amber-50/60 dark:bg-amber-900/20 rounded-lg border-2 border-amber-400/50 dark:border-amber-600/40" },
+            React.createElement("h4", { className: "font-semibold text-amber-800 dark:text-amber-300 mb-3" }, "➕ Neuer Auftrag"),
+            React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2" },
+                React.createElement("select", {
+                    value: newOrder.slotId, onChange: e => setNewOrder(p => ({ ...p, slotId: e.target.value })),
+                    className: "p-2 border-2 border-amber-400 dark:border-gray-500 rounded-md bg-white/80 dark:bg-gray-700 dark:text-parchment-light text-sm"
+                },
+                    React.createElement("option", { value: "" }, "Arbeiter wählen..."),
+                    Object.entries(workersByPerk).map(([perkId, group]) =>
+                        React.createElement("optgroup", { key: perkId, label: group.label },
+                            group.workers.map(w => React.createElement("option", { key: w.slotId, value: w.slotId },
+                                `${w.role} (${w.componentName})`
+                            ))
+                        )
+                    )
+                ),
+                React.createElement("input", {
+                    type: "text", placeholder: "Gegenstand (z.B. Potion of Healing)",
+                    value: newOrder.itemName, onChange: e => setNewOrder(p => ({ ...p, itemName: e.target.value })),
+                    className: "p-2 border-2 border-amber-400 dark:border-gray-500 rounded-md bg-white/80 dark:bg-gray-700 dark:text-parchment-light text-sm"
+                }),
+                React.createElement("input", {
+                    type: "number", placeholder: "Kosten (GP)", min: "0",
+                    value: newOrder.cost, onChange: e => setNewOrder(p => ({ ...p, cost: e.target.value })),
+                    className: "p-2 border-2 border-amber-400 dark:border-gray-500 rounded-md bg-white/80 dark:bg-gray-700 dark:text-parchment-light text-sm"
+                }),
+                React.createElement("div", { className: "flex gap-1" },
+                    React.createElement("input", {
+                        type: "number", min: "1", value: newOrder.durationDays,
+                        onChange: e => setNewOrder(p => ({ ...p, durationDays: Math.max(1, parseInt(e.target.value) || 1) })),
+                        className: "w-16 p-2 border-2 border-amber-400 dark:border-gray-500 rounded-md bg-white/80 dark:bg-gray-700 dark:text-parchment-light text-sm"
+                    }),
+                    React.createElement("select", {
+                        value: newOrder.durationUnit, onChange: e => setNewOrder(p => ({ ...p, durationUnit: e.target.value })),
+                        className: "p-2 border-2 border-amber-400 dark:border-gray-500 rounded-md bg-white/80 dark:bg-gray-700 dark:text-parchment-light text-sm"
+                    },
+                        React.createElement("option", { value: "days" }, "Tage"),
+                        React.createElement("option", { value: "weeks" }, "Wochen")
+                    )
+                ),
+                React.createElement("button", {
+                    onClick: handleAddOrder,
+                    disabled: !newOrder.slotId || !newOrder.itemName.trim(),
+                    className: `px-4 py-2 rounded-md font-bold text-sm transition-all ${!newOrder.slotId || !newOrder.itemName.trim()
+                        ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                        : 'bg-gradient-to-br from-wood-light to-wood-dark text-parchment-bg dark:from-gold dark:to-gold-dark dark:text-wood-dark hover:opacity-90'}`
+                }, "Auftrag erteilen")
+            )
+        ),
+
+        // ── Worker Queue Overview ────────────────────────────────────
+        Object.entries(workersByPerk).map(([perkId, group]) =>
+            React.createElement("div", { key: perkId, className: "mb-6" },
+                React.createElement("h4", { className: "font-semibold text-wood-dark dark:text-gold-light mb-2" }, group.label),
+                React.createElement("div", { className: "space-y-3" },
+                    group.workers.map(worker => {
+                        const orders = ordersForWorker(worker.slotId);
+                        return React.createElement("div", { key: worker.slotId, className: "p-3 rounded-lg border-2 border-wood-light/40 dark:border-gray-600 bg-parchment-light/60 dark:bg-gray-800/40" },
+                            React.createElement("div", { className: "flex items-center gap-2 mb-2" },
+                                React.createElement("span", { className: "font-semibold text-sm text-wood-dark dark:text-gold-light" }, `${worker.role}`),
+                                React.createElement("span", { className: "text-xs text-wood-text/50 dark:text-parchment-bg/40" }, `· ${worker.componentName}`),
+                                orders.length === 0 && React.createElement("span", { className: "text-xs italic text-green-700/70 dark:text-green-400/60 ml-auto" }, "💤 Verfügbar")
+                            ),
+                            orders.length > 0 && React.createElement("div", { className: "space-y-2" },
+                                orders.map((order, idx) => {
+                                    const status = getOrderStatus(order);
+                                    const progress = getOrderProgress(order);
+                                    const endDate = getEndDate(order);
+                                    return React.createElement("div", { key: order.id, className: `p-2 rounded border ${status === 'completed' ? 'border-green-400/50 bg-green-50/40 dark:bg-green-900/20' : 'border-blue-400/30 bg-blue-50/30 dark:bg-blue-900/10'}` },
+                                        React.createElement("div", { className: "flex items-center justify-between gap-2" },
+                                            React.createElement("div", { className: "flex-1 min-w-0" },
+                                                React.createElement("span", { className: `text-sm font-semibold ${status === 'completed' ? 'text-green-800 dark:text-green-300' : 'text-blue-800 dark:text-blue-300'}` },
+                                                    `${status === 'completed' ? '✅' : '⏳'} ${order.itemName}`
+                                                ),
+                                                React.createElement("div", { className: "text-xs text-wood-text/50 dark:text-parchment-bg/40" },
+                                                    `${formatDateDE(order.startDate)} → ${formatDateDE(endDate)}`,
+                                                    order.cost > 0 && ` · ${order.cost} GP`
+                                                )
+                                            ),
+                                            React.createElement("button", {
+                                                onClick: () => pendingCancel === order.id ? (removeCraftingOrder(order.id), setPendingCancel(null)) : setPendingCancel(order.id),
+                                                className: `text-xs font-bold px-2 py-1 rounded transition-all ${pendingCancel === order.id ? 'bg-yellow-500 text-black animate-pulse' : 'text-red-500 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/30'}`,
+                                                title: status === 'completed' ? "Auftrag entfernen" : "Auftrag abbrechen"
+                                            }, pendingCancel === order.id ? 'Bestätigen?' : '✕')
+                                        ),
+                                        status !== 'completed' && React.createElement("div", { className: "mt-1.5" },
+                                            React.createElement("div", { className: "w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2" },
+                                                React.createElement("div", {
+                                                    className: "bg-blue-500 dark:bg-blue-400 h-2 rounded-full transition-all duration-500",
+                                                    style: { width: `${progress}%` }
+                                                })
+                                            ),
+                                            React.createElement("div", { className: "text-xs text-right text-wood-text/40 dark:text-parchment-bg/30 mt-0.5" }, `${Math.round(progress)}%`)
+                                        )
+                                    );
+                                })
+                            )
+                        );
+                    })
+                )
+            )
+        )
+    );
+};
+
 const ConstructionTab = ({ stronghold }) => {
     const { components, walls, enchantments, startConstruction, completeConstruction, removeComponent, removeWall, removeEnchantment } = stronghold;
     const currentDate = stronghold.worldDate || new Date().toISOString().split('T')[0];
@@ -5532,7 +5970,10 @@ const ConstructionTab = ({ stronghold }) => {
                 onConfirm: handleConfirmCancel,
                 title: "Bauvorhaben abbrechen",
                 message: `Bist du sicher, dass du den Bau von "${itemToCancel?.customName || itemToCancel?.name}" abbrechen möchtest? Alle investierten Ressourcen und Fortschritte gehen verloren.`
-            })
+            }),
+
+            // Crafting Queue
+            React.createElement(CraftingQueue, { stronghold })
         )
     );
 };
@@ -5828,10 +6269,45 @@ const SummaryTab = ({ stronghold }) => {
             const aIsActive = activePerkIds.has(a.id);
             const bIsActive = activePerkIds.has(b.id);
             if (aIsActive && !bIsActive) return -1;
-            if (!bIsActive && aIsActive) return 1;
+            if (!aIsActive && bIsActive) return 1;
             return a.name.localeCompare(b.name);
         });
     }, [staticPerks, scaledBonuses]);
+
+    const allSkillBonuses = useMemo(() => {
+        // Collect all possible skill bonus types
+        const allPossible = {};
+        Object.entries(ROOM_SKILL_BONUSES).forEach(([roomName, def]) => {
+            const key = def.skill;
+            if (!allPossible[key] || (def.isDowntime ? def.bonus < allPossible[key].maxBonus : def.bonus > allPossible[key].maxBonus)) {
+                allPossible[key] = { skill: def.skill, icon: def.icon, isDowntime: def.isDowntime, maxBonus: def.bonus, maxSource: roomName };
+            }
+        });
+        // Find best active bonus per skill from completed+staffed buildings
+        const active = {};
+        completedComponents.forEach(c => {
+            const bonusDef = ROOM_SKILL_BONUSES[c.name];
+            if (!bonusDef) return;
+            const needsStaff = c.jobSlots?.length > 0;
+            const hasStaff = !needsStaff || c.jobSlots.some(s => s.filledBy !== null);
+            if (!hasStaff) return;
+            const key = bonusDef.skill;
+            if (!active[key] || (bonusDef.isDowntime ? bonusDef.bonus < active[key].bonus : bonusDef.bonus > active[key].bonus)) {
+                active[key] = { bonus: bonusDef.bonus, source: c.customName || c.name };
+            }
+        });
+        // Merge: all possible, with active info if present
+        return Object.values(allPossible).map(p => ({
+            ...p,
+            isActive: !!active[p.skill],
+            currentBonus: active[p.skill]?.bonus ?? null,
+            currentSource: active[p.skill]?.source ?? null,
+        })).sort((a, b) => {
+            if (a.isActive && !b.isActive) return -1;
+            if (!a.isActive && b.isActive) return 1;
+            return a.skill.localeCompare(b.skill);
+        });
+    }, [completedComponents]);
 
     const PerkDisplay = ({ perk, bonus, isActive, sources }) => (
         React.createElement("div", { title: `${perk.description}\nWird bereitgestellt von: ${sources}`, className: `p-2 rounded border-2 transition-colors ${isActive ? 'bg-green-200/80 dark:bg-green-900/50 border-green-700 dark:border-green-500' : 'bg-parchment/60 dark:bg-gray-700/40 border-wood-light/50 dark:border-gray-600/50'}` },
@@ -6128,7 +6604,33 @@ const SummaryTab = ({ stronghold }) => {
                                 const bonusValue = activeScaledBonus?.totalBonus;
                                 const sourceList = perkSources[perk.id]?.join(', ') || 'Unbekannt';
                                 return React.createElement(PerkDisplay, { key: perk.id, perk: perk, bonus: bonusValue, isActive: isActive, sources: sourceList });
-                            })
+                            }),
+                            React.createElement(React.Fragment, null,
+                                React.createElement("div", { className: "border-t-2 border-purple-400/30 dark:border-purple-600/30 pt-3 mt-3" },
+                                    React.createElement("h4", { className: "font-semibold text-purple-800 dark:text-purple-300 text-sm mb-2" }, "🎲 Skill-Boni (innerhalb der Festung)")
+                                ),
+                                allSkillBonuses.map(sb => React.createElement("div", {
+                                    key: sb.skill,
+                                    title: sb.isActive
+                                        ? `Aktiv! Quelle: ${sb.currentSource}`
+                                        : `Inaktiv. Benötigt: ${sb.maxSource} (fertiggestellt & besetzt)`,
+                                    className: `p-2 rounded border-2 transition-colors ${sb.isActive
+                                        ? 'bg-purple-100/60 dark:bg-purple-900/30 border-purple-500/60 dark:border-purple-400/40'
+                                        : 'bg-parchment/60 dark:bg-gray-700/40 border-wood-light/50 dark:border-gray-600/50 opacity-60'}`
+                                },
+                                    React.createElement("div", { className: `font-bold ${sb.isActive ? 'text-purple-900 dark:text-purple-200' : 'text-wood-text/70 dark:text-parchment-bg/60'}` },
+                                        `${sb.icon} ${sb.skill}: `,
+                                        sb.isActive
+                                            ? React.createElement("span", { className: sb.isDowntime ? "text-green-700 dark:text-green-400" : "text-purple-700 dark:text-purple-300" },
+                                                sb.isDowntime ? `${sb.currentBonus} Workweeks` : `+${sb.currentBonus}`
+                                            )
+                                            : React.createElement("span", { className: "text-wood-text/40 dark:text-parchment-bg/30" }, "—")
+                                    ),
+                                    React.createElement("div", { className: `text-xs italic ${sb.isActive ? 'text-purple-700/70 dark:text-purple-400/60' : 'text-wood-text/40 dark:text-parchment-bg/30'}` },
+                                        sb.isActive ? `Quelle: ${sb.currentSource}` : `Benötigt: ${sb.maxSource}`
+                                    )
+                                ))
+                            )
                         )
                     ),
                     React.createElement(SummarySection, { title: "Beschädigungen", icon: "🩹" },
