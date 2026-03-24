@@ -6872,12 +6872,356 @@ const WorldDateBar = ({ worldDate, worldDateLabel, onEdit }) => {
 };
 
 // ─── App ──────────────────────────────────────────────────────────────────────
+// ─── HelpModal ────────────────────────────────────────────────────────────────
+const HelpSection = ({ title, icon, children, defaultOpen = false }) => {
+    const [open, setOpen] = useState(defaultOpen);
+    return React.createElement("div", { className: "border-2 border-wood/30 dark:border-gray-600 rounded-lg overflow-hidden mb-3" },
+        React.createElement("button", {
+            type: "button",
+            onClick: () => setOpen(!open),
+            className: "w-full flex items-center justify-between p-3 bg-gold/30 dark:bg-gray-700/50 hover:bg-gold/50 dark:hover:bg-gray-700/70 transition-colors text-left"
+        },
+            React.createElement("span", { className: "font-semibold text-wood-dark dark:text-gold-light text-sm" }, `${icon} ${title}`),
+            React.createElement("span", { className: "text-wood-text/50 dark:text-parchment-bg/40 text-lg" }, open ? "▲" : "▼")
+        ),
+        open && React.createElement("div", { className: "p-4 text-sm text-wood-text/90 dark:text-parchment-bg/80 space-y-3 leading-relaxed" }, children)
+    );
+};
+
+const HelpModal = ({ onClose }) => {
+    const [searchTerm, setSearchTerm] = useState('');
+
+    return React.createElement("div", {
+        className: "fixed inset-0 z-50 flex items-start justify-center bg-black/70 p-4 overflow-y-auto"
+    },
+        React.createElement("div", {
+            className: "relative bg-parchment-bg dark:bg-gray-800 border-8 border-wood dark:border-gold-dark rounded-2xl shadow-2xl w-full max-w-4xl my-8"
+        },
+            React.createElement("button", {
+                onClick: onClose,
+                className: "absolute top-3 right-3 text-2xl text-wood-text/50 dark:text-parchment-bg/40 hover:text-red-600 dark:hover:text-red-400 transition-colors z-10",
+                title: "Schließen"
+            }, "✕"),
+
+            React.createElement("div", { className: "p-6 pb-4 bg-gradient-to-br from-gold/50 to-gold-dark/30 dark:from-gray-700 dark:to-gray-800 rounded-t-xl border-b-2 border-wood/30 dark:border-gray-600" },
+                React.createElement("h2", { className: "font-medieval text-3xl text-wood-dark dark:text-gold-light text-center mb-1" }, "📖 Handbuch des Burgherrn"),
+                React.createElement("p", { className: "text-center text-wood-text/70 dark:text-parchment-bg/60 italic text-sm" }, "Dein Wegweiser zum eigenen Bollwerk – Schritt für Schritt erklärt."),
+                React.createElement("div", { className: "mt-3" },
+                    React.createElement("input", {
+                        type: "text",
+                        placeholder: "🔍 Im Handbuch suchen...",
+                        value: searchTerm,
+                        onChange: e => setSearchTerm(e.target.value.toLowerCase()),
+                        className: "w-full p-2 border-2 border-gold dark:border-gray-500 rounded-md bg-white/80 dark:bg-gray-700 dark:text-parchment-light text-sm"
+                    })
+                )
+            ),
+
+            React.createElement("div", { className: "p-6 max-h-[70vh] overflow-y-auto" },
+
+                // ═══ ERSTE SCHRITTE ═══
+                (!searchTerm || 'erste schritte anfang start tutorial neu beginnen wie'.includes(searchTerm)) &&
+                React.createElement(HelpSection, { title: "Erste Schritte – Wo fange ich an?", icon: "🚀", defaultOpen: !searchTerm },
+                    React.createElement("p", null, "Du bist ein Abenteurer, der beschlossen hat, sich eine Festung zu bauen. Diese App hilft dir dabei, alles zu planen und zu verwalten. Hier ist der einfachste Weg zum Einstieg:"),
+                    React.createElement("div", { className: "space-y-3 mt-3" },
+                        React.createElement("div", { className: "p-3 bg-amber-50/60 dark:bg-amber-900/20 rounded-lg border-l-4 border-amber-500" },
+                            React.createElement("p", { className: "font-bold text-amber-800 dark:text-amber-300" }, "Schritt 1: Wo soll deine Festung stehen?"),
+                            React.createElement("p", null, "Öffne den Tab \"Site Selection\". Hier wählst du das Klima (Wald, Berge, Wüste...) und wie nah die nächste Stadt ist. Eine Festung in den Bergen ist schwerer zu bauen, aber auch schwerer anzugreifen. Eine Festung neben einer Großstadt ist günstiger, aber leichter zu finden.")
+                        ),
+                        React.createElement("div", { className: "p-3 bg-blue-50/60 dark:bg-blue-900/20 rounded-lg border-l-4 border-blue-500" },
+                            React.createElement("p", { className: "font-bold text-blue-800 dark:text-blue-300" }, "Schritt 2: Baue deine ersten Räume"),
+                            React.createElement("p", null, "Im \"Rooms\" Tab fügst du Gebäude hinzu. Fang klein an! Du brauchst als erstes: Eine Küche (damit dein Personal was zu essen hat), Schlafplätze (damit sie schlafen können), und vielleicht einen Shop (damit du Gold verdienst). Jeder Raum hat eine Größe in Fuß – größer bedeutet mehr Kapazität, kostet aber auch mehr.")
+                        ),
+                        React.createElement("div", { className: "p-3 bg-green-50/60 dark:bg-green-900/20 rounded-lg border-l-4 border-green-500" },
+                            React.createElement("p", { className: "font-bold text-green-800 dark:text-green-300" }, "Schritt 3: Stelle Personal ein"),
+                            React.createElement("p", null, "Ohne Personal läuft nichts! Im \"Staff\" Tab stellst du Arbeiter ein. Wichtig: Fachkräfte (die mit dem ⭐) müssen per Drag & Drop einem Job zugewiesen werden. Ein Koch muss der Küche zugewiesen werden, sonst kocht niemand. Ein Händler muss dem Shop zugewiesen werden, sonst verkauft niemand.")
+                        ),
+                        React.createElement("div", { className: "p-3 bg-purple-50/60 dark:bg-purple-900/20 rounded-lg border-l-4 border-purple-500" },
+                            React.createElement("p", { className: "font-bold text-purple-800 dark:text-purple-300" }, "Schritt 4: Starte den Bau"),
+                            React.createElement("p", null, "Deine Räume sind erstmal nur \"geplant\". Im \"Construction\" Tab startest du den Bau. Erst wenn ein Gebäude fertig ist (✅), funktioniert es auch! Bis dahin ist es nur eine Baustelle.")
+                        ),
+                        React.createElement("div", { className: "p-3 bg-red-50/60 dark:bg-red-900/20 rounded-lg border-l-4 border-red-500" },
+                            React.createElement("p", { className: "font-bold text-red-800 dark:text-red-300" }, "Schritt 5: Speichern nicht vergessen!"),
+                            React.createElement("p", null, "Im \"Summary\" Tab kannst du deine Festung speichern. Gib ihr einen Namen und klicke auf Speichern. Tipp: Exportiere regelmäßig als Datei – falls dein Browser die Daten verliert, hast du ein Backup!")
+                        )
+                    )
+                ),
+
+                // ═══ DIE VIER WERTE ═══
+                (!searchTerm || 'wert werte mv iv öv sv militärisch industriell ökonomisch sozial erklärung was bedeutet'.includes(searchTerm)) &&
+                React.createElement(HelpSection, { title: "Die vier Festungswerte – einfach erklärt", icon: "⚔️" },
+                    React.createElement("p", null, "Jedes Gebäude in deiner Festung hat einen Wert in Gold. Dieser Wert wird einem von vier Bereichen zugeordnet. Stell dir deine Festung wie eine kleine Stadt vor:"),
+                    React.createElement("div", { className: "space-y-3 mt-3" },
+                        React.createElement("div", { className: "p-3 bg-red-50/60 dark:bg-red-900/20 rounded-lg border-l-4 border-red-500" },
+                            React.createElement("p", { className: "font-bold text-red-800 dark:text-red-300" }, "⚔️ MV – Militärischer Wert (\"Wie gut verteidigt?\")"),
+                            React.createElement("p", null, "Alles was deine Festung schützt: Mauern, Kasernen, Wachposten, Waffenkammern. Je höher dein MV im Vergleich zum Rest, desto stärker kämpft deine Garnison und desto unwahrscheinlicher ist ein Angriff. Denk an MV wie die Stadtmauer und die Wachen einer mittelalterlichen Stadt.")
+                        ),
+                        React.createElement("div", { className: "p-3 bg-blue-50/60 dark:bg-blue-900/20 rounded-lg border-l-4 border-blue-500" },
+                            React.createElement("p", { className: "font-bold text-blue-800 dark:text-blue-300" }, "🏭 IV – Industrieller Wert (\"Was wird hergestellt?\")"),
+                            React.createElement("p", null, "Werkstätten, Schmieden, Alchemielabore – alles was Waren produziert. Deine Industrie beliefert deine Läden mit Waren und verdient selbst auch etwas Gold (1% des IV pro Woche). Ohne Industrie hat dein Shop nichts zum Verkaufen! Denk an IV wie die Handwerker und Fabriken einer Stadt.")
+                        ),
+                        React.createElement("div", { className: "p-3 bg-green-50/60 dark:bg-green-900/20 rounded-lg border-l-4 border-green-500" },
+                            React.createElement("p", { className: "font-bold text-green-800 dark:text-green-300" }, "💰 ÖV – Ökonomischer Wert (\"Was wird verkauft?\")"),
+                            React.createElement("p", null, "Shops und Handelsposten – hier wird das Gold verdient! ÖV-Gebäude bringen 5% ihres Werts pro Woche ein. ABER: Deine Läden können nur so viel verkaufen, wie deine Industrie herstellt. Wenn dein ÖV höher ist als dein IV, arbeiten deine Läden nicht auf voller Kapazität. Denk an ÖV wie die Marktplätze und Geschäfte einer Stadt.")
+                        ),
+                        React.createElement("div", { className: "p-3 bg-purple-50/60 dark:bg-purple-900/20 rounded-lg border-l-4 border-purple-500" },
+                            React.createElement("p", { className: "font-bold text-purple-800 dark:text-purple-300" }, "👥 SV – Sozialer Wert (\"Wie zufrieden sind die Leute?\")"),
+                            React.createElement("p", null, "Thronsäle, Gemeinschaftsräume, Bibliotheken, Kapellen, Höfe – alles was die Moral hebt. Je höher der SV, desto weniger Gehalt verlangt dein Personal! Bei sehr hohem SV arbeiten deine Leute sogar fast umsonst, weil sie so gerne in deiner Festung leben. Denk an SV wie Parks, Kirchen und Gemeinschaftshäuser einer Stadt.")
+                        )
+                    ),
+                    React.createElement("div", { className: "mt-3 p-3 bg-amber-50/60 dark:bg-amber-900/20 rounded-lg border border-amber-400/50" },
+                        React.createElement("p", { className: "font-bold text-amber-800 dark:text-amber-300" }, "💡 Die goldene Regel der Balance"),
+                        React.createElement("p", null, "Am besten funktioniert deine Festung, wenn Industrie und Wirtschaft ungefähr gleich stark sind (IV ungefähr gleich ÖV), und dein Militär mindestens halb so stark ist wie Industrie und Wirtschaft zusammen. Der Soziale Wert hilft immer – je mehr, desto billiger wird alles!")
+                    )
+                ),
+
+                // ═══ STANDORT ═══
+                (!searchTerm || 'standort site klima terrain siedlung wo bauen ort platz ressource'.includes(searchTerm)) &&
+                React.createElement(HelpSection, { title: "Den richtigen Standort wählen", icon: "🏰" },
+                    React.createElement("p", null, "Der Standort ist die wichtigste Entscheidung, weil du sie später nicht mehr ändern kannst. Er beeinflusst alles:"),
+                    React.createElement("p", null, "• ", React.createElement("strong", null, "Klima"), " – Ein Wald ist einfach zu bebauen. Berge sind teurer, aber leichter zu verteidigen. Arktis ist extrem teuer, aber fast uneinnehmbar."),
+                    React.createElement("p", null, "• ", React.createElement("strong", null, "Stadtnähe"), " – Nah an einer Großstadt? Material ist günstiger und Handelsrouten kürzer. Mitten im Nirgendwo? Teurer, aber geheimer."),
+                    React.createElement("p", null, "• ", React.createElement("strong", null, "Besondere Merkmale"), " – Gibt es eine Mine in der Nähe? Das steigert deine Produktion dauerhaft. Eine Handelsroute? Deine Läden verkaufen mehr. Versteckter Standort? Schwerer zu finden, aber auch schwerer zu beliefern."),
+                    React.createElement("p", null, "• ", React.createElement("strong", null, "Eigene Effekte"), " – Dein Spielleiter hat sich was Besonderes ausgedacht? Hier kannst du eigene Modifikatoren erstellen."),
+                    React.createElement("div", { className: "mt-2 p-2 bg-blue-50/50 dark:bg-blue-900/20 rounded border border-blue-400/30" },
+                        React.createElement("p", { className: "italic" }, "Beispiel: Du baust in den Bergen neben einer Mine. Der Bau kostet 10% mehr (Berge), aber deine Industrie ist 5% stärker und durch die Mine nochmal 15% stärker. Außerdem ist deine Festung 15% schwerer anzugreifen.")
+                    )
+                ),
+
+                // ═══ RÄUME ═══
+                (!searchTerm || 'raum räume rooms gebäude bauen küche shop schlafzimmer größe fläche klassifikation'.includes(searchTerm)) &&
+                React.createElement(HelpSection, { title: "Räume – das Herzstück deiner Festung", icon: "🏠" },
+                    React.createElement("p", null, "Räume sind die Gebäude innerhalb deiner Festung. Jeder Raum hat eine Funktion:"),
+                    React.createElement("div", { className: "space-y-2 mt-2" },
+                        React.createElement("p", null, "🍳 ", React.createElement("strong", null, "Küchen"), " produzieren Essen für dein Personal. Ohne Essen kann niemand arbeiten!"),
+                        React.createElement("p", null, "🛏️ ", React.createElement("strong", null, "Schlafräume"), " geben deinem Personal einen Platz zum Schlafen. Verschiedene Ränge brauchen verschiedene Quartiere."),
+                        React.createElement("p", null, "🏪 ", React.createElement("strong", null, "Shops"), " verdienen Gold durch Handel. Sie brauchen Händler als Personal."),
+                        React.createElement("p", null, "🍺 ", React.createElement("strong", null, "Tavernen"), " sind Alleskönner: Sie verdienen etwas Gold UND machen dein Personal zufriedener UND machen deine Shops profitabler!"),
+                        React.createElement("p", null, "⚒️ ", React.createElement("strong", null, "Werkstätten/Schmieden"), " stellen Waren her. Ohne sie haben deine Shops nichts zu verkaufen."),
+                        React.createElement("p", null, "🛡️ ", React.createElement("strong", null, "Militärgebäude"), " (Kasernen, Wachposten) stärken die Verteidigung."),
+                        React.createElement("p", null, "📚 ", React.createElement("strong", null, "Soziale Gebäude"), " (Bibliotheken, Thronsäle, Höfe) senken die Personalkosten.")
+                    ),
+                    React.createElement("div", { className: "mt-3 p-3 bg-amber-50/60 dark:bg-amber-900/20 rounded-lg border border-amber-400/50" },
+                        React.createElement("p", { className: "font-bold text-amber-800 dark:text-amber-300" }, "📐 Größe und Skalierung"),
+                        React.createElement("p", null, "Du kannst jeden Raum größer bauen als die Mindestgröße. Ein doppelt so großer Raum liefert doppelt so viel – braucht aber auch doppelt so viele Arbeiter! Eine 40×20 ft Küche produziert doppelt so viel Essen wie eine 20×20 ft Küche, braucht dafür aber 2 Köche statt 1.")
+                    ),
+                    React.createElement("div", { className: "mt-2 p-3 bg-blue-50/60 dark:bg-blue-900/20 rounded-lg border border-blue-400/50" },
+                        React.createElement("p", { className: "font-bold text-blue-800 dark:text-blue-300" }, "🏷️ Die farbigen Kategorie-Buttons"),
+                        React.createElement("p", null, "Unter jedem Raum siehst du farbige Buttons: Rot (Militär), Blau (Industrie), Grün (Wirtschaft), Lila (Sozial). Die hellen Buttons zeigen an, welche Kategorien für diesen Raum möglich sind. Die meisten Räume haben nur eine Option. Küchen zum Beispiel können Sozial (versorgt Personal) oder Industriell (produziert für den Handel) sein.")
+                    )
+                ),
+
+                // ═══ MAUERN ═══
+                (!searchTerm || 'mauer mauern walls material verteidigung schutz stein holz'.includes(searchTerm)) &&
+                React.createElement(HelpSection, { title: "Mauern – deine Verteidigungslinie", icon: "🧱" },
+                    React.createElement("p", null, "Mauern bilden die äußere Verteidigung deiner Festung. Sie zählen komplett zum Militärischen Wert."),
+                    React.createElement("p", null, "Du wählst Material (z.B. Holz, Stein, Eisen), Länge, Höhe und Dicke. Die Kosten hängen vom Volumen ab – eine doppelt so dicke Mauer kostet doppelt so viel, hat aber auch doppelt so viele Trefferpunkte."),
+                    React.createElement("p", null, React.createElement("strong", null, "Materialien von günstig bis teuer:"), " Glas → Kristall → Eis → Holz → Knochen → Stein → Eisen → Stahl → Mithral → Adamantin. Teurere Materialien haben mehr HP, höhere AC und einen höheren Damage Threshold (Angriffe unter diesem Wert machen gar keinen Schaden)."),
+                    React.createElement("div", { className: "mt-2 p-2 bg-amber-50/50 dark:bg-amber-900/20 rounded border border-amber-400/30" },
+                        React.createElement("p", { className: "italic" }, "Tipp: Steinmauern bieten das beste Preis-Leistungs-Verhältnis. Für die meisten Festungen ist Stein die richtige Wahl.")
+                    )
+                ),
+
+                // ═══ PERSONAL ═══
+                (!searchTerm || 'personal staff arbeiter anstellen einstellen fachkraft gehalt freiwillige drag drop nahrung schlafplatz'.includes(searchTerm)) &&
+                React.createElement(HelpSection, { title: "Personal – deine Leute", icon: "👥" },
+                    React.createElement("p", null, "Deine Festung braucht Menschen (oder Kreaturen), die darin arbeiten. Es gibt verschiedene Typen:"),
+                    React.createElement("div", { className: "space-y-3 mt-2" },
+                        React.createElement("div", { className: "p-2 bg-blue-50/50 dark:bg-blue-900/20 rounded border-l-4 border-blue-500" },
+                            React.createElement("p", { className: "font-bold text-blue-800 dark:text-blue-300" }, "⭐ Fachkräfte (Skilled Hirelings) – 15 GP/Woche"),
+                            React.createElement("p", null, "Das sind deine Köche, Schmiede, Händler, Priester usw. Sie werden per Drag & Drop einem Job zugewiesen. WICHTIG: Ein Gebäude produziert NICHTS, solange nicht alle (oder zumindest einige) Jobs besetzt sind! Wenn dein Shop 2 Händler braucht und du nur 1 hast, läuft er auf halber Kraft.")
+                        ),
+                        React.createElement("div", { className: "p-2 bg-gray-50/50 dark:bg-gray-700/30 rounded border-l-4 border-gray-400" },
+                            React.createElement("p", { className: "font-bold text-wood-dark dark:text-parchment-light" }, "Ungelernte Arbeiter – 1,5 GP/Woche"),
+                            React.createElement("p", null, "Putzen, reparieren, tragen – die alltäglichen Aufgaben. Du brauchst 1 Diener pro 2.000 Quadratfuß Festungsfläche. Fehlen Diener, steigen deine Wartungskosten stark an!")
+                        ),
+                        React.createElement("div", { className: "p-2 bg-red-50/50 dark:bg-red-900/20 rounded border-l-4 border-red-500" },
+                            React.createElement("p", { className: "font-bold text-red-800 dark:text-red-300" }, "Militär (CR-Kreaturen) – Kosten je nach Stärke"),
+                            React.createElement("p", null, "Wachen und Soldaten. Sie bilden deine Garnison und verteidigen die Festung bei einem Angriff. Je stärker die Kreatur (höherer CR), desto teurer.")
+                        )
+                    ),
+                    React.createElement("div", { className: "mt-3 p-3 bg-amber-50/60 dark:bg-amber-900/20 rounded-lg border border-amber-400/50" },
+                        React.createElement("p", { className: "font-bold text-amber-800 dark:text-amber-300" }, "🏠 Jeder Arbeiter braucht:"),
+                        React.createElement("p", null, "• Einen ", React.createElement("strong", null, "Schlafplatz"), " – Ungelernte → Dienerquartiere, Fachkräfte → Schlafzimmer, Soldaten → Kaserne oder Suite"),
+                        React.createElement("p", null, "• ", React.createElement("strong", null, "Nahrung"), " – 1 pro Person pro Woche (Küchen produzieren Nahrung!)"),
+                        React.createElement("p", null, "• Einen ", React.createElement("strong", null, "Essensplatz"), " – In einem Speisesaal (Freiwillige brauchen keinen)"),
+                        React.createElement("p", null, "• Ein ", React.createElement("strong", null, "Bad"), " – 1 Bad pro 10 Personen"),
+                        React.createElement("p", null, "Die Übersicht im Staff-Tab zeigt dir genau, was du hast und was fehlt. Rote Zahlen = Problem!")
+                    )
+                ),
+
+                // ═══ GELD VERDIENEN ═══
+                (!searchTerm || 'geld verdienen profit einkommen gold woche wirtschaft warum wenig'.includes(searchTerm)) &&
+                React.createElement(HelpSection, { title: "Wie verdient meine Festung Gold?", icon: "💰" },
+                    React.createElement("p", null, "Deine Festung funktioniert wie eine kleine Wirtschaft mit Produzenten und Verkäufern:"),
+                    React.createElement("div", { className: "space-y-3 mt-2" },
+                        React.createElement("div", { className: "p-3 bg-blue-50/60 dark:bg-blue-900/20 rounded-lg" },
+                            React.createElement("p", { className: "font-bold text-blue-800 dark:text-blue-300" }, "🏭 Schritt 1: Industrie stellt Waren her"),
+                            React.createElement("p", null, "Schmieden, Werkstätten und Alchemielabore produzieren Waren. Einen Teil davon verkaufen sie direkt – das bringt dir jede Woche 1% deines gesamten Industriewerts als Gold ein. Wenn dein IV 1.000 beträgt, verdienst du 10 Gold pro Woche allein durch die Industrie.")
+                        ),
+                        React.createElement("div", { className: "p-3 bg-green-50/60 dark:bg-green-900/20 rounded-lg" },
+                            React.createElement("p", { className: "font-bold text-green-800 dark:text-green-300" }, "🏪 Schritt 2: Shops verkaufen den Rest"),
+                            React.createElement("p", null, "Deine Shops sind die Hauptverdiener – sie bringen 5% ihres Werts pro Woche ein! ABER: Sie können nur verkaufen, was deine Industrie herstellt. Wenn deine Shops mehr wert sind als deine Industrie, arbeiten sie nicht auf voller Kraft. Die Faustregel: Sorge dafür, dass deine Industriegebäude mindestens so viel wert sind wie deine Shops.")
+                        ),
+                        React.createElement("div", { className: "p-3 bg-amber-50/60 dark:bg-amber-900/20 rounded-lg" },
+                            React.createElement("p", { className: "font-bold text-amber-800 dark:text-amber-300" }, "🍺 Bonus: Tavernen boosten alles"),
+                            React.createElement("p", null, "Tavernen sind besonders: 40% ihres Werts zählt als Wirtschaft (bringt Gold), 60% als Soziales (senkt Gehälter). Außerdem machen Tavernen ALLE deine Shops profitabler, indem sie Kunden anlocken. Baue immer mindestens eine Taverne!")
+                        )
+                    ),
+                    React.createElement("div", { className: "mt-3 p-3 bg-red-50/60 dark:bg-red-900/20 rounded-lg border border-red-400/50" },
+                        React.createElement("p", { className: "font-bold text-red-800 dark:text-red-300" }, "📉 Ausgaben nicht vergessen!"),
+                        React.createElement("p", null, "Von deinem Gewinn werden abgezogen: Personalgehälter (reduziert durch Sozialen Wert!) und Wartungskosten (erhöht wenn Diener fehlen). Was übrig bleibt, ist dein Nettoeinkommen – das fließt in deine Schatzkammer.")
+                    )
+                ),
+
+                // ═══ VERTEIDIGUNG ═══
+                (!searchTerm || 'verteidigung defense angriff garnison kampf simulation woche sicher'.includes(searchTerm)) &&
+                React.createElement(HelpSection, { title: "Verteidigung – Angriffe überleben", icon: "🛡️" },
+                    React.createElement("p", null, "Jede Woche besteht die Chance, dass deine Festung angegriffen wird. Je reicher und weniger verteidigt sie ist, desto wahrscheinlicher ist ein Angriff."),
+                    React.createElement("div", { className: "space-y-2 mt-2" },
+                        React.createElement("p", null, "• ", React.createElement("strong", null, "Angriffschance:"), " Wenn deine Industrie und Wirtschaft viel größer sind als dein Militär, wirst du ein attraktives Ziel. Hoher MV senkt die Chance."),
+                        React.createElement("p", null, "• ", React.createElement("strong", null, "Verteidigungsstärke:"), " Deine Garnison (alle Militär-Kreaturen) kämpft gegen den Angreifer. Hoher MV gibt deiner Garnison einen Bonus."),
+                        React.createElement("p", null, "• ", React.createElement("strong", null, "Schaden bei Angriff:"), " Wenn ein Angriff erfolgt, erleidet deine Festung Schaden an ALLEN vier Werten gleichmäßig. Stärkere Angreifer als deine Garnison = mehr Schaden."),
+                        React.createElement("p", null, "• ", React.createElement("strong", null, "Reparatur:"), " Schaden kann mit Gold aus der Schatzkammer repariert werden.")
+                    ),
+                    React.createElement("div", { className: "mt-2 p-2 bg-blue-50/50 dark:bg-blue-900/20 rounded border border-blue-400/30" },
+                        React.createElement("p", { className: "font-bold text-blue-800 dark:text-blue-300" }, "🎲 Wöchentliche Simulation"),
+                        React.createElement("p", null, "Im Verteidigungs-Tab gibt es den Button \"Nächste Woche simulieren\". Dabei passiert: Dein Gewinn wird berechnet, Gehälter und Wartung abgezogen, das Ergebnis in die Schatzkammer gebucht, und dann wird gewürfelt ob ein Angriff stattfindet. Alles wird im Ereignisprotokoll festgehalten. Falls etwas schief geht: \"Rückgängig\" macht die letzte Woche ungeschehen!")
+                    )
+                ),
+
+                // ═══ BAUVORHABEN ═══
+                (!searchTerm || 'bau construction fertigstellen bauen rush zeit ausstehend wie lange dauert'.includes(searchTerm)) &&
+                React.createElement(HelpSection, { title: "Bauvorhaben – vom Plan zur Fertigstellung", icon: "🏗️" },
+                    React.createElement("p", null, "Wenn du einen Raum, eine Mauer oder eine Verzauberung hinzufügst, ist sie erstmal nur ein Plan. So wird daraus Realität:"),
+                    React.createElement("p", null, "⏳ ", React.createElement("strong", null, "Ausstehend"), " → Du hast es geplant, aber der Bau hat noch nicht begonnen."),
+                    React.createElement("p", null, "🔨 ", React.createElement("strong", null, "Im Bau"), " → Im Construction-Tab auf \"Bau starten\" klicken. Die Bauzeit hängt von den Kosten ab."),
+                    React.createElement("p", null, "✅ ", React.createElement("strong", null, "Fertiggestellt"), " → Das Gebäude funktioniert jetzt! Es produziert Ressourcen und zählt zu deinen Festungswerten."),
+                    React.createElement("div", { className: "mt-2 p-2 bg-amber-50/50 dark:bg-amber-900/20 rounded border border-amber-400/30" },
+                        React.createElement("p", { className: "font-bold text-amber-800 dark:text-amber-300" }, "⚡ Rush-Gebühr"),
+                        React.createElement("p", null, "Beim Erstellen eines Raumes kannst du eine Rush-Gebühr wählen (10-70%). Das macht den Bau teurer, aber schneller. 50% Rush = 50% mehr Kosten, dafür 50% weniger Bauzeit.")
+                    )
+                ),
+
+                // ═══ VERZAUBERUNGEN ═══
+                (!searchTerm || 'verzauberung enchantment magie magisch wondrous preis skalierung eingebaut mobil katalog'.includes(searchTerm)) &&
+                React.createElement(HelpSection, { title: "Verzauberungen – magische Upgrades", icon: "✨" },
+                    React.createElement("p", null, "Verzauberungen sind permanente magische Effekte, die du in deine Festung einbauen kannst. Sie sind wie magische Upgrades für einzelne Räume."),
+                    React.createElement("div", { className: "space-y-2 mt-2" },
+                        React.createElement("p", null, "• Sie brauchen ", React.createElement("strong", null, "kein Personal"), " – einmal installiert, funktionieren sie für immer."),
+                        React.createElement("p", null, "• Sie steigern einen der vier Werte, je nach Kategorie (Sicherheit/Kampf → MV, Hilfsmittel/Magie → IV, Wirtschaft → ÖV, Sozial/Wohnen → SV)."),
+                        React.createElement("p", null, "• ", React.createElement("strong", null, "Fest eingemauert"), " = 50% billiger, kann aber nie wieder entfernt werden. Manche Verzauberungen MÜSSEN eingebaut werden (du erkennst sie am ausgegrauten, dauerhaft aktivierten Häkchen)."),
+                        React.createElement("p", null, "• Im ", React.createElement("strong", null, "Katalog"), " findest du alle verfügbaren Verzauberungen mit Beschreibung und Spielmechanik."),
+                        React.createElement("p", null, "• In der ", React.createElement("strong", null, "Festungskarte"), " kannst du platzierte Verzauberungen auf einem Grundriss per Drag & Drop anordnen.")
+                    ),
+                    React.createElement("div", { className: "mt-2 p-2 bg-amber-50/50 dark:bg-amber-900/20 rounded border border-amber-400/30" },
+                        React.createElement("p", { className: "font-bold text-amber-800 dark:text-amber-300" }, "💰 Preisskalierung"),
+                        React.createElement("p", null, "Die Preise stammen aus einem älteren D&D-Regelwerk (3.5e). Mit dem Schieberegler oben im Katalog kann dein Spielleiter die Preise an seine Kampagne anpassen. Das Preset \"5e Angepasst\" halbiert alle Preise für die modernere Goldwirtschaft.")
+                    )
+                ),
+
+                // ═══ SPEICHERN ═══
+                (!searchTerm || 'speichern laden export import backup sicherung drucken daten verloren'.includes(searchTerm)) &&
+                React.createElement(HelpSection, { title: "Speichern, Laden & Backups", icon: "💾" },
+                    React.createElement("p", null, "Deine Festung wird im Browser gespeichert. Hier ist was du wissen musst:"),
+                    React.createElement("div", { className: "space-y-2 mt-2" },
+                        React.createElement("p", null, "• ", React.createElement("strong", null, "Speichern"), " – Im Summary-Tab. Gib deiner Festung einen Namen und klicke Speichern. Du kannst mehrere Festungen gleichzeitig verwalten!"),
+                        React.createElement("p", null, "• ", React.createElement("strong", null, "Laden"), " – Wähle einen gespeicherten Spielstand aus der Liste."),
+                        React.createElement("p", null, "• ", React.createElement("strong", null, "Export"), " – Erstellt eine JSON-Datei auf deinem Computer. Das ist dein Backup!"),
+                        React.createElement("p", null, "• ", React.createElement("strong", null, "Import"), " – Lade eine exportierte Datei wieder ein."),
+                        React.createElement("p", null, "• ", React.createElement("strong", null, "Drucken"), " – Erstellt eine druckfreundliche Übersicht deiner Festung.")
+                    ),
+                    React.createElement("div", { className: "mt-2 p-3 bg-red-50/60 dark:bg-red-900/20 rounded-lg border border-red-400/50" },
+                        React.createElement("p", { className: "font-bold text-red-800 dark:text-red-300" }, "⚠️ Wichtig: Mach regelmäßig Backups!"),
+                        React.createElement("p", null, "Browser-Daten können verloren gehen – wenn du den Cache löschst, den Browser wechselst oder Cookies gelöscht werden. Nutze den Export-Button regelmäßig um eine Datei zu sichern. So verlierst du nie deine Festung!")
+                    )
+                ),
+
+                // ═══ WELTZEIT ═══
+                (!searchTerm || 'weltzeit datum woche simulation zeit kalender ingame spielwelt'.includes(searchTerm)) &&
+                React.createElement(HelpSection, { title: "Weltzeit – Zeit in der Spielwelt", icon: "⏳" },
+                    React.createElement("p", null, "Die App kann die Zeit in eurer Spielwelt verfolgen:"),
+                    React.createElement("p", null, "• Beim Öffnen der App wirst du nach dem aktuellen Datum in der Spielwelt gefragt."),
+                    React.createElement("p", null, "• Wenn seit dem letzten Mal mehrere Wochen vergangen sind, kann die App diese Wochen automatisch simulieren – alle Einnahmen, Ausgaben und Angriffe werden berechnet."),
+                    React.createElement("p", null, "• Du kannst das Datum jederzeit über die Weltzeit-Leiste oben ändern."),
+                    React.createElement("p", null, "• Jede simulierte Woche wird im Ereignisprotokoll (sichtbar im Wirtschafts- und Verteidigungs-Tab) festgehalten.")
+                ),
+
+                // ═══ FAQ ═══
+                (!searchTerm || 'faq frage problem fehler hilfe warum funktioniert nicht'.includes(searchTerm)) &&
+                React.createElement(HelpSection, { title: "Häufige Fragen", icon: "❓" },
+                    React.createElement("div", { className: "space-y-4" },
+                        React.createElement("div", null,
+                            React.createElement("p", { className: "font-bold text-wood-dark dark:text-gold-light" }, "\"Ich habe ein Gebäude gebaut, aber es tut nichts!\""),
+                            React.createElement("p", null, "Zwei mögliche Gründe: Entweder ist das Gebäude noch nicht fertiggestellt (schau im Construction-Tab ob es ✅ hat), oder die nötigen Arbeiter wurden noch nicht zugewiesen. Gehe in den Staff-Tab und ziehe eine Fachkraft (⭐) auf den offenen Job.")
+                        ),
+                        React.createElement("div", null,
+                            React.createElement("p", { className: "font-bold text-wood-dark dark:text-gold-light" }, "\"Meine Shops verdienen kaum Gold!\""),
+                            React.createElement("p", null, "Deine Industrie ist wahrscheinlich zu klein. Shops können nur so viel verkaufen, wie deine Werkstätten und Schmieden herstellen. Schau im Wirtschafts-Tab bei \"Effizienz\" – wenn da weniger als 100% steht, brauchst du mehr Industriegebäude.")
+                        ),
+                        React.createElement("div", null,
+                            React.createElement("p", { className: "font-bold text-wood-dark dark:text-gold-light" }, "\"Mein Personal hat kein Essen!\""),
+                            React.createElement("p", null, "Du brauchst eine Küche (als \"Sozial\" klassifiziert, nicht \"Industriell\"!) und einen Koch, der ihr zugewiesen ist. Jeder Arbeiter verbraucht 1 Nahrung pro Woche. Am Anfang hast du 5 Basis-Nahrung durch Rationen – das reicht nur für wenige Leute.")
+                        ),
+                        React.createElement("div", null,
+                            React.createElement("p", { className: "font-bold text-wood-dark dark:text-gold-light" }, "\"Meine Gehälter sind so hoch!\""),
+                            React.createElement("p", null, "Baue mehr soziale Gebäude! Thronsäle, Gemeinschaftsräume, Bibliotheken, Höfe – alles was den Sozialen Wert (SV) steigert, senkt die Gehälter. Tavernen helfen auch (60% ihres Werts zählt als SV). Und vergiss nicht: Priester in Kapellen geben einen zusätzlichen SV-Bonus!")
+                        ),
+                        React.createElement("div", null,
+                            React.createElement("p", { className: "font-bold text-wood-dark dark:text-gold-light" }, "\"Was macht die Schatzkammer?\""),
+                            React.createElement("p", null, "Bei jeder Wochen-Simulation wird dein Nettoeinkommen (Gewinn minus Gehälter minus Wartung) automatisch zur Schatzkammer addiert. Du kannst auch manuell Gold einzahlen (z.B. Beute aus Abenteuern) oder abheben. Die Schatzkammer zahlt auch automatisch Reparaturen nach Angriffen.")
+                        ),
+                        React.createElement("div", null,
+                            React.createElement("p", { className: "font-bold text-wood-dark dark:text-gold-light" }, "\"Kann ich Gebäudenamen ändern?\""),
+                            React.createElement("p", null, "Ja! In der Gebäudeliste (unten im Rooms-Tab) und in der Mauerliste siehst du ein kleines ✏️-Symbol neben jedem Namen. Klick darauf um einen Spitznamen zu vergeben.")
+                        )
+                    )
+                ),
+
+                // ═══ TIPPS ═══
+                (!searchTerm || 'tipp trick strategie optimieren anfänger empfehlung best'.includes(searchTerm)) &&
+                React.createElement(HelpSection, { title: "Tipps für Festungsbauer", icon: "🎯" },
+                    React.createElement("div", { className: "space-y-3" },
+                        React.createElement("div", { className: "p-2 bg-green-50/50 dark:bg-green-900/20 rounded" },
+                            React.createElement("p", null, "🏗️ ", React.createElement("strong", null, "Fang klein an"), " – Bau nicht alles auf einmal. Starte mit dem Nötigsten (Küche, Schlafplätze, 1 Shop, 1 Werkstatt) und erweitere Stück für Stück.")
+                        ),
+                        React.createElement("div", { className: "p-2 bg-blue-50/50 dark:bg-blue-900/20 rounded" },
+                            React.createElement("p", null, "⚖️ ", React.createElement("strong", null, "Balance ist alles"), " – Industrie sollte mindestens so groß sein wie Wirtschaft. Militär sollte groß genug sein um nicht ständig angegriffen zu werden. Soziales spart langfristig am meisten Geld.")
+                        ),
+                        React.createElement("div", { className: "p-2 bg-amber-50/50 dark:bg-amber-900/20 rounded" },
+                            React.createElement("p", null, "🍺 ", React.createElement("strong", null, "Tavernen sind Pflichtgebäude"), " – Sie senken Gehälter, bringen Gold und machen alle Shops profitabler. Baue immer mindestens eine Taverne.")
+                        ),
+                        React.createElement("div", { className: "p-2 bg-purple-50/50 dark:bg-purple-900/20 rounded" },
+                            React.createElement("p", null, "🙏 ", React.createElement("strong", null, "Kapellen mit Priestern lohnen sich"), " – Jeder Priester erhöht den SV um 10% des Basiswerts. Bei einem großen SV ist das enorm! Aber der Bonus ist durch den Kapellenwert gedeckelt – teurere Kapellen ermöglichen einen höheren Bonus.")
+                        ),
+                        React.createElement("div", { className: "p-2 bg-red-50/50 dark:bg-red-900/20 rounded" },
+                            React.createElement("p", null, "🛡️ ", React.createElement("strong", null, "Mauern sind günstig und effektiv"), " – Steinmauern sind das beste Investment für den Militärischen Wert. Lieber ein paar Mauern mehr als eine teure Elitetruppe.")
+                        ),
+                        React.createElement("div", { className: "p-2 bg-teal-50/50 dark:bg-teal-900/20 rounded" },
+                            React.createElement("p", null, "✨ ", React.createElement("strong", null, "Verzauberungen brauchen kein Personal"), " – Wenn du wenig Geld für Gehälter hast, sind Verzauberungen eine gute Alternative. Sie kosten einmalig, funktionieren dann aber für immer ohne laufende Kosten.")
+                        )
+                    )
+                )
+            ),
+
+            React.createElement("div", { className: "p-4 bg-wood/10 dark:bg-gray-700/30 rounded-b-xl border-t-2 border-wood/30 dark:border-gray-600 text-center" },
+                React.createElement("button", {
+                    onClick: onClose,
+                    className: "px-6 py-2 bg-gradient-to-br from-wood-light to-wood-dark text-parchment-bg dark:from-gold dark:to-gold-dark dark:text-wood-dark font-bold rounded-lg border-2 border-wood-dark dark:border-gold-dark hover:opacity-90 transition-all"
+                }, "Verstanden – zurück zur Festung!")
+            )
+        )
+    );
+};
+
+
 const App = () => {
   const [activeTab, setActiveTab] = useState('site');
   const stronghold = useStronghold();
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'system');
   const [showDateModal, setShowDateModal]   = useState(false);
   const [isSimulating, setIsSimulating]     = useState(false);
+  const [showHelp, setShowHelp]             = useState(false);
   const hasShownModal = useRef(false);
 
   // worldDate lives in stronghold (per-save)
@@ -6972,6 +7316,17 @@ const App = () => {
 
       React.createElement("div", { className: "relative container mx-auto max-w-7xl p-2 sm:p-5 bg-parchment-bg/90 dark:bg-gray-800/95 border-8 border-wood dark:border-wood-dark rounded-2xl shadow-2xl shadow-wood-dark/30 dark:shadow-black/50" },
         React.createElement(ThemeToggle, { theme: theme, setTheme: handleSetTheme }),
+
+        // Help button (top-left)
+        React.createElement("button", {
+            onClick: () => setShowHelp(true),
+            className: "absolute top-4 left-4 sm:top-6 sm:left-6 p-2 rounded-full bg-parchment/80 dark:bg-gray-700/80 text-2xl border-2 border-wood dark:border-gold-dark hover:scale-110 transition-transform z-10",
+            title: "Handbuch öffnen"
+        }, "📖"),
+
+        // Help Modal
+        showHelp && React.createElement(HelpModal, { onClose: () => setShowHelp(false) }),
+
         React.createElement(Header, null),
 
         // World Date Bar – prominent, always visible
