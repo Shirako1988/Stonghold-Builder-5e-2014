@@ -2663,13 +2663,14 @@ const generateComponentSummary = (name, category) => {
     if (parts.length === 0) return '';
     return `(${parts.join(' | ')})`;
 };
-const CalculatedBenefitsDisplay = ({ area, benefits, componentName, calculatedBaseCost, tavernBonus, classification }) => {
+const CalculatedBenefitsDisplay = ({ area, benefits, componentName, calculatedBaseCost, tavernBonus, classification, baseSocialValue, totalChapelValue }) => {
     const { resources, jobs, perks } = benefits;
     const isKitchen = componentName.toLowerCase().includes('kitchen');
     const isIndustrialKitchen = isKitchen && classification === 'industrial';
     
     const isShop = componentName.toLowerCase().includes('shop');
     const isTavern = ['Tavern, basic', 'Tavern, fancy', 'Tavern, luxury'].includes(componentName);
+    const isChapel = componentName.toLowerCase().includes('chapel');
     const merchantGold = calculatedBaseCost * 0.25;
     const tavernEvContrib = isTavern ? calculatedBaseCost * 0.4 : 0;
     const tavernSvContrib = isTavern ? calculatedBaseCost * 0.6 : 0;
@@ -2680,8 +2681,15 @@ const CalculatedBenefitsDisplay = ({ area, benefits, componentName, calculatedBa
     const hypotheticalShopBonus = isTavern && tavernBonus && tavernBonus.baseExcl > 0
         ? (hypotheticalTavernTotal / tavernBonus.baseExcl) * 200
         : 0;
+
+    // Chapel preview: how many priests at this size, what bonus would they give?
+    const chapelPriestCount = isChapel ? jobs.filter(j => j.role === 'Priest').reduce((sum, j) => sum + j.count, 0) : 0;
+    const chapelHypotheticalBonus = isChapel ? baseSocialValue * (chapelPriestCount * 0.25) : 0;
+    const chapelNewCap = isChapel ? (totalChapelValue || 0) + calculatedBaseCost : 0;
+    const chapelEffectiveBonus = isChapel ? Math.min(chapelHypotheticalBonus, chapelNewCap) : 0;
+    const chapelIsCapped = isChapel && chapelHypotheticalBonus > chapelNewCap;
     
-    const hasBenefits = Object.keys(resources).length > 0 || jobs.length > 0 || perks.length > 0 || (isShop && merchantGold > 0) || isTavern;
+    const hasBenefits = Object.keys(resources).length > 0 || jobs.length > 0 || perks.length > 0 || (isShop && merchantGold > 0) || isTavern || isChapel;
 
     return (
         React.createElement("div", { className: "bg-blue-900/10 dark:bg-blue-900/30 p-4 rounded-lg border-l-4 border-blue-600 dark:border-blue-400" },
@@ -2744,6 +2752,50 @@ const CalculatedBenefitsDisplay = ({ area, benefits, componentName, calculatedBa
                                 )
                                 : React.createElement("p", { className: "text-sm text-wood-text/60 dark:text-parchment-bg/50 italic pl-4" },
                                     "Shop-Bonus: wird aktiv sobald Shops vorhanden sind."
+                                )
+                        )
+                    ),
+                    isChapel && (
+                        React.createElement("div", { className: "border-t border-purple-400/30 pt-2 mt-2 space-y-1" },
+                            React.createElement("p", null,
+                                React.createElement("strong", null, "🙏 Priester-Vorschau"),
+                                ` (${chapelPriestCount} Priester bei voller Besetzung)`
+                            ),
+                            baseSocialValue > 0
+                                ? React.createElement(React.Fragment, null,
+                                    React.createElement("div", { className: "ml-4 space-y-1" },
+                                        React.createElement("p", { className: "text-sm" },
+                                            "Priester-Bonus: ",
+                                            React.createElement("span", { className: "font-semibold text-purple-700 dark:text-purple-400" },
+                                                `+${chapelEffectiveBonus.toFixed(0)} SV`
+                                            ),
+                                            chapelIsCapped && React.createElement("span", { className: "text-amber-600 dark:text-amber-400 font-semibold" },
+                                                ` (gedeckelt!)`
+                                            )
+                                        ),
+                                        React.createElement("p", { className: "text-xs text-purple-700/70 dark:text-purple-400/60" },
+                                            `${chapelPriestCount} Priester × 25% × ${baseSocialValue.toFixed(0)} Basis-SV = ${chapelHypotheticalBonus.toFixed(0)} SV Bonus`
+                                        ),
+                                        React.createElement("p", { className: "text-xs text-purple-700/70 dark:text-purple-400/60" },
+                                            `Kapellen-Cap: ${(totalChapelValue||0).toFixed(0)} (bestehend) + ${calculatedBaseCost.toFixed(0)} (diese) = ${chapelNewCap.toFixed(0)} SV`
+                                        ),
+                                        chapelIsCapped && React.createElement("div", { className: "mt-1 p-2 bg-amber-100/60 dark:bg-amber-900/30 rounded border border-amber-400/50" },
+                                            React.createElement("p", { className: "text-xs text-amber-800 dark:text-amber-300 font-semibold" },
+                                                `⚠️ ${(chapelHypotheticalBonus - chapelNewCap).toFixed(0)} SV Bonus gehen verloren! `
+                                            ),
+                                            React.createElement("p", { className: "text-xs text-amber-700/80 dark:text-amber-400/70" },
+                                                componentName.includes('basic') ? "Größer bauen hilft nicht – Priester und Cap skalieren gleich. Upgrade auf eine Fancy Chapel (6.000 Cap pro Priester) oder baue zusätzliche Kapellen ohne sie zu besetzen."
+                                                : componentName.includes('fancy') ? "Größer bauen hilft nicht – Priester und Cap skalieren gleich. Upgrade auf eine Luxury Chapel (25.000 Cap pro Priester) oder baue zusätzliche Kapellen ohne sie zu besetzen."
+                                                : "Baue zusätzliche Kapellen (auch ohne Priester-Besetzung), um das Cap zu erhöhen."
+                                            )
+                                        ),
+                                        !chapelIsCapped && React.createElement("p", { className: "text-xs text-green-700/80 dark:text-green-400/70 italic" },
+                                            `✅ Cap reicht aus – noch ${(chapelNewCap - chapelHypotheticalBonus).toFixed(0)} SV Spielraum.`
+                                        )
+                                    )
+                                )
+                                : React.createElement("p", { className: "text-sm text-wood-text/60 dark:text-parchment-bg/50 italic ml-4" },
+                                    "Priester-Bonus wird aktiv sobald soziale Gebäude vorhanden sind (Basis-SV benötigt)."
                                 )
                         )
                     )
@@ -2936,7 +2988,7 @@ const RoomBuilderForm = ({ stronghold }) => {
     const [heroName, setHeroName] = useState('');
     const isHeroQuarter = COMPONENTS[category]?.[componentName]?.heroQuarter === true;
 
-    const { siteModifier, addComponent, tavernBonus } = stronghold;
+    const { siteModifier, addComponent, tavernBonus, baseSocialValue, totalChapelValue } = stronghold;
 
     useEffect(() => {
         const componentData = COMPONENTS[category]?.[componentName];
@@ -3142,6 +3194,8 @@ const RoomBuilderForm = ({ stronghold }) => {
                 calculatedBaseCost: calculatedBaseCost,
                 tavernBonus: tavernBonus,
                 classification: classification,
+                baseSocialValue: baseSocialValue,
+                totalChapelValue: totalChapelValue,
             }),
             React.createElement("div", { className: "bg-blue-900/10 dark:bg-blue-900/30 p-4 rounded-lg border-l-4 border-blue-600 dark:border-blue-400" },
                 React.createElement("h4", { className: "text-xl font-semibold text-blue-800 dark:text-blue-200" }, "📖 Room Description"),
@@ -3989,7 +4043,7 @@ const SocialTab = ({ stronghold }) => {
     return (
         React.createElement("div", null,
             React.createElement("h2", { className: "text-3xl font-medieval text-wood-dark dark:text-gold-light mb-2" }, "🤝 Soziales & Moral"),
-            React.createElement("p", { className: "mb-6" }, "Sozialer Wert (SV) = Basis-SV (alle sozialen Gebäude) + Priester-Bonus. GEHALTSREDUKTION: Ersparnis% = min(100%, SV ÷ ((MV + IV + EV) × 2) × 100%). Bei SV = MV+IV+EV wäre die Ersparnis 50%, bei SV = 2×(MV+IV+EV) wären es 100% (kostenlose Gehälter). PRIESTER-BONUS: Jeder Priester in einer Kapelle erhöht den SV um Basis-SV × 10%. Der Gesamtbonus ist gedeckelt auf den Gesamt-Bauwert aller Kapellen. Mehr/teurere Kapellen = höheres Cap = mehr nutzbarer Priester-Bonus."),
+            React.createElement("p", { className: "mb-6" }, "Sozialer Wert (SV) = Basis-SV (alle sozialen Gebäude) + Priester-Bonus. GEHALTSREDUKTION: Ersparnis% = min(100%, SV ÷ ((MV + IV + EV) × 2) × 100%). Bei SV = MV+IV+EV wäre die Ersparnis 50%, bei SV = 2×(MV+IV+EV) wären es 100% (kostenlose Gehälter). PRIESTER-BONUS: Jeder Priester in einer Kapelle erhöht den SV um Basis-SV × 25%. Der Gesamtbonus ist gedeckelt auf den Gesamt-Bauwert aller Kapellen. Mehr/teurere Kapellen = höheres Cap = mehr nutzbarer Priester-Bonus."),
             React.createElement("div", { className: "grid md:grid-cols-2 gap-8" },
                 React.createElement("div", { className: "space-y-6" },
                     // Gehaltsreduktion Box
@@ -4039,7 +4093,7 @@ const SocialTab = ({ stronghold }) => {
                             }),
                             React.createElement(InfoRowSocial, { 
                                 label: "Priester-Bonus", 
-                                value: `+${(priestCount * 10).toFixed(0)}%`,
+                                value: `+${(priestCount * 25).toFixed(0)}%`,
                                 tooltip: "Jeder Priester erhöht den sozialen Wert um 25%."
                             }),
                             React.createElement("div", { className: "flex justify-between items-center py-2 border-b border-wood-light/30 dark:border-parchment-bg/20", title: "Der Bonus ist auf den Gesamtwert aller Kapellen begrenzt." },
@@ -4185,9 +4239,9 @@ const ROOM_MECHANICS = {
     "Courtyard, basic":       "Kein Ressourcen-Output. Sozialer-Wert-Beitrag.",
     "Courtyard, fancy":       "Kein Ressourcen-Output. Sozialer-Wert-Beitrag.",
     "Courtyard, luxury":      "Kein Ressourcen-Output. Sozialer-Wert-Beitrag.",
-    "Chapel, basic":          "KAPELLEN-MECHANIK: Jeder zugewiesene Priester erhöht den Sozialen Wert um 10% des Basis-SV. Der GESAMTE Priester-Bonus ist jedoch auf den kombinierten Bauwert aller Kapellen gedeckelt. Formel: Priester-Bonus = min(Kapellenwert, Basis-SV × Priesteranzahl × 10%). Beispiel: SV = 5000 GP, 2 Priester, Kapellenwert = 500 GP → Bonus = min(500, 5000×2×10%) = min(500, 1000) = 500 GP. Mehr Kapellen = höherer Cap = mehr möglicher Bonus.",
-    "Chapel, fancy":          "Erweitert den Kapellen-Cap (Deckelung für Priester-Bonus). Formel wie basic: Priester-Bonus = min(Gesamtkapellenwert, Basis-SV × Priesteranzahl × 10%). Ein teurer Fancy-Chapel erlaubt mehr Priester mit vollem Bonus als mehrere kleine basic-Kapellen.",
-    "Chapel, luxury":         "Höchster Kapellen-Einzelwert. Ermöglicht den größten Priester-Bonus-Cap. Bei dieser Kapelle können viele Priester gleichzeitig den vollen 10%-Bonus pro Person einbringen.",
+    "Chapel, basic":          "KAPELLEN-MECHANIK: Jeder zugewiesene Priester erhöht den Sozialen Wert um 25% des Basis-SV. Der GESAMTE Priester-Bonus ist jedoch auf den kombinierten Bauwert aller Kapellen gedeckelt. Formel: Priester-Bonus = min(Kapellenwert, Basis-SV × Priesteranzahl × 25%). Beispiel: SV = 5000 GP, 2 Priester, Kapellenwert = 2500 GP → Bonus = min(2500, 5000×2×25%) = min(2500, 2500) = 2500 GP. Mehr Kapellen = höherer Cap = mehr möglicher Bonus.",
+    "Chapel, fancy":          "Erweitert den Kapellen-Cap (Deckelung für Priester-Bonus). Formel wie basic: Priester-Bonus = min(Gesamtkapellenwert, Basis-SV × Priesteranzahl × 25%). Ein teurer Fancy-Chapel erlaubt mehr Priester mit vollem Bonus als mehrere kleine basic-Kapellen.",
+    "Chapel, luxury":         "Höchster Kapellen-Einzelwert. Ermöglicht den größten Priester-Bonus-Cap. Bei dieser Kapelle können viele Priester gleichzeitig den vollen 25%-Bonus pro Person einbringen.",
     "Prison cell":            "Kein Ressourcen-Output. Militärischer-Wert-Beitrag.",
     "Torture chamber":        "Schaltet INTIMIDATION +1 pro Basis-Fläche frei, sobald ≥1 Folterer besetzt. Kumulativer Bonus auf Einschüchterungs-Würfe innerhalb der Festung.",
     "Stable, basic":          "Stellt 4 Stallplätze bereit. 1 Stallmeister versorgt bis zu 4 Plätze (unabhängig von Stallgröße). Benötigt Stablemaster als Fachkraft. Reittiergrößen: Medium = 1 Platz, Large = 4 Plätze, Huge = 9 Plätze. Schaltet normale Reittiere (Pferde, Ponys, Maultiere) frei.",
@@ -7192,7 +7246,7 @@ const HelpModal = ({ onClose }) => {
                             React.createElement("p", null, "🍺 ", React.createElement("strong", null, "Tavernen sind Pflichtgebäude"), " – Sie senken Gehälter, bringen Gold und machen alle Shops profitabler. Baue immer mindestens eine Taverne.")
                         ),
                         React.createElement("div", { className: "p-2 bg-purple-50/50 dark:bg-purple-900/20 rounded" },
-                            React.createElement("p", null, "🙏 ", React.createElement("strong", null, "Kapellen mit Priestern lohnen sich"), " – Jeder Priester erhöht den SV um 10% des Basiswerts. Bei einem großen SV ist das enorm! Aber der Bonus ist durch den Kapellenwert gedeckelt – teurere Kapellen ermöglichen einen höheren Bonus.")
+                            React.createElement("p", null, "🙏 ", React.createElement("strong", null, "Kapellen mit Priestern lohnen sich"), " – Jeder Priester erhöht den SV um 25% des Basiswerts. Bei einem großen SV ist das enorm! Aber der Bonus ist durch den Kapellenwert gedeckelt – teurere Kapellen ermöglichen einen höheren Bonus.")
                         ),
                         React.createElement("div", { className: "p-2 bg-red-50/50 dark:bg-red-900/20 rounded" },
                             React.createElement("p", null, "🛡️ ", React.createElement("strong", null, "Mauern sind günstig und effektiv"), " – Steinmauern sind das beste Investment für den Militärischen Wert. Lieber ein paar Mauern mehr als eine teure Elitetruppe.")
