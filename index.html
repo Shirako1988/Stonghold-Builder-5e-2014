@@ -434,6 +434,45 @@ const COMPONENTS = {
         "Tavern, basic": { cost: 800, ss: 1, jobs: [{ role: "Tavernkeeper", count: 1 }] },
         "Tavern, fancy": { cost: 4000, ss: 1, jobs: [{ role: "Tavernkeeper", count: 2 }] },
         "Tavern, luxury": { cost: 20000, ss: 1, jobs: [{ role: "Tavernkeeper", count: 4 }] },
+    },
+    "Doors, Windows & Locks": {
+        "Door, simple wooden":    { cost: 10,   ss: 0, fixedSize: true },
+        "Door, good wooden":      { cost: 20,   ss: 0, fixedSize: true },
+        "Door, strong wooden":    { cost: 40,   ss: 0, fixedSize: true },
+        "Door, stone":            { cost: 300,  ss: 0, fixedSize: true },
+        "Door, iron":             { cost: 500,  ss: 0, fixedSize: true },
+        "Door, adamantine":       { cost: 5000, ss: 0, fixedSize: true },
+        "Secret door (DC 15)":    { cost: 110,  ss: 0, fixedSize: true },
+        "Secret door (DC 20)":    { cost: 170,  ss: 0, fixedSize: true },
+        "Secret door (DC 25)":    { cost: 240,  ss: 0, fixedSize: true },
+        "Secret door (DC 30)":    { cost: 340,  ss: 0, fixedSize: true },
+        "Portcullis, wooden":     { cost: 400,  ss: 0, fixedSize: true },
+        "Portcullis, iron":       { cost: 750,  ss: 0, fixedSize: true },
+        "Drawbridge, wooden":     { cost: 1000, ss: 0, fixedSize: true },
+        "Drawbridge, iron":       { cost: 1500, ss: 0, fixedSize: true },
+        "Shutters, simple":       { cost: 5,    ss: 0, fixedSize: true },
+        "Shutters, good":         { cost: 15,   ss: 0, fixedSize: true },
+        "Iron bars (window)":     { cost: 60,   ss: 0, fixedSize: true },
+        "Glass window":           { cost: 10,   ss: 0, fixedSize: true },
+        "Arrow slit":             { cost: 30,   ss: 0, fixedSize: true },
+        "Stained glass, fancy":   { cost: 600,  ss: 0, fixedSize: true },
+        "Stained glass, deluxe":  { cost: 3000, ss: 0, fixedSize: true },
+        "Lock, very simple":      { cost: 20,   ss: 0, fixedSize: true },
+        "Lock, average":          { cost: 40,   ss: 0, fixedSize: true },
+        "Lock, good":             { cost: 80,   ss: 0, fixedSize: true },
+        "Lock, amazing":          { cost: 150,  ss: 0, fixedSize: true },
+        "Lock, mithral":          { cost: 400,  ss: 0, fixedSize: true },
+        "Lock, adamantine":       { cost: 800,  ss: 0, fixedSize: true },
+    },
+    "Siege Weapons": {
+        "Ballista":               { cost: 750,  ss: 0, fixedSize: true, crewRequired: 3, ammoType: 'bolt' },
+        "Mangonel (light)":       { cost: 800,  ss: 0, fixedSize: true, crewRequired: 3, ammoType: 'stone' },
+        "Mangonel (heavy)":       { cost: 1200, ss: 0, fixedSize: true, crewRequired: 5, ammoType: 'stone' },
+        "Trebuchet":              { cost: 2000, ss: 0, fixedSize: true, crewRequired: 5, ammoType: 'stone' },
+        "Battering Ram":          { cost: 500,  ss: 0, fixedSize: true, crewRequired: 4, ammoType: null },
+        "Cannon":                 { cost: 1500, ss: 0, fixedSize: true, crewRequired: 3, ammoType: 'charge' },
+        "Siege Tower":            { cost: 2000, ss: 0, fixedSize: true, crewRequired: 0, ammoType: null },
+        "Cauldron (boiling oil)": { cost: 100,  ss: 0, fixedSize: true, crewRequired: 1, ammoType: null },
     }
 };
 const COMPONENT_CLASSIFICATIONS = {
@@ -470,6 +509,43 @@ const COMPONENT_CLASSIFICATIONS = {
     "Tavern, basic": "economic_social",
     "Tavern, fancy": "economic_social",
     "Tavern, luxury": "economic_social",
+    // Doors, Windows & Locks → military
+    "Door, simple wooden": "military",
+    "Door, good wooden": "military",
+    "Door, strong wooden": "military",
+    "Door, stone": "military",
+    "Door, iron": "military",
+    "Door, adamantine": "military",
+    "Secret door (DC 15)": "military",
+    "Secret door (DC 20)": "military",
+    "Secret door (DC 25)": "military",
+    "Secret door (DC 30)": "military",
+    "Portcullis, wooden": "military",
+    "Portcullis, iron": "military",
+    "Drawbridge, wooden": "military",
+    "Drawbridge, iron": "military",
+    "Shutters, simple": "military",
+    "Shutters, good": "military",
+    "Iron bars (window)": "military",
+    "Glass window": "social",
+    "Arrow slit": "military",
+    "Stained glass, fancy": "social",
+    "Stained glass, deluxe": "social",
+    "Lock, very simple": "military",
+    "Lock, average": "military",
+    "Lock, good": "military",
+    "Lock, amazing": "military",
+    "Lock, mithral": "military",
+    "Lock, adamantine": "military",
+    // Siege Weapons → military
+    "Ballista": "military",
+    "Mangonel (light)": "military",
+    "Mangonel (heavy)": "military",
+    "Trebuchet": "military",
+    "Battering Ram": "military",
+    "Cannon": "military",
+    "Siege Tower": "military",
+    "Cauldron (boiling oil)": "military",
     "Dock, basic": "economic",
     "Dock, extended": "economic",
     "Dock, extended dry": "economic",
@@ -523,6 +599,43 @@ const COMPONENT_ALLOWED_CLASSIFICATIONS = {
     "Tavern, basic": ["economic_social"],
     "Tavern, fancy": ["economic_social"],
     "Tavern, luxury": ["economic_social"],
+    // Doors, Windows & Locks
+    "Door, simple wooden": ["military"],
+    "Door, good wooden": ["military"],
+    "Door, strong wooden": ["military"],
+    "Door, stone": ["military"],
+    "Door, iron": ["military"],
+    "Door, adamantine": ["military"],
+    "Secret door (DC 15)": ["military"],
+    "Secret door (DC 20)": ["military"],
+    "Secret door (DC 25)": ["military"],
+    "Secret door (DC 30)": ["military"],
+    "Portcullis, wooden": ["military"],
+    "Portcullis, iron": ["military"],
+    "Drawbridge, wooden": ["military"],
+    "Drawbridge, iron": ["military"],
+    "Shutters, simple": ["military"],
+    "Shutters, good": ["military"],
+    "Iron bars (window)": ["military"],
+    "Glass window": ["social"],
+    "Arrow slit": ["military"],
+    "Stained glass, fancy": ["social"],
+    "Stained glass, deluxe": ["social"],
+    "Lock, very simple": ["military"],
+    "Lock, average": ["military"],
+    "Lock, good": ["military"],
+    "Lock, amazing": ["military"],
+    "Lock, mithral": ["military"],
+    "Lock, adamantine": ["military"],
+    // Siege Weapons
+    "Ballista": ["military"],
+    "Mangonel (light)": ["military"],
+    "Mangonel (heavy)": ["military"],
+    "Trebuchet": ["military"],
+    "Battering Ram": ["military"],
+    "Cannon": ["military"],
+    "Siege Tower": ["military"],
+    "Cauldron (boiling oil)": ["military"],
     // Social only
     "Library, basic": ["social"],
     "Library, fancy": ["social"],
@@ -725,6 +838,45 @@ const ROOM_DESCRIPTIONS = {
         "Tavern, basic": "Eine einfache Schänke mit groben Tischen und einem knisternden Kamin. Hier treffen sich die einfachen Leute auf ein Bier und eine warme Mahlzeit. Zählt 40% zum ÖV und 60% zum SV – denn eine Schänke macht Leute glücklicher als reich.",
         "Tavern, fancy": "Ein gehobenes Gasthaus mit polierter Bar und feinen Weinen. Reisende, Händler und Informanten kehren hier ein. 40% ÖV / 60% SV – und der Ruf zieht mehr Kundschaft in die Shops.",
         "Tavern, luxury": "Eine legendäre 'Bibliothek der Spirituosen' für Adlige und reiche Kaufleute. Gerüchte, Kontakte und Aufträge entstehen hier täglich. 40% ÖV / 60% SV – und die angesehene Kundschaft macht jeden Shop in der Festung profitabler.",
+    },
+    "Doors, Windows & Locks": {
+        "Door, simple wooden": "Eine einfache, dünne Holztür. Bietet minimalen Schutz, aber trennt Räume und gibt etwas Privatsphäre. Jeder Raum kommt mit zwei kostenlosen einfachen Türen.",
+        "Door, good wooden": "Eine stabile, gut gearbeitete Holztür aus dickerem Holz. Hält einem kräftigen Fußtritt stand und bietet ordentlichen Schutz gegen Eindringlinge.",
+        "Door, strong wooden": "Eine schwere, mit Eisenbändern verstärkte Holztür. Widersteht den meisten konventionellen Einbruchsversuchen und ist in Gefängnissen und Schatzkammern beliebt.",
+        "Door, stone": "Eine massive Steintür, oft aus einem einzigen Felsblock gehauen. Extrem schwer zu durchbrechen und feuerresistent. Benötigt robuste Angeln.",
+        "Door, iron": "Eine schmiedeeiserne Tür, die Feuer und Äxten trotzt. Standard für Kerker und befestigte Eingänge. Kann rosten, wenn nicht gepflegt.",
+        "Door, adamantine": "Das Nonplusultra der Türen. Adamantintüren sind praktisch unzerstörbar und werden nur in den wichtigsten Bereichen einer Festung eingesetzt – Schatzkammern, Geheimarchive, oder der persönliche Tresorraum des Burgherrn.",
+        "Secret door (DC 15)": "Eine verborgene Tür, die sich hinter einem Bücherregal, einer Wandverkleidung oder einem Kamin verbirgt. Materialkosten für die Tür selbst kommen zum Aufpreis hinzu. Erfordert Investigation oder Perception DC 15 zum Entdecken.",
+        "Secret door (DC 20)": "Eine meisterhaft verborgene Tür mit nahtloser Wandintegration. Selbst erfahrene Schurken brauchen Glück, um sie zu finden. Investigation/Perception DC 20.",
+        "Secret door (DC 25)": "Eine fast unsichtbare Geheimtür mit magisch unterstützter Tarnung. Nur die aufmerksamsten Sucher haben eine Chance. Investigation/Perception DC 25.",
+        "Secret door (DC 30)": "Die perfekte Geheimtür – selbst Leute die wissen, dass sie existiert, haben Schwierigkeiten sie zu finden. Erfordert Investigation/Perception DC 30 oder magische Hilfsmittel.",
+        "Portcullis, wooden": "Ein schweres Holzfallgitter, das in Schienen herabgelassen werden kann. Blockiert Durchgänge effektiv, kann aber mit Äxten durchgehackt werden. Benötigt einen Winden-Mechanismus.",
+        "Portcullis, iron": "Ein schmiedeeisernes Fallgitter – der Klassiker der Festungsverteidigung. Kann schnell herabgelassen werden und ist extrem widerstandsfähig gegen physische Gewalt.",
+        "Drawbridge, wooden": "Eine hölzerne Zugbrücke, die über einen Graben oder Wassergraben gelegt wird. Kann hochgezogen werden, um den Zugang zur Festung abzuschneiden.",
+        "Drawbridge, iron": "Eine mit Eisenplatten verstärkte Zugbrücke. Schwerer, aber fast unzerstörbar im hochgezogenen Zustand. Benötigt stärkere Ketten und Winden.",
+        "Shutters, simple": "Einfache Holzklappen, die ein Fenster bei Bedarf verschließen. Bieten minimalen Schutz gegen Witterung und neugierige Blicke.",
+        "Shutters, good": "Stabile, gut sitzende Fensterläden aus dickerem Holz. Halten Wind und Wetter ab und bieten etwas Schutz gegen Eindringlinge.",
+        "Iron bars (window)": "Schmiedeeiserne Gitterstäbe vor einem Fenster. Lassen Licht und Luft durch, verhindern aber das Eindringen. Standard für Gefängnisse und Erdgeschoss-Fenster.",
+        "Glass window": "Eine einfache Glasscheibe. Lässt Licht ein und hält Wetter ab, bietet aber keinerlei Schutz. In vielen Fantasy-Welten ein Luxusartikel.",
+        "Arrow slit": "Ein schmaler, vertikaler Schlitz in der Mauer. Ermöglicht Fernkampfangriffe von innen, während der Schütze nahezu volle Deckung (¾ Cover, +5 AC) genießt.",
+        "Stained glass, fancy": "Buntes Kirchenglas mit einfachen Mustern und Symbolen. Taucht den Raum in farbiges Licht und vermittelt eine feierliche Atmosphäre.",
+        "Stained glass, deluxe": "Ein Meisterwerk der Glaskunst mit detaillierten Szenen aus Mythologie, Geschichte oder Religion. Jedes Fenster ist ein Unikat und kann mehrere tausend Gold wert sein.",
+        "Lock, very simple": "Ein einfaches Vorhängeschloss oder Riegel. Hält ehrliche Leute ehrlich, aber ein erfahrener Schurke hat es in Sekunden geknackt. Thieves' Tools DC 15.",
+        "Lock, average": "Ein solides Schloss mit mehreren Stiften. Bietet ordentlichen Schutz für Vorratskammern und Büros. Thieves' Tools DC 20.",
+        "Lock, good": "Ein hochwertiges Schloss mit komplexem Mechanismus. Selbst geübte Einbrecher brauchen Zeit und Geschick. Thieves' Tools DC 25.",
+        "Lock, amazing": "Ein Meisterwerk der Schlosserkunst mit Sicherheitsstiften und Fallenauslösern. Nur die besten Schurken haben eine Chance. Thieves' Tools DC 30.",
+        "Lock, mithral": "Ein Schloss aus Mithral – leichter aber deutlich härter als Eisen. Extrem widerstandsfähig gegen Gewalt und Lockpicking. AC 21, HP 30. Thieves' Tools DC 30.",
+        "Lock, adamantine": "Das unknackbare Schloss. Adamantin macht es praktisch immun gegen Gewalt, und der Mechanismus ist so komplex dass selbst magische Hilfsmittel nötig sein könnten. AC 23, HP 40. Thieves' Tools DC 30.",
+    },
+    "Siege Weapons": {
+        "Ballista": "Eine riesige, auf einem Drehgestell montierte Armbrust, die massive Bolzen verschießt. Standardausrüstung auf Festungstürmen und Mauern. BESATZUNG: Benötigt 3 Unskilled Hirelings aus deiner Basis als Crew – weise sie im Verteidigungstab zu. Ohne volle Besatzung liefert die Waffe nur anteiligen MV und kann nicht effektiv feuern. Munition (Ballistabolzen) wird separat im Verteidigungstab verwaltet.",
+        "Mangonel (light)": "Ein leichter Wurfarm, der Steine in einem hohen Bogen schleudert. Weniger Schaden als die schwere Variante, dafür schneller nachzuladen. BESATZUNG: Benötigt 3 Unskilled Hirelings als Crew. Munition (Katapultsteine) wird separat im Verteidigungstab verwaltet.",
+        "Mangonel (heavy)": "Ein schwerer Steinschleuder-Mechanismus mit Gegengewicht. Schleudert massive Felsbrocken über große Distanzen. BESATZUNG: Benötigt 5 Unskilled Hirelings als Crew. Ohne volle Crew nur anteiliger MV-Beitrag. Munition (Katapultsteine) im Verteidigungstab.",
+        "Trebuchet": "Die mächtigste konventionelle Belagerungswaffe. Ein gewaltiger Hebelarm mit Gegengewicht schleudert Felsbrocken über enorme Entfernungen. BESATZUNG: Benötigt 5 Unskilled Hirelings. 10 Minuten Aufbauzeit. Munition (Katapultsteine) im Verteidigungstab.",
+        "Battering Ram": "Ein massiver Holzbalken mit Eisenkopf, der von einer Mannschaft getragen und gegen Türen und Tore gerammt wird. Besonders effektiv gegen Strukturen. BESATZUNG: Benötigt 4 Unskilled Hirelings als Crew. Keine Munition nötig.",
+        "Cannon": "Ein bronzenes oder eisernes Rohr, das mit Schwarzpulver Eisenkugeln verschießt. BESATZUNG: Benötigt 3 Unskilled Hirelings als Crew. Munition (Kanonenladungen, je 5 GP) wird separat im Verteidigungstab verwaltet. HINWEIS: Nicht in allen Fantasy-Welten verfügbar – der DM entscheidet über die Existenz von Schießpulver.",
+        "Siege Tower": "Ein hölzerner Belagerungsturm auf Rädern, der Angreifern Schutz bietet, während sie sich den Mauern nähern. Wird geschoben – keine feste Crew nötig, aber Soldaten oder Arbeiter müssen verfügbar sein.",
+        "Cauldron (boiling oil)": "Ein großer Kessel mit siedendem Öl, Wasser oder Pech, der über Mauerzinnen auf Angreifer gekippt werden kann. BESATZUNG: Benötigt 1 Unskilled Hireling. Keine Munition nötig (muss nach Gebrauch neu befüllt werden).",
     }
 };
 const MATERIAL_DESCRIPTIONS = {
@@ -818,8 +970,13 @@ const INITIAL_STATE = {
   totalDamage: 0,
   merchantGoldSpentThisWeek: 0,
   strongholdTreasury: 0,
-  enchantmentPriceScale: 1.0,
+  globalPriceScale: 1.0,
+  ivRate: 2.0,
+  evRate: 10.0,
   craftingOrders: [],
+  siegeAssignments: {},
+  ammoInventory: { bolt: 0, stone: 0, charge: 0 },
+  constructionQueue: [],
 };
 const calculateConstructionTime = (baseCost) => {
     if (baseCost <= 0) return 0;
@@ -898,7 +1055,21 @@ const migrateState = (state) => {
         ...c,
         pureCost: computePureCost(c),
     }));
-    return { ...state, components };
+    // Migrate: generate constructionQueue from pending/in_progress items if missing
+    let constructionQueue = state.constructionQueue;
+    if (!constructionQueue || constructionQueue.length === 0) {
+        const queue = [];
+        // in_progress items first
+        components.filter(c => c.constructionStatus === 'in_progress').forEach(c => queue.push({ id: c.id, type: 'component' }));
+        (state.walls || []).filter(w => w.constructionStatus === 'in_progress').forEach(w => queue.push({ id: w.id, type: 'wall' }));
+        (state.enchantments || []).filter(e => e.constructionStatus === 'in_progress').forEach(e => queue.push({ id: e.id, type: 'enchantment' }));
+        // then pending items
+        components.filter(c => c.constructionStatus === 'pending').forEach(c => queue.push({ id: c.id, type: 'component' }));
+        (state.walls || []).filter(w => w.constructionStatus === 'pending').forEach(w => queue.push({ id: w.id, type: 'wall' }));
+        (state.enchantments || []).filter(e => e.constructionStatus === 'pending').forEach(e => queue.push({ id: e.id, type: 'enchantment' }));
+        if (queue.length > 0) constructionQueue = queue;
+    }
+    return { ...state, components, constructionQueue: constructionQueue || [] };
 };
 
 
@@ -1132,9 +1303,11 @@ const useStronghold = () => {
           }
       });
       
+      const newId = crypto.randomUUID();
       setState(prevState => ({
           ...prevState,
-          components: [...prevState.components, { ...component, id: crypto.randomUUID(), jobSlots }],
+          components: [...prevState.components, { ...component, id: newId, jobSlots }],
+          constructionQueue: [...(prevState.constructionQueue || []), { id: newId, type: 'component' }],
       }));
   }, []);
 
@@ -1173,7 +1346,7 @@ const useStronghold = () => {
         updatedStaff = updatedStaff.filter(s => !toRemove.has(s.id));
       }
 
-      return { ...prevState, components: prevState.components.filter(c => c.id !== id), staff: updatedStaff };
+      return { ...prevState, components: prevState.components.filter(c => c.id !== id), staff: updatedStaff, constructionQueue: (prevState.constructionQueue || []).filter(q => q.id !== id) };
     });
   }, []);
 
@@ -1185,11 +1358,12 @@ const useStronghold = () => {
   }, []);
 
   const addWall = useCallback((wall) => {
-    setState(prevState => ({ ...prevState, walls: [...prevState.walls, { ...wall, id: crypto.randomUUID() }] }));
+    const newId = crypto.randomUUID();
+    setState(prevState => ({ ...prevState, walls: [...prevState.walls, { ...wall, id: newId }], constructionQueue: [...(prevState.constructionQueue || []), { id: newId, type: 'wall' }] }));
   }, []);
   
   const removeWall = useCallback((id) => {
-    setState(prevState => ({ ...prevState, walls: prevState.walls.filter(w => w.id !== id) }));
+    setState(prevState => ({ ...prevState, walls: prevState.walls.filter(w => w.id !== id), constructionQueue: (prevState.constructionQueue || []).filter(q => q.id !== id) }));
   }, []);
 
   const addStaff = useCallback((staffToAdd) => {
@@ -1385,8 +1559,16 @@ const useStronghold = () => {
     }));
   }, []);
 
-  const setEnchantmentPriceScale = useCallback((scale) => {
-      setState(prev => ({ ...prev, enchantmentPriceScale: Math.max(0.1, Math.min(2.0, scale)) }));
+  const setGlobalPriceScale = useCallback((scale) => {
+      setState(prev => ({ ...prev, globalPriceScale: Math.max(0.1, Math.min(2.0, scale)) }));
+  }, []);
+
+  const setIvRate = useCallback((rate) => {
+      setState(prev => ({ ...prev, ivRate: Math.max(0.5, Math.min(10.0, rate)) }));
+  }, []);
+
+  const setEvRate = useCallback((rate) => {
+      setState(prev => ({ ...prev, evRate: Math.max(1.0, Math.min(20.0, rate)) }));
   }, []);
 
   // ── Crafting Orders ──────────────────────────────────────────────────────────
@@ -1424,9 +1606,83 @@ const useStronghold = () => {
       setState(prev => ({ ...prev, craftingOrders: (prev.craftingOrders || []).filter(o => o.id !== orderId) }));
   }, []);
 
+  const reorderCraftingOrder = useCallback((orderId, direction) => {
+      setState(prev => {
+          const orders = [...(prev.craftingOrders || [])];
+          const idx = orders.findIndex(o => o.id === orderId);
+          if (idx < 0) return prev;
+          const workerSlotId = orders[idx].workerSlotId;
+          // Get indices of this worker's orders in the global array
+          const workerIndices = [];
+          orders.forEach((o, i) => { if (o.workerSlotId === workerSlotId) workerIndices.push(i); });
+          const posInWorker = workerIndices.indexOf(idx);
+          const newPosInWorker = posInWorker + direction;
+          if (newPosInWorker < 0 || newPosInWorker >= workerIndices.length) return prev;
+          // Swap the two in global array
+          const a = workerIndices[posInWorker];
+          const b = workerIndices[newPosInWorker];
+          [orders[a], orders[b]] = [orders[b], orders[a]];
+          // Recalculate start dates for all of this worker's orders sequentially
+          const currentDate = worldDateRef.current || new Date().toISOString().split('T')[0];
+          let nextStart = currentDate;
+          workerIndices.forEach(gi => {
+              orders[gi] = { ...orders[gi], startDate: nextStart };
+              const end = new Date(nextStart);
+              end.setDate(end.getDate() + orders[gi].durationDays);
+              nextStart = end.toISOString().split('T')[0];
+          });
+          return { ...prev, craftingOrders: orders };
+      });
+  }, []);
+
+  const updateSiegeAssignment = useCallback((componentId, field, value) => {
+      setState(prev => ({
+          ...prev,
+          siegeAssignments: {
+              ...(prev.siegeAssignments || {}),
+              [componentId]: { ...(prev.siegeAssignments?.[componentId] || { crew: 0, ammo: 0 }), [field]: Math.max(0, value) }
+          }
+      }));
+  }, []);
+
+  const updateAmmoInventory = useCallback((ammoType, newValue) => {
+      setState(prev => ({
+          ...prev,
+          ammoInventory: { ...(prev.ammoInventory || {}), [ammoType]: Math.max(0, newValue) }
+      }));
+  }, []);
+
+  const reorderConstructionQueue = useCallback((index, direction) => {
+      setState(prev => {
+          const queue = [...(prev.constructionQueue || [])];
+          const newIndex = index + direction;
+          if (newIndex < 0 || newIndex >= queue.length) return prev;
+          [queue[index], queue[newIndex]] = [queue[newIndex], queue[index]];
+          return { ...prev, constructionQueue: queue };
+      });
+  }, []);
+
+  const acknowledgeConstruction = useCallback((id, type) => {
+      setState(prevState => ({
+          ...prevState,
+          constructionQueue: (prevState.constructionQueue || []).filter(q => q.id !== id)
+      }));
+  }, []);
+
+  const instantComplete = useCallback((id, type) => {
+      setState(prevState => {
+          let newState = { ...prevState, constructionQueue: (prevState.constructionQueue || []).filter(q => q.id !== id) };
+          if (type === 'component') newState.components = newState.components.map(c => c.id === id ? { ...c, constructionStatus: 'completed' } : c);
+          if (type === 'wall') newState.walls = newState.walls.map(w => w.id === id ? { ...w, constructionStatus: 'completed' } : w);
+          if (type === 'enchantment') newState.enchantments = (newState.enchantments||[]).map(e => e.id === id ? { ...e, constructionStatus: 'completed' } : e);
+          return newState;
+      });
+  }, []);
+
   const addEnchantment = useCallback((enchantment, isEmbedded = false) => {
+    const newId = crypto.randomUUID();
     setState(prevState => {
-      const scale = prevState.enchantmentPriceScale || 1.0;
+      const scale = prevState.globalPriceScale || 1.0;
       const scaledPrice = Math.round(enchantment.price5e * scale);
       const effectivePrice = enchantment.removable && isEmbedded
         ? Math.floor(scaledPrice / 2)
@@ -1435,7 +1691,7 @@ const useStronghold = () => {
         ...prevState,
         enchantments: [...(prevState.enchantments || []), {
           ...enchantment,
-          id: crypto.randomUUID(),
+          id: newId,
           customName: '',
           constructionStatus: 'pending',
           startDate: undefined,
@@ -1444,7 +1700,8 @@ const useStronghold = () => {
           effectivePrice,
           baseCost: effectivePrice,
           totalCost: effectivePrice,
-        }]
+        }],
+        constructionQueue: [...(prevState.constructionQueue || []), { id: newId, type: 'enchantment' }],
       };
     });
   }, []);
@@ -1452,7 +1709,8 @@ const useStronghold = () => {
   const removeEnchantment = useCallback((id) => {
     setState(prevState => ({
       ...prevState,
-      enchantments: (prevState.enchantments || []).filter(e => e.id !== id)
+      enchantments: (prevState.enchantments || []).filter(e => e.id !== id),
+      constructionQueue: (prevState.constructionQueue || []).filter(q => q.id !== id)
     }));
   }, []);
 
@@ -1579,16 +1837,27 @@ const useStronghold = () => {
   }, [state.components, state.walls, maintenancePenaltyMultiplier]);
 
     const calculateFullValue = useCallback((classification) => {
-        return state.components
-            .filter(c => c.classification === classification && c.constructionStatus === 'completed')
-            .reduce((sum, c) => sum + (c.pureCost ?? c.baseCost), 0);
-    }, [state.components]);
-
-    const calculateScaledValue = useCallback((classification) => {
+        const scale = state.globalPriceScale || 1.0;
         return state.components
             .filter(c => c.classification === classification && c.constructionStatus === 'completed')
             .reduce((sum, c) => {
-                const pv = c.pureCost ?? c.baseCost;
+                const pv = (c.pureCost ?? c.baseCost) * scale;
+                const compData = COMPONENTS[c.category]?.[c.name];
+                if (compData?.crewRequired > 0) {
+                    const assign = (state.siegeAssignments || {})[c.id];
+                    const crewRatio = assign ? Math.min(1, assign.crew / compData.crewRequired) : 0;
+                    return sum + (pv * crewRatio);
+                }
+                return sum + pv;
+            }, 0);
+    }, [state.components, state.siegeAssignments, state.globalPriceScale]);
+
+    const calculateScaledValue = useCallback((classification) => {
+        const scale = state.globalPriceScale || 1.0;
+        return state.components
+            .filter(c => c.classification === classification && c.constructionStatus === 'completed')
+            .reduce((sum, c) => {
+                const pv = (c.pureCost ?? c.baseCost) * scale;
                 if (!c.jobSlots || c.jobSlots.length === 0) {
                     return sum + pv;
                 }
@@ -1597,54 +1866,56 @@ const useStronghold = () => {
                 const efficiency = totalJobs > 0 ? filledJobs / totalJobs : 1;
                 return sum + (pv * efficiency);
             }, 0);
-    }, [state.components]);
+    }, [state.components, state.globalPriceScale]);
 
-    // Enchantment value contributions by category
+    // Enchantment value contributions by category (scale dynamically)
     const enchantmentValueByCategory = useMemo(() => {
         const acc = { military: 0, industrial: 0, economic: 0, social: 0 };
+        const scale = state.globalPriceScale || 1.0;
         (state.enchantments || []).filter(e => e.constructionStatus === 'completed').forEach(e => {
             const cat = ENCHANTMENT_VALUE_CATEGORY[e.category] || 'military';
-            acc[cat] = (acc[cat] || 0) + (e.totalCost || e.price5e);
+            acc[cat] = (acc[cat] || 0) + (e.price5e || e.totalCost) * scale;
         });
         return acc;
-    }, [state.enchantments]);
+    }, [state.enchantments, state.globalPriceScale]);
 
     const baseMilitaryValue = useMemo(() => {
+        const scale = state.globalPriceScale || 1.0;
         const componentValue = calculateFullValue('military');
-        const wallValue = state.walls.filter(w => w.constructionStatus === 'completed').reduce((sum, w) => sum + (w.pureCost ?? w.baseCost), 0);
+        const wallValue = state.walls.filter(w => w.constructionStatus === 'completed').reduce((sum, w) => sum + (w.pureCost ?? w.baseCost) * scale, 0);
         return componentValue + wallValue + (enchantmentValueByCategory.military || 0);
-    }, [state.components, state.walls, calculateFullValue, enchantmentValueByCategory]);
+    }, [state.components, state.walls, calculateFullValue, enchantmentValueByCategory, state.globalPriceScale]);
     const baseIndustrialValue = useMemo(() => calculateFullValue('industrial') + (enchantmentValueByCategory.industrial || 0), [calculateFullValue, enchantmentValueByCategory]);
     const baseEconomicValue = useMemo(() => {
+        const scale = state.globalPriceScale || 1.0;
         const pureEco = calculateFullValue('economic') + (enchantmentValueByCategory.economic || 0);
-        // economic_social (taverns): 40% goes to ÖV, scaled by job efficiency
         const tavernEcoSplit = state.components
             .filter(c => c.classification === 'economic_social' && c.constructionStatus === 'completed')
             .reduce((sum, c) => {
                 const totalJobs = c.jobSlots?.length || 0;
                 const filledJobs = c.jobSlots?.filter(j => j.filledBy).length || 0;
                 const eff = totalJobs > 0 ? filledJobs / totalJobs : 0;
-                return sum + (c.pureCost ?? c.baseCost) * eff * 0.4;
+                return sum + (c.pureCost ?? c.baseCost) * scale * eff * 0.4;
             }, 0);
         return pureEco + tavernEcoSplit;
-    }, [calculateFullValue, enchantmentValueByCategory, state.components]);
+    }, [calculateFullValue, enchantmentValueByCategory, state.components, state.globalPriceScale]);
 
     const baseSocialValue = useMemo(() => {
+        const scale = state.globalPriceScale || 1.0;
         const pureSocial = calculateFullValue('social') + (enchantmentValueByCategory.social || 0);
-        // economic_social (taverns): 60% goes to SV, scaled by job efficiency
         const tavernSvSplit = state.components
             .filter(c => c.classification === 'economic_social' && c.constructionStatus === 'completed')
             .reduce((sum, c) => {
                 const totalJobs = c.jobSlots?.length || 0;
                 const filledJobs = c.jobSlots?.filter(j => j.filledBy).length || 0;
                 const eff = totalJobs > 0 ? filledJobs / totalJobs : 0;
-                return sum + (c.pureCost ?? c.baseCost) * eff * 0.6;
+                return sum + (c.pureCost ?? c.baseCost) * scale * eff * 0.6;
             }, 0);
         return pureSocial + tavernSvSplit;
-    }, [calculateFullValue, enchantmentValueByCategory, state.components]);
+    }, [calculateFullValue, enchantmentValueByCategory, state.components, state.globalPriceScale]);
 
-    // Tavern bonus on Shop ÖV: (tavernValue / baseExclTaverns) × 200%
     const tavernBonus = useMemo(() => {
+        const scale = state.globalPriceScale || 1.0;
         const completed = state.components.filter(c => c.constructionStatus === 'completed');
         const tavernTotal = completed
             .filter(c => c.classification === 'economic_social')
@@ -1652,23 +1923,22 @@ const useStronghold = () => {
                 const tj = c.jobSlots?.length || 0;
                 const fj = c.jobSlots?.filter(j => j.filledBy).length || 0;
                 const eff = tj > 0 ? fj / tj : 0;
-                return sum + (c.pureCost ?? c.baseCost) * eff;
+                return sum + (c.pureCost ?? c.baseCost) * scale * eff;
             }, 0);
         const baseExcl = completed
             .filter(c => c.classification !== 'economic_social')
-            .reduce((sum, c) => sum + (c.pureCost ?? c.baseCost), 0)
-            + state.walls.filter(w => w.constructionStatus === 'completed').reduce((sum, w) => sum + (w.pureCost ?? w.baseCost), 0);
+            .reduce((sum, c) => sum + (c.pureCost ?? c.baseCost) * scale, 0)
+            + state.walls.filter(w => w.constructionStatus === 'completed').reduce((sum, w) => sum + (w.pureCost ?? w.baseCost) * scale, 0);
         const pct = baseExcl > 0 ? (tavernTotal / baseExcl) * 200 : 0;
         return { pct, tavernTotal, baseExcl };
-    }, [state.components, state.walls]);
+    }, [state.components, state.walls, state.globalPriceScale]);
 
-    // --- PRIEST / CHAPEL LOGIC START ---
-    const totalChapelValue = useMemo(() => 
-        state.components
+    const totalChapelValue = useMemo(() => {
+        const scale = state.globalPriceScale || 1.0;
+        return state.components
             .filter(c => c.constructionStatus === 'completed' && c.name.toLowerCase().includes('chapel'))
-            .reduce((sum, c) => sum + c.baseCost, 0),
-        [state.components]
-    );
+            .reduce((sum, c) => sum + (c.pureCost ?? c.baseCost) * scale, 0);
+    }, [state.components, state.globalPriceScale]);
 
     const priestCount = useMemo(() => {
          let count = 0;
@@ -1739,13 +2009,14 @@ const useStronghold = () => {
     }, [calculateScaledValue, damageShare, resourceBonusMults, terrainValueEffects, customValueMults]);
 
     const economicValueForProfit = useMemo(() => {
+        const scale = state.globalPriceScale || 1.0;
         const shopScaled = state.components
             .filter(c => c.classification === 'economic' && c.constructionStatus === 'completed')
             .reduce((sum, c) => {
                 const totalJobs = c.jobSlots?.length || 0;
                 const filledJobs = c.jobSlots?.filter(j => j.filledBy).length || 0;
                 const eff = totalJobs > 0 ? filledJobs / totalJobs : 1;
-                return sum + (c.pureCost ?? c.baseCost) * eff;
+                return sum + (c.pureCost ?? c.baseCost) * scale * eff;
             }, 0);
         const tavernScaled = state.components
             .filter(c => c.classification === 'economic_social' && c.constructionStatus === 'completed')
@@ -1753,17 +2024,17 @@ const useStronghold = () => {
                 const totalJobs = c.jobSlots?.length || 0;
                 const filledJobs = c.jobSlots?.filter(j => j.filledBy).length || 0;
                 const eff = totalJobs > 0 ? filledJobs / totalJobs : 0;
-                return sum + (c.pureCost ?? c.baseCost) * eff * 0.4;
+                return sum + (c.pureCost ?? c.baseCost) * scale * eff * 0.4;
             }, 0);
         const totalPct = resourceBonusMults.evPct + terrainValueEffects.ev + customValueMults.ev;
         const shopBonus = shopScaled * (tavernBonus.pct / 100);
         const totalEv = Math.max(0, shopScaled + tavernScaled + shopBonus - damageShare);
         return totalEv * (1 + totalPct / 100);
-    }, [state.components, damageShare, resourceBonusMults, terrainValueEffects, customValueMults]);
+    }, [state.components, state.globalPriceScale, damageShare, resourceBonusMults, terrainValueEffects, customValueMults]);
 
-    const industrialPotential = useMemo(() => industrialValueForProfit * 0.01, [industrialValueForProfit]);
+    const industrialPotential = useMemo(() => industrialValueForProfit * ((state.ivRate || 2.0) / 100), [industrialValueForProfit, state.ivRate]);
     const economicPotential = useMemo(() => {
-        const raw = economicValueForProfit * 0.05 * (economicValueForProfit > 0 ? Math.min(1, industrialValueForProfit / economicValueForProfit) : 0);
+        const raw = economicValueForProfit * ((state.evRate || 10.0) / 100) * (economicValueForProfit > 0 ? Math.min(1, industrialValueForProfit / economicValueForProfit) : 0);
         return raw; // ÖV-Profit kann IV-Profit übersteigen (5% Rate vs 1%) – nur der ÖV-WERT ist durch IV-WERT gedeckelt
     }, [economicValueForProfit, industrialValueForProfit]);
     const weeklyProfit = useMemo(() => industrialPotential + economicPotential, [industrialPotential, economicPotential]);
@@ -1776,19 +2047,19 @@ const useStronghold = () => {
     const weeklyUpkeep = useMemo(() => staffTotalWeekly + maintenanceWeekly, [staffTotalWeekly, maintenanceWeekly]);
 
     const totalMerchantGold = useMemo(() => {
+        const scale = state.globalPriceScale || 1.0;
         const scaledShopValue = state.components
             .filter(c => c.constructionStatus === 'completed' && c.name.toLowerCase().includes('shop'))
             .reduce((sum, c) => {
-                const baseForMerchant = c.pureCost ?? c.baseCost;
+                const baseForMerchant = (c.pureCost ?? c.baseCost) * scale;
                 if (!c.jobSlots || c.jobSlots.length === 0) return sum + baseForMerchant;
                 const totalJobs = c.jobSlots.length;
                 const filledJobs = c.jobSlots.filter(j => j.filledBy !== null).length;
                 const efficiency = totalJobs > 0 ? filledJobs / totalJobs : 1;
                 return sum + (baseForMerchant * efficiency);
             }, 0);
-        // Merchant gold is purely based on shop value, NOT affected by tavern bonus
         return scaledShopValue * 0.25;
-    }, [state.components]);
+    }, [state.components, state.globalPriceScale]);
 
     const defenseBonus = useMemo(() => militaryValue === 0 ? (formulaSV > 0 ? -0.9 : 0) : Math.max(-0.9, 2 - (formulaSV / militaryValue)), [militaryValue, formulaSV]);
     const attackChanceBonus = useMemo(() => militaryValue === 0 ? (formulaSV > 0 ? 3.0 : -0.9) : Math.max(-0.9, (formulaSV / (2 * militaryValue)) - 0.9), [militaryValue, formulaSV]);
@@ -1805,19 +2076,18 @@ const useStronghold = () => {
     }, [state.components, state.walls]);
 
     const economicComponentsBreakdown = useMemo(() => {
+        const scale = state.globalPriceScale || 1.0;
         return state.components
             .filter(c => c.constructionStatus === 'completed' && ['industrial', 'economic', 'economic_social'].includes(c.classification))
             .map(c => {
                 const totalJobs = c.jobSlots?.length || 0;
                 const filledJobs = c.jobSlots?.filter(j => j.filledBy).length || 0;
-                const pv = c.pureCost ?? c.baseCost;
+                const pv = (c.pureCost ?? c.baseCost) * scale;
                 const efficiency = totalJobs > 0 ? filledJobs / totalJobs : (totalJobs === 0 ? 1 : 0);
                 const currentValue = pv * efficiency;
                 const isShop = c.name.toLowerCase().includes('shop');
                 const isTavern = c.classification === 'economic_social';
-                // Merchant gold uses pure cost (without site modifier), not affected by tavern bonus
-                const pureBase = c.pureCost ?? c.baseCost;
-                const rawShopValue = isShop ? pureBase * efficiency : 0;
+                const rawShopValue = isShop ? pv * efficiency : 0;
                 
                 return {
                     id: c.id,
@@ -1826,7 +2096,7 @@ const useStronghold = () => {
                     jobRole: c.jobSlots?.[0]?.role || 'Arbeiter',
                     totalJobs,
                     filledJobs,
-                    baseValue: c.pureCost ?? c.baseCost,
+                    baseValue: pv,
                     paidCost: c.baseCost,
                     currentValue,
                     merchantGoldContribution: isShop ? rawShopValue * 0.25 : 0,
@@ -1840,12 +2110,13 @@ const useStronghold = () => {
     }, [state.components]);
 
     const socialComponentsBreakdown = useMemo(() => {
+        const scale = state.globalPriceScale || 1.0;
         const socialBuildings = state.components
             .filter(c => c.constructionStatus === 'completed' && c.classification === 'social')
             .map(c => {
                 const totalJobs = c.jobSlots?.length || 0;
                 const filledJobs = c.jobSlots?.filter(j => j.filledBy).length || 0;
-                const pv = c.pureCost ?? c.baseCost;
+                const pv = (c.pureCost ?? c.baseCost) * scale;
                 const efficiency = totalJobs > 0 ? filledJobs / totalJobs : (totalJobs === 0 ? 1 : 0);
                 const currentValue = pv * efficiency;
                 return {
@@ -1861,13 +2132,12 @@ const useStronghold = () => {
                     tavernNote: null,
                 };
             });
-        // Also include economic_social (taverns) with their 60% SV contribution
         const tavernBuildings = state.components
             .filter(c => c.constructionStatus === 'completed' && c.classification === 'economic_social')
             .map(c => {
                 const totalJobs = c.jobSlots?.length || 0;
                 const filledJobs = c.jobSlots?.filter(j => j.filledBy).length || 0;
-                const pv = c.pureCost ?? c.baseCost;
+                const pv = (c.pureCost ?? c.baseCost) * scale;
                 const efficiency = totalJobs > 0 ? filledJobs / totalJobs : 0;
                 const currentValue = pv * efficiency * 0.6;
                 return {
@@ -1884,24 +2154,35 @@ const useStronghold = () => {
                 };
             });
         return [...socialBuildings, ...tavernBuildings].sort((a, b) => b.currentValue - a.currentValue);
-    }, [state.components]);
+    }, [state.components, state.globalPriceScale]);
 
     const militaryComponentsBreakdown = useMemo(() => {
+        const scale = state.globalPriceScale || 1.0;
         const militaryBuildings = state.components
             .filter(c => c.constructionStatus === 'completed' && c.classification === 'military')
             .map(c => {
-                const pv = c.pureCost ?? c.baseCost;
+                const pv = (c.pureCost ?? c.baseCost) * scale;
+                const compData = COMPONENTS[c.category]?.[c.name];
+                let currentValue = pv;
+                let crewInfo = null;
+                if (compData?.crewRequired > 0) {
+                    const assign = (state.siegeAssignments || {})[c.id];
+                    const crew = assign?.crew || 0;
+                    const crewRatio = Math.min(1, crew / compData.crewRequired);
+                    currentValue = pv * crewRatio;
+                    crewInfo = `${crew}/${compData.crewRequired} Crew`;
+                }
                 return {
                     id: c.id,
-                    name: c.name,
-                    classification: 'military',
+                    name: c.customName || c.name,
+                    classification: compData?.crewRequired ? 'military_siege' : 'military',
                     jobRole: '',
                     totalJobs: 0,
                     filledJobs: 0,
                     baseValue: pv,
                     paidCost: c.baseCost,
-                    currentValue: pv,
-                    tavernNote: null,
+                    currentValue: currentValue,
+                    tavernNote: crewInfo,
                 };
             });
         // Also include completed walls
@@ -1914,13 +2195,13 @@ const useStronghold = () => {
                 jobRole: '',
                 totalJobs: 0,
                 filledJobs: 0,
-                baseValue: w.pureCost ?? w.baseCost,
+                baseValue: (w.pureCost ?? w.baseCost) * scale,
                 paidCost: w.totalCost,
-                currentValue: w.pureCost ?? w.baseCost,
+                currentValue: (w.pureCost ?? w.baseCost) * scale,
                 tavernNote: null,
             }));
         return [...militaryBuildings, ...wallBuildings].sort((a, b) => b.currentValue - a.currentValue);
-    }, [state.components, state.walls]);
+    }, [state.components, state.walls, state.siegeAssignments, state.globalPriceScale]);
 
   const setWorldDate = useCallback((isoDate, label) => {
       setWorldDateState(isoDate || null);
@@ -1954,11 +2235,13 @@ const useStronghold = () => {
             let newState = JSON.parse(JSON.stringify(prevState));
             const newLog = [...(newState.simulationLog || [])];
             
+            const simGlobalScale = newState.globalPriceScale || 1.0;
+
             const calculateSimScaledValue = (classification, components) => {
                 return components
                     .filter(c => c.classification === classification && c.constructionStatus === 'completed')
                     .reduce((sum, c) => {
-                        const pv = c.pureCost ?? c.baseCost;
+                        const pv = (c.pureCost ?? c.baseCost) * simGlobalScale;
                         if (!c.jobSlots || c.jobSlots.length === 0) return sum + pv;
                         const totalJobs = c.jobSlots.length;
                         const filledJobs = c.jobSlots.filter(j => j.filledBy).length;
@@ -1970,7 +2253,16 @@ const useStronghold = () => {
             const calculateSimFullValue = (classification, components) => {
                  return components
                     .filter(c => c.classification === classification && c.constructionStatus === 'completed')
-                    .reduce((sum, c) => sum + (c.pureCost ?? c.baseCost), 0);
+                    .reduce((sum, c) => {
+                        const pv = (c.pureCost ?? c.baseCost) * simGlobalScale;
+                        const compData = COMPONENTS[c.category]?.[c.name];
+                        if (compData?.crewRequired > 0) {
+                            const assign = (newState.siegeAssignments || {})[c.id];
+                            const crewRatio = assign ? Math.min(1, assign.crew / compData.crewRequired) : 0;
+                            return sum + (pv * crewRatio);
+                        }
+                        return sum + pv;
+                    }, 0);
             };
             
             const dmgShare_sim = newState.totalDamage > 0 ? newState.totalDamage / 4 : 0;
@@ -2007,19 +2299,19 @@ const useStronghold = () => {
             const simEnchValues = { military: 0, industrial: 0, economic: 0, social: 0 };
             (newState.enchantments || []).filter(e => e.constructionStatus === 'completed').forEach(e => {
                 const cat = ENCHANTMENT_VALUE_CATEGORY[e.category] || 'military';
-                simEnchValues[cat] = (simEnchValues[cat] || 0) + (e.totalCost || e.price5e);
+                simEnchValues[cat] = (simEnchValues[cat] || 0) + (e.price5e || e.totalCost) * simGlobalScale;
             });
 
             // --- Base values (components + walls + enchantments) ---
             const baseMV_sim_comp = calculateSimFullValue('military', newState.components);
-            const wallValue_sim = newState.walls.filter(w => w.constructionStatus === 'completed').reduce((s, w) => s + (w.pureCost ?? w.baseCost), 0);
+            const wallValue_sim = newState.walls.filter(w => w.constructionStatus === 'completed').reduce((s, w) => s + (w.pureCost ?? w.baseCost) * simGlobalScale, 0);
             const baseMV_sim = baseMV_sim_comp + wallValue_sim + simEnchValues.military;
             const baseIV_sim_full = calculateSimFullValue('industrial', newState.components) + simEnchValues.industrial;
             // economic_social: 40% to EV, 60% to SV
             const baseEV_sim_full = calculateSimFullValue('economic', newState.components) + simEnchValues.economic
-                + newState.components.filter(c => c.classification === 'economic_social' && c.constructionStatus === 'completed').reduce((s, c) => s + (c.pureCost ?? c.baseCost) * 0.4, 0);
+                + newState.components.filter(c => c.classification === 'economic_social' && c.constructionStatus === 'completed').reduce((s, c) => s + (c.pureCost ?? c.baseCost) * simGlobalScale * 0.4, 0);
             const baseSV_social_sim_full = calculateSimFullValue('social', newState.components) + simEnchValues.social
-                + newState.components.filter(c => c.classification === 'economic_social' && c.constructionStatus === 'completed').reduce((s, c) => s + (c.pureCost ?? c.baseCost) * 0.6, 0);
+                + newState.components.filter(c => c.classification === 'economic_social' && c.constructionStatus === 'completed').reduce((s, c) => s + (c.pureCost ?? c.baseCost) * simGlobalScale * 0.6, 0);
 
             // --- SIM PRIEST LOGIC ---
             const simChapelValue = newState.components
@@ -2065,10 +2357,10 @@ const useStronghold = () => {
                     const tj = c.jobSlots?.length || 0;
                     const fj = c.jobSlots?.filter(j => j.filledBy).length || 0;
                     const eff = tj > 0 ? fj / tj : 0;
-                    return sum + (c.pureCost ?? c.baseCost) * eff * 0.4;
+                    return sum + (c.pureCost ?? c.baseCost) * simGlobalScale * eff * 0.4;
                 }, 0);
-            const simTavernTotal = newState.components.filter(c => c.classification === 'economic_social' && c.constructionStatus === 'completed').reduce((s, c) => s + (c.pureCost ?? c.baseCost), 0);
-            const simBaseExcl = newState.components.filter(c => c.classification !== 'economic_social' && c.constructionStatus === 'completed').reduce((s, c) => s + (c.pureCost ?? c.baseCost), 0) + wallValue_sim;
+            const simTavernTotal = newState.components.filter(c => c.classification === 'economic_social' && c.constructionStatus === 'completed').reduce((s, c) => s + (c.pureCost ?? c.baseCost) * simGlobalScale, 0);
+            const simBaseExcl = newState.components.filter(c => c.classification !== 'economic_social' && c.constructionStatus === 'completed').reduce((s, c) => s + (c.pureCost ?? c.baseCost) * simGlobalScale, 0) + wallValue_sim;
             const simTavernBonusPct = simBaseExcl > 0 ? (simTavernTotal / simBaseExcl) * 200 : 0;
             const simShopBonus = shopScaledSim * (simTavernBonusPct / 100);
             const baseEV_sim_scaled = shopScaledSim + tavernScaledSim + simShopBonus;
@@ -2077,9 +2369,11 @@ const useStronghold = () => {
             const currentIV_scaled = Math.max(0, baseIV_sim_scaled - dmgShare_sim) * (1 + ivTotalPct / 100);
             const currentEV_scaled = Math.max(0, baseEV_sim_scaled - dmgShare_sim) * (1 + evTotalPct / 100);
             
-            const industrialPotSim = currentIV_scaled * 0.01;
+            const simIvRate = (newState.ivRate || 2.0) / 100;
+            const simEvRate = (newState.evRate || 10.0) / 100;
+            const industrialPotSim = currentIV_scaled * simIvRate;
             const efficiency = currentEV_scaled > 0 ? Math.min(1, currentIV_scaled / currentEV_scaled) : 0;
-            const economicPotSim = currentEV_scaled * 0.05 * efficiency;
+            const economicPotSim = currentEV_scaled * simEvRate * efficiency;
             const profit = industrialPotSim + economicPotSim;
             newLog.push(`Woche ${weekNumber}${dateStamp} (Wirtschaft): Einnahmen von ${profit.toFixed(2)} GP erzielt.`);
 
@@ -2309,9 +2603,15 @@ const useStronghold = () => {
     addEnchantment, removeEnchantment, renameEnchantment,
     addEnchantmentPin, moveEnchantmentPin, removeEnchantmentPin,
     addDrawElement, removeDrawElement, updateDrawElement,
-    addCraftingOrder, removeCraftingOrder,
+    addCraftingOrder, removeCraftingOrder, reorderCraftingOrder,
     craftingOrders: state.craftingOrders || [],
+    updateSiegeAssignment,
+    siegeAssignments: state.siegeAssignments || {},
+    updateAmmoInventory,
+    ammoInventory: state.ammoInventory || { bolt: 0, stone: 0, charge: 0 },
     startNewStronghold, exportSlot, importStronghold, startConstruction, completeConstruction, simulateNextWeek, rewindLastWeek, repairDamage,
+    reorderConstructionQueue, acknowledgeConstruction, instantComplete,
+    constructionQueue: state.constructionQueue || [],
     setMerchantGoldSpentThisWeek, depositToTreasury, withdrawFromTreasury,
     saveSlots, activeSaveName, saveCurrentSlot, saveAsNewSlot, loadSlot, deleteSlot, renameSlot, copySlot,
     siteModifier, componentsTotal, wallsTotal, grandTotal, totalArea, baseStaffTotalWeekly, staffTotalWeekly, maintenanceWeekly, weeklyUpkeep,
@@ -2323,8 +2623,12 @@ const useStronghold = () => {
     baseSocialValue,
     worldDate, worldDateLabel, setWorldDate, undoDepth: undoStack.length,
     enchantmentPins: state.enchantmentPins || [],
-    enchantmentPriceScale: state.enchantmentPriceScale || 1.0,
-    setEnchantmentPriceScale,
+    globalPriceScale: state.globalPriceScale || 1.0,
+    setGlobalPriceScale,
+    ivRate: state.ivRate || 2.0,
+    evRate: state.evRate || 10.0,
+    setIvRate,
+    setEvRate,
     drawElements: state.drawElements || [],
     resourceBonusMults,
     terrainMvBonus,
@@ -2790,8 +3094,11 @@ const generateComponentSummary = (name, category) => {
         if (perksString) parts.push(perksString);
     }
 
-    if (parts.length === 0) return '';
-    return `(${parts.join(' | ')})`;
+    if (parts.length === 0) {
+        if (data.fixedSize) return `(${data.cost} gp)`;
+        return '';
+    }
+    return `(${data.fixedSize ? data.cost + ' gp | ' : ''}${parts.join(' | ')})`;
 };
 const CalculatedBenefitsDisplay = ({ area, benefits, componentName, calculatedBaseCost, tavernBonus, classification, baseSocialValue, totalChapelValue }) => {
     const { resources, jobs, perks } = benefits;
@@ -2997,7 +3304,7 @@ const AddedComponentsList = ({ stronghold }) => {
     const { components, removeComponent, renameComponent, updateComponentClassification } = stronghold;
     const [pendingDelete, setPendingDelete] = useState(null);
     const [search, setSearch] = useState('');
-    const [sortBy, setSortBy] = useState('added'); // added, name, cost, classification, status
+    const [sortBy, setSortBy] = useState('added');
 
     useEffect(() => {
         if (pendingDelete) {
@@ -3006,30 +3313,81 @@ const AddedComponentsList = ({ stronghold }) => {
         }
     }, [pendingDelete]);
 
-    const filtered = useMemo(() => {
+    const categorized = useMemo(() => {
         let list = components;
         if (search) {
             const s = search.toLowerCase();
             list = list.filter(c => c.name.toLowerCase().includes(s) || (c.customName && c.customName.toLowerCase().includes(s)));
         }
-        if (sortBy === 'name') list = [...list].sort((a, b) => a.name.localeCompare(b.name));
-        else if (sortBy === 'cost') list = [...list].sort((a, b) => b.totalCost - a.totalCost);
-        else if (sortBy === 'classification') list = [...list].sort((a, b) => (CLASSIFICATION_SORT_ORDER[a.classification] ?? 9) - (CLASSIFICATION_SORT_ORDER[b.classification] ?? 9));
-        else if (sortBy === 'status') list = [...list].sort((a, b) => { const o = { completed: 0, in_progress: 1, pending: 2 }; return (o[a.constructionStatus] ?? 9) - (o[b.constructionStatus] ?? 9); });
-        return list;
+        const sortFn = (a, b) => {
+            if (sortBy === 'name') return a.name.localeCompare(b.name);
+            if (sortBy === 'cost') return b.totalCost - a.totalCost;
+            if (sortBy === 'classification') return (CLASSIFICATION_SORT_ORDER[a.classification] ?? 9) - (CLASSIFICATION_SORT_ORDER[b.classification] ?? 9);
+            if (sortBy === 'status') { const o = { completed: 0, in_progress: 1, pending: 2 }; return (o[a.constructionStatus] ?? 9) - (o[b.constructionStatus] ?? 9); }
+            return 0;
+        };
+        const rooms = list.filter(c => c.category !== 'Doors, Windows & Locks' && c.category !== 'Siege Weapons').sort(sortFn);
+        const doors = list.filter(c => c.category === 'Doors, Windows & Locks').sort(sortFn);
+        const siege = list.filter(c => c.category === 'Siege Weapons').sort(sortFn);
+        return { rooms, doors, siege, total: list.length };
     }, [components, search, sortBy]);
 
     if (components.length === 0) return null;
 
-    const isKitchen = (name) => name.toLowerCase().includes('kitchen');
-    const allowedClassifications = (name) => COMPONENT_ALLOWED_CLASSIFICATIONS[name];
+    const isKitchenLike = (name) => COMPONENT_ALLOWED_CLASSIFICATIONS[name]?.length > 1;
+
+    const renderItem = (c) => {
+        const isPending = pendingDelete === c.id;
+        const canSwitch = isKitchenLike(c.name);
+        const isSocial = c.classification === 'social';
+        return React.createElement("div", { key: c.id, className: "flex items-start justify-between gap-3 p-3 rounded-lg border-2 border-gold/40 dark:border-gray-600 bg-parchment-light/60 dark:bg-gray-700/40" },
+            React.createElement("div", { className: "flex-1 min-w-0" },
+                React.createElement("div", { className: "flex items-center gap-2" },
+                    React.createElement("span", { className: "text-sm", title: c.classification }, CLASSIFICATION_LABELS_SHORT[c.classification] || '❓'),
+                    React.createElement("span", { className: "font-semibold text-wood-dark dark:text-gold-light" }, c.name)
+                ),
+                React.createElement(InlineRename, { item: c, onRename: renameComponent, placeholder: c.name }),
+                React.createElement("div", { className: "text-xs text-wood-text/60 dark:text-parchment-bg/50 mt-1 flex flex-wrap gap-x-2 items-center" },
+                    c.area > 0 ? React.createElement("span", null, `${c.length}×${c.width} ft (${c.area} sq ft)`) : React.createElement("span", null, "Einzelstück"),
+                    React.createElement("span", { className: "opacity-40" }, "·"),
+                    React.createElement("span", null, `Bezahlt: ${c.totalCost.toFixed(0)} gp`),
+                    React.createElement("span", { className: "opacity-40" }, "·"),
+                    React.createElement("span", { className: `${c.constructionStatus === 'completed' ? 'text-green-700 dark:text-green-400' : c.constructionStatus === 'in_progress' ? 'text-amber-700 dark:text-amber-400' : 'text-gray-500'}` },
+                        c.constructionStatus === 'completed' ? '✅ Fertig' : c.constructionStatus === 'in_progress' ? '🔨 Im Bau' : '⏳ Ausstehend'
+                    )
+                ),
+                canSwitch && React.createElement("div", { className: "mt-2 flex items-center gap-2" },
+                    React.createElement("span", { className: `text-xs font-semibold ${!isSocial ? 'text-blue-700 dark:text-blue-400' : 'text-wood-text/40 dark:text-parchment-bg/30'}` }, "🏭 Industriell"),
+                    React.createElement("button", {
+                        type: "button",
+                        onClick: () => updateComponentClassification(c.id, isSocial ? 'industrial' : 'social'),
+                        className: `relative w-10 h-5 rounded-full transition-colors duration-200 ${isSocial ? 'bg-purple-500' : 'bg-blue-500'}`
+                    },
+                        React.createElement("span", { className: `absolute top-0.5 ${isSocial ? 'right-0.5' : 'left-0.5'} w-4 h-4 rounded-full bg-white shadow transition-all duration-200` })
+                    ),
+                    React.createElement("span", { className: `text-xs font-semibold ${isSocial ? 'text-purple-700 dark:text-purple-400' : 'text-wood-text/40 dark:text-parchment-bg/30'}` }, "👥 Sozial")
+                )
+            ),
+            React.createElement("button", {
+                onClick: () => isPending ? removeComponent(c.id) : setPendingDelete(c.id),
+                className: `text-xs font-bold px-2 py-1 rounded transition-all ${isPending ? 'bg-yellow-500 text-black animate-pulse' : 'text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40'}`
+            }, isPending ? 'Bestätigen?' : '🗑️')
+        );
+    };
+
+    const renderSection = (title, icon, items) => {
+        if (items.length === 0) return null;
+        return React.createElement("div", { className: "mb-6" },
+            React.createElement("h4", { className: "font-semibold text-wood-dark dark:text-gold-light text-lg mb-2 border-b border-gold/30 dark:border-gray-600 pb-1" }, `${icon} ${title} (${items.length})`),
+            React.createElement("div", { className: "space-y-2" }, items.map(renderItem))
+        );
+    };
 
     return React.createElement("div", { className: "mt-8" },
-        React.createElement("h3", { className: "text-2xl font-medieval text-wood-dark dark:text-gold-light mb-3" }, `🏛️ Hinzugefügte Räume (${components.length})`),
-        // Search & Sort bar
+        React.createElement("h3", { className: "text-2xl font-medieval text-wood-dark dark:text-gold-light mb-3" }, `🏛️ Hinzugefügte Objekte (${components.length})`),
         React.createElement("div", { className: "flex flex-wrap gap-2 mb-3" },
             React.createElement("input", {
-                type: "text", placeholder: "🔍 Raum suchen...", value: search,
+                type: "text", placeholder: "🔍 Suchen...", value: search,
                 onChange: e => setSearch(e.target.value),
                 className: "flex-1 min-w-[140px] p-2 border-2 border-gold dark:border-gray-500 rounded-md bg-white/80 dark:bg-gray-700 dark:text-parchment-light text-sm"
             }),
@@ -3044,61 +3402,12 @@ const AddedComponentsList = ({ stronghold }) => {
                 React.createElement("option", { value: "status" }, "Sortieren: Baustatus")
             )
         ),
-        search && filtered.length !== components.length && React.createElement("div", { className: "text-xs text-wood-text/50 dark:text-parchment-bg/40 mb-2" },
-            `${filtered.length} von ${components.length} Räumen`
+        search && categorized.total !== components.length && React.createElement("div", { className: "text-xs text-wood-text/50 dark:text-parchment-bg/40 mb-2" },
+            `${categorized.total} von ${components.length} Objekten`
         ),
-        React.createElement("div", { className: "space-y-2" },
-            filtered.map(c => {
-                const isPending = pendingDelete === c.id;
-                const canSwitch = allowedClassifications(c.name)?.length > 1;
-                const isSocial = c.classification === 'social';
-                return React.createElement("div", { key: c.id, className: "flex items-start justify-between gap-3 p-3 rounded-lg border-2 border-gold/40 dark:border-gray-600 bg-parchment-light/60 dark:bg-gray-700/40" },
-                    React.createElement("div", { className: "flex-1 min-w-0" },
-                        React.createElement("div", { className: "flex items-center gap-2" },
-                            React.createElement("span", { className: "text-sm", title: c.classification }, CLASSIFICATION_LABELS_SHORT[c.classification] || '❓'),
-                            React.createElement("span", { className: "font-semibold text-wood-dark dark:text-gold-light" }, c.name)
-                        ),
-                        React.createElement(InlineRename, { item: c, onRename: renameComponent, placeholder: c.name }),
-                        React.createElement("div", { className: "text-xs text-wood-text/60 dark:text-parchment-bg/50 mt-1 flex flex-wrap gap-x-2 items-center" },
-                            React.createElement("span", null, `${c.length}×${c.width} ft (${c.area} sq ft)`),
-                            React.createElement("span", { className: "opacity-40" }, "·"),
-                            React.createElement("span", { title: "Bezahlter Baupreis (inkl. Standortmod & Rush)" },
-                                `Bezahlt: ${c.totalCost.toFixed(0)} gp`
-                            ),
-                            c.pureCost !== undefined && Math.abs(c.pureCost - c.baseCost) > 1 && React.createElement(React.Fragment, null,
-                                React.createElement("span", { className: "opacity-40" }, "·"),
-                                React.createElement("span", { className: "text-amber-700 dark:text-amber-400", title: "Tatsächlicher Gebäudewert (ohne Standortmod) – dieser Wert zählt zu MV/IV/ÖV/SV" },
-                                    `Wert: ${c.pureCost.toFixed(0)} gp`
-                                )
-                            ),
-                            React.createElement("span", { className: "opacity-40" }, "·"),
-                            React.createElement("span", { className: `${c.constructionStatus === 'completed' ? 'text-green-700 dark:text-green-400' : c.constructionStatus === 'in_progress' ? 'text-amber-700 dark:text-amber-400' : 'text-gray-500'}` },
-                                c.constructionStatus === 'completed' ? '✅ Fertig' : c.constructionStatus === 'in_progress' ? '🔨 Im Bau' : '⏳ Ausstehend'
-                            )
-                        ),
-                        // Kitchen classification toggle
-                        canSwitch && React.createElement("div", { className: "mt-2 flex items-center gap-2" },
-                            React.createElement("span", { className: `text-xs font-semibold ${!isSocial ? 'text-blue-700 dark:text-blue-400' : 'text-wood-text/40 dark:text-parchment-bg/30'}` }, "🏭 Industriell"),
-                            React.createElement("button", {
-                                type: "button",
-                                onClick: () => updateComponentClassification(c.id, isSocial ? 'industrial' : 'social'),
-                                className: `relative w-10 h-5 rounded-full transition-colors duration-200 ${isSocial ? 'bg-purple-500' : 'bg-blue-500'}`,
-                                title: isSocial ? 'Aktuell: Sozial (versorgt Personal). Klicke um auf Industriell umzustellen.' : 'Aktuell: Industriell (Handelsproduktion). Klicke um auf Sozial umzustellen.'
-                            },
-                                React.createElement("span", {
-                                    className: `absolute top-0.5 ${isSocial ? 'right-0.5' : 'left-0.5'} w-4 h-4 rounded-full bg-white shadow transition-all duration-200`
-                                })
-                            ),
-                            React.createElement("span", { className: `text-xs font-semibold ${isSocial ? 'text-purple-700 dark:text-purple-400' : 'text-wood-text/40 dark:text-parchment-bg/30'}` }, "👥 Sozial")
-                        )
-                    ),
-                    React.createElement("button", {
-                        onClick: () => isPending ? removeComponent(c.id) : setPendingDelete(c.id),
-                        className: `text-xs font-bold px-2 py-1 rounded transition-all ${isPending ? 'bg-yellow-500 text-black animate-pulse' : 'text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40'}`
-                    }, isPending ? 'Bestätigen?' : '🗑️')
-                );
-            })
-        )
+        renderSection("Räume", "🏠", categorized.rooms),
+        renderSection("Türen, Fenster & Schlösser", "🚪", categorized.doors),
+        renderSection("Belagerungswaffen", "⚔️", categorized.siege)
     );
 };
 
@@ -3180,7 +3489,7 @@ const RoomBuilderForm = ({ stronghold }) => {
     const [heroName, setHeroName] = useState('');
     const isHeroQuarter = COMPONENTS[category]?.[componentName]?.heroQuarter === true;
 
-    const { siteModifier, addComponent, tavernBonus, baseSocialValue, totalChapelValue } = stronghold;
+    const { siteModifier, addComponent, tavernBonus, baseSocialValue, totalChapelValue, globalPriceScale } = stronghold;
 
     useEffect(() => {
         const componentData = COMPONENTS[category]?.[componentName];
@@ -3199,23 +3508,34 @@ const RoomBuilderForm = ({ stronghold }) => {
         });
     }, [category, componentName]);
 
-    const { area, costPerSqFt, calculatedBaseCost, adjustedCost, totalCost, constructionDays, description, scaledBenefits } = useMemo(() => {
+    const { area, costPerSqFt, calculatedBaseCost, adjustedCost, totalCost, constructionDays, description, scaledBenefits, isFixedSize, originalBaseCost } = useMemo(() => {
         const componentData = COMPONENTS[category]?.[componentName];
         if (!componentData) {
-            return { area: 0, costPerSqFt: 0, calculatedBaseCost: 0, adjustedCost: 0, totalCost: 0, constructionDays: 0, description: 'Component not found.', scaledBenefits: { resources: {}, jobs: [], perks: [] } };
+            return { area: 0, costPerSqFt: 0, calculatedBaseCost: 0, adjustedCost: 0, totalCost: 0, constructionDays: 0, description: 'Component not found.', scaledBenefits: { resources: {}, jobs: [], perks: [] }, isFixedSize: false, originalBaseCost: 0 };
         }
         
-        const baseSsArea = Math.pow(componentData.ss * 20, 2);
-        const costPerSqFt = baseSsArea > 0 ? componentData.cost / baseSsArea : 0;
+        const fixed = !!componentData.fixedSize;
+        const scale = globalPriceScale || 1.0;
+        let currentArea, costPerSqFt, rawBaseCost, newBaseCost;
         
-        const currentArea = length * width;
-        const newBaseCost = currentArea * costPerSqFt;
+        if (fixed) {
+            currentArea = 0;
+            costPerSqFt = 0;
+            rawBaseCost = componentData.cost;
+            newBaseCost = Math.round(rawBaseCost * scale);
+        } else {
+            const baseSsArea = Math.pow(componentData.ss * 20, 2);
+            costPerSqFt = baseSsArea > 0 ? componentData.cost / baseSsArea : 0;
+            currentArea = length * width;
+            rawBaseCost = currentArea * costPerSqFt;
+            newBaseCost = Math.round(rawBaseCost * scale);
+        }
 
         const costWithSiteMod = newBaseCost * (1 + siteModifier / 100);
         const totalCostWithRush = costWithSiteMod * (1 + rushPercent / 100);
         
         const baseDays = calculateConstructionTime(costWithSiteMod);
-        const days = Math.ceil(baseDays * (1 - rushPercent / 100));
+        const days = Math.max(1, Math.ceil(baseDays * (1 - rushPercent / 100)));
         
         const desc = ROOM_DESCRIPTIONS[category]?.[componentName] || 'Select a room type to see its description.';
 
@@ -3225,13 +3545,15 @@ const RoomBuilderForm = ({ stronghold }) => {
             area: currentArea, 
             costPerSqFt,
             calculatedBaseCost: newBaseCost, 
+            originalBaseCost: rawBaseCost,
             adjustedCost: costWithSiteMod, 
             totalCost: totalCostWithRush, 
             constructionDays: days, 
             description: desc,
-            scaledBenefits: benefits
+            scaledBenefits: benefits,
+            isFixedSize: fixed
         };
-    }, [length, width, category, componentName, siteModifier, rushPercent]);
+    }, [length, width, category, componentName, siteModifier, rushPercent, globalPriceScale]);
 
     const handleCategoryChange = (e) => {
         const newCategory = e.target.value;
@@ -3250,7 +3572,7 @@ const RoomBuilderForm = ({ stronghold }) => {
             width,
             area,
             baseCost: adjustedCost,
-            pureCost: calculatedBaseCost,
+            pureCost: originalBaseCost,
             rushPercent,
             totalCost,
             constructionStatus: 'pending',
@@ -3355,7 +3677,7 @@ const RoomBuilderForm = ({ stronghold }) => {
                     "Der Name erscheint direkt im Raum-Eintrag. Dieses Quartier bietet keinen Schlafplatz für Personal – es ist rein privat."
                 )
             ),
-            React.createElement("div", { className: "grid md:grid-cols-2 gap-6" },
+            !isFixedSize && React.createElement("div", { className: "grid md:grid-cols-2 gap-6" },
                 React.createElement("div", null,
                     React.createElement("label", { htmlFor: "length", className: "block font-semibold mb-2 text-wood dark:text-gold-light text-lg" }, "Length (feet)"),
                     React.createElement("input", { type: "number", id: "length", value: length, 
@@ -3374,9 +3696,19 @@ const RoomBuilderForm = ({ stronghold }) => {
                 )
             ),
              React.createElement("div", { className: "bg-wood/10 dark:bg-gray-700/30 p-4 rounded-lg border-l-4 border-wood-light dark:border-gray-500 space-y-2" },
-                React.createElement("div", { className: "flex justify-between" }, React.createElement("strong", null, "Area:"), React.createElement("span", null, `${area} sq ft`)),
-                React.createElement("div", { className: "flex justify-between" }, React.createElement("strong", null, "Cost per sq ft:"), React.createElement("span", null, `${costPerSqFt.toFixed(2)} gp`)),
-                React.createElement("div", { className: "flex justify-between" }, React.createElement("strong", null, "Calculated Base Cost:"), React.createElement("span", null, `${calculatedBaseCost.toFixed(0)} gp`)),
+                !isFixedSize && React.createElement("div", { className: "flex justify-between" }, React.createElement("strong", null, "Area:"), React.createElement("span", null, `${area} sq ft`)),
+                !isFixedSize && React.createElement("div", { className: "flex justify-between" }, React.createElement("strong", null, "Cost per sq ft:"), React.createElement("span", null, `${costPerSqFt.toFixed(2)} gp`)),
+                React.createElement("div", { className: "flex justify-between" },
+                    React.createElement("strong", null, isFixedSize ? "Stückpreis:" : "Base Cost:"),
+                    React.createElement("span", null,
+                        globalPriceScale !== 1.0 && Math.abs(originalBaseCost - calculatedBaseCost) > 1
+                            ? React.createElement(React.Fragment, null,
+                                React.createElement("span", { className: "line-through text-wood-text/40 dark:text-parchment-bg/30 mr-2" }, `${originalBaseCost.toFixed(0)}`),
+                                `${calculatedBaseCost.toFixed(0)} gp (×${globalPriceScale.toFixed(2)})`
+                            )
+                            : `${calculatedBaseCost.toFixed(0)} gp`
+                    )
+                ),
                 React.createElement("div", { className: "flex justify-between" }, React.createElement("strong", null, "Adjusted Cost (Site Mod):"), React.createElement("span", null, `${adjustedCost.toFixed(0)} gp`))
             ),
             React.createElement(CalculatedBenefitsDisplay, { 
@@ -3430,17 +3762,19 @@ const RoomsTab = ({ stronghold }) => {
 
 // --- From components/WallsTab.tsx ---
 const WallsTab = ({ stronghold }) => {
-    const { addWall, siteModifier } = stronghold;
+    const { addWall, siteModifier, globalPriceScale } = stronghold;
     const [wallType, setWallType] = useState('stone');
     const [length, setLength] = useState(20);
     const [height, setHeight] = useState(10);
     const [thickness, setThickness] = useState(1);
     const [rushPercent, setRushPercent] = useState(0);
 
-    const { volume, baseCostPerFt, pureCost, baseTotalCost, totalCost, constructionDays, durability, description } = useMemo(() => {
+    const { volume, baseCostPerFt, pureCost, rawPureCost, baseTotalCost, totalCost, constructionDays, durability, description } = useMemo(() => {
         const vol = length * height * thickness;
         const costPerFt = WALL_COSTS[wallType] || 0;
-        const pure = vol * costPerFt;
+        const scale = globalPriceScale || 1.0;
+        const rawPure = vol * costPerFt;
+        const pure = Math.round(rawPure * scale);
         const costWithSiteMod = pure * (1 + siteModifier / 100);
         const total = costWithSiteMod * (1 + rushPercent / 100);
         const days = Math.ceil(calculateConstructionTime(costWithSiteMod) * (1 - rushPercent / 100));
@@ -3450,8 +3784,8 @@ const WallsTab = ({ stronghold }) => {
             damageThreshold: WALL_DURABILITY[wallType].damageThreshold
         } : null;
         const desc = MATERIAL_DESCRIPTIONS[wallType] || 'Select a material to see its description.';
-        return { volume: vol, baseCostPerFt: costPerFt, pureCost: pure, baseTotalCost: costWithSiteMod, totalCost: total, constructionDays: days, durability: dur, description: desc };
-    }, [wallType, length, height, thickness, rushPercent, siteModifier]);
+        return { volume: vol, baseCostPerFt: costPerFt, pureCost: pure, rawPureCost: rawPure, baseTotalCost: costWithSiteMod, totalCost: total, constructionDays: days, durability: dur, description: desc };
+    }, [wallType, length, height, thickness, rushPercent, siteModifier, globalPriceScale]);
     
     const handleAddWall = () => {
         const newWall = {
@@ -3461,7 +3795,7 @@ const WallsTab = ({ stronghold }) => {
             height,
             thickness,
             material: wallType,
-            pureCost: pureCost,
+            pureCost: rawPureCost,
             baseCost: baseTotalCost,
             rushPercent,
             totalCost,
@@ -4406,7 +4740,7 @@ const ROOM_MECHANICS = {
     "Training area, rogue":   "Kein Ressourcen-Output. Militärischer-Wert-Beitrag (obwohl eher sozial thematisiert).",
     // Crafting
     "Smithy, basic":          "Schaltet Perk SMITHING frei sobald ≥1 Schmied besetzt ist. Ermöglicht das Delegieren von Metallgegenstand-Herstellung an die Fachkraft (Zeit+Kosten wie Selbstherstellung). Skaliert: ≥800 sq ft → 2 Schmiede nötig für vollen Output. REGELEFFEKT: Gewährt +2 auf alle Checks bezogen auf Metallurgie (Smith's Tools, Reparaturen, Identifizierung von Metallen/Legierungen) innerhalb der Festung.",
-    "Smithy, fancy":          "Schaltet SMITHING frei, benötigt 2 Schmiede bei Basis-Fläche. Höherer Industrieller Wert, der den wöchentlichen Profit steigert: Industrieprofit = Industrieller Wert × 1%/Woche. REGELEFFEKT: Gewährt +4 auf alle Checks bezogen auf Metallurgie (Smith's Tools, Reparaturen, Identifizierung) innerhalb der Festung. Ersetzt den +2 Bonus der Basic-Schmiede.",
+    "Smithy, fancy":          "Schaltet SMITHING frei, benötigt 2 Schmiede bei Basis-Fläche. Höherer Industrieller Wert, der den wöchentlichen Profit steigert: Industrieprofit = Industrieller Wert × IV-Rate/Woche (Standard: 2%). REGELEFFEKT: Gewährt +4 auf alle Checks bezogen auf Metallurgie (Smith's Tools, Reparaturen, Identifizierung) innerhalb der Festung. Ersetzt den +2 Bonus der Basic-Schmiede.",
     "Alchemical laboratory, basic": "Schaltet ALCHEMY frei sobald ≥1 Alchemist besetzt. Ermöglicht das Delegieren von Trank-Herstellung. Skaliert mit Größe. REGELEFFEKT: Gewährt +2 auf alle Checks in Bezug auf Alchemie, Gifte (identifizieren, herstellen, analysieren) und Herbalism Kit-Checks innerhalb der Festung. Nicht kumulativ mit höheren Laboren.",
     "Alchemical laboratory, fancy": "Schaltet ALCHEMY frei, benötigt 2 Alchemisten bei Basis-Fläche. REGELEFFEKT: Gewährt +4 auf alle Checks in Bezug auf Alchemie, Gifte und Herbalism Kit-Checks innerhalb der Festung. Ersetzt den +2 Bonus des Basic-Labors (nicht kumulativ).",
     "Magic laboratory, basic":      "Schaltet SCROLL_SCRIBING frei sobald ≥1 Schreiber besetzt. Ermöglicht das Delegieren von Schriftrollen-Herstellung. REGELEFFEKT: Gewährt +2 auf alle Arcana-Checks (Zauberforschung, magische Gegenstände identifizieren, Zauber entschlüsseln) innerhalb der Festung. Nicht kumulativ mit höheren Laboren.",
@@ -4447,15 +4781,52 @@ const ROOM_MECHANICS = {
     "Study/Office, fancy":    "Kein Ressourcen-Output. Sozialer-Wert-Beitrag. REGELEFFEKT: Reduziert die Downtime zum Erlernen einer Sprache oder Werkzeugprofizienz um 2 Workweeks (von 10 auf 8 Workweeks). Ersetzt den Bonus des Basic-Büros.",
     "Study/Office, luxury":   "Kein Ressourcen-Output. Sozialer-Wert-Beitrag. REGELEFFEKT: Reduziert die Downtime zum Erlernen einer Sprache oder Werkzeugprofizienz um 3 Workweeks (von 10 auf 7 Workweeks). Ersetzt alle niedrigeren Boni.",
     // Commercial
-    "Dock, basic":            "Kein Ressourcen-Output. Ökonomischer-Wert-Beitrag. Ökonomischer Profit = ÖW × 5% × min(1, IW/ÖW) pro Woche. Docks erhöhen den ÖW, sind aber nur profitabel wenn genug Industrie (IW) vorhanden ist.",
+    "Dock, basic":            "Kein Ressourcen-Output. Ökonomischer-Wert-Beitrag. Ökonomischer Profit = ÖW × ÖV-Rate × min(1, IW/ÖW) pro Woche (Standard: 10%). Docks erhöhen den ÖW, sind aber nur profitabel wenn genug Industrie (IW) vorhanden ist.",
     "Dock, extended":         "Kein Ressourcen-Output. Höherer Ökonomischer-Wert-Beitrag.",
     "Dock, extended dry":     "Schaltet SHIPBUILDING frei. Erlaubt Bau von Wasser-/Luftfahrzeugen. Ökonomischer-Wert-Beitrag.",
-    "Shop, basic":            "Schaltet COMMERCE frei. HÄNDLERGOLD: 25% des effektiven Shopwerts stehen wöchentlich als Händlergold bereit. Der effektive Wert skaliert mit besetzten Händlern (0 Händler = 0 Händlergold). Bei 1 Händler auf 400 sq ft (Basisgröße, Wert ≈ 400 GP): Händlergold = 400 × 25% = 100 GP/Woche. ÖKONOMISCHER PROFIT: ÖW × 5% × min(1, IW/ÖW)/Woche.",
+    "Shop, basic":            "Schaltet COMMERCE frei. HÄNDLERGOLD: 25% des effektiven Shopwerts stehen wöchentlich als Händlergold bereit. Der effektive Wert skaliert mit besetzten Händlern (0 Händler = 0 Händlergold). Bei 1 Händler auf 400 sq ft (Basisgröße, Wert ≈ 400 GP): Händlergold = 400 × 25% = 100 GP/Woche. ÖKONOMISCHER PROFIT: ÖW × ÖV-Rate × min(1, IW/ÖW)/Woche.",
     "Shop, fancy":            "Schaltet COMMERCE frei. Benötigt 2 Händler bei Basis-Fläche. Gleiches Händlergold-Prinzip (25% des effektiven Werts). Höherer Basis-Wert = mehr Händlergold.",
     "Shop, luxury":           "Schaltet COMMERCE frei. Benötigt 4 Händler bei Basis-Fläche. Höchstes Händlergold-Potenzial. Händlergold wird jede Woche zurückgesetzt.",
     "Tavern, basic":          "Benötigt 1 Tavernkeeper. 40% des Werts → ÖV, 60% → SV. Taverne bleibt ökonomische Kategorie. Zusätzlich: alle Tavernen erhöhen den ÖV aller Shops proportional zu ihrem Anteil am Gesamtwert der Festung (×2). IV-Cap gilt weiterhin.",
     "Tavern, fancy":          "Benötigt 2 Tavernkeeper bei Basis-Fläche. 40% ÖV / 60% SV. Stärkerer Tavernen-Bonus auf Shop-ÖV.",
     "Tavern, luxury":         "Kein Ressourcen-Output. Höchster Ökonomischer-Wert-Beitrag aller Tavernen.",
+    // Doors, Windows & Locks
+    "Door, simple wooden":    "SPIELWERTE: AC 15, HP 10, Damage Threshold —. Aufbrechen: DC 15 Stärke-Check (Aktion). Dünnes Holz, 1 Zoll dick. Jeder Raum kommt mit 2 kostenlosen einfachen Türen.",
+    "Door, good wooden":      "SPIELWERTE: AC 15, HP 15, Damage Threshold —. Aufbrechen: DC 18 Stärke-Check (Aktion). Stabiles Holz, 1½ Zoll dick.",
+    "Door, strong wooden":    "SPIELWERTE: AC 15, HP 20, Damage Threshold 5 (Schaden unter 5 wird ignoriert). Aufbrechen: DC 20 Stärke-Check (Aktion). Verstärktes Holz mit Eisenbeschlägen, 2 Zoll dick.",
+    "Door, stone":            "SPIELWERTE: AC 17, HP 60, Damage Threshold 10 (Schaden unter 10 wird ignoriert). Aufbrechen: DC 25 Stärke-Check (Aktion). Massiver Stein, 4 Zoll dick. Immun gegen Feuer.",
+    "Door, iron":             "SPIELWERTE: AC 19, HP 60, Damage Threshold 10 (Schaden unter 10 wird ignoriert). Aufbrechen: DC 25 Stärke-Check (Aktion). Schmiedeeisen, 2 Zoll dick. Immun gegen Feuer.",
+    "Door, adamantine":       "SPIELWERTE: AC 23, HP 120, Damage Threshold 20 (Schaden unter 20 wird ignoriert). Aufbrechen: DC 30 Stärke-Check (Aktion). Adamantin, 2 Zoll dick. Immun gegen Feuer. Kann nicht durch nichtmagische Angriffe beschädigt werden.",
+    "Secret door (DC 15)":    "SPIELWERTE: Wie die zugrundeliegende Tür (separat kaufen). Investigation/Perception DC 15 zum Entdecken. Der Aufpreis deckt den verborgenen Mechanismus und die Tarnung ab. Typ der Tür separat wählen.",
+    "Secret door (DC 20)":    "SPIELWERTE: Wie die zugrundeliegende Tür. Investigation/Perception DC 20 zum Entdecken. Nahtlose Wandintegration.",
+    "Secret door (DC 25)":    "SPIELWERTE: Wie die zugrundeliegende Tür. Investigation/Perception DC 25 zum Entdecken. Magisch unterstützte Tarnung.",
+    "Secret door (DC 30)":    "SPIELWERTE: Wie die zugrundeliegende Tür. Investigation/Perception DC 30 zum Entdecken. Perfekte Illusion – selbst wer von der Tür weiß, hat Schwierigkeiten.",
+    "Portcullis, wooden":     "SPIELWERTE: AC 15, HP 30, Damage Threshold 5 (Schaden unter 5 wird ignoriert). Hochheben: DC 20 Stärke-Check (Aktion). Holzgitter, 3 Zoll dick. Kann mit einer Winde hochgezogen/herabgelassen werden (1 Aktion).",
+    "Portcullis, iron":       "SPIELWERTE: AC 19, HP 60, Damage Threshold 10 (Schaden unter 10 wird ignoriert). Hochheben: DC 25 Stärke-Check (Aktion). Eisengitter, 2 Zoll dick. Standard-Verteidigung für Torhäuser.",
+    "Drawbridge, wooden":     "SPIELWERTE: AC 15, HP 60, Damage Threshold 10. Holz, 6 Zoll dick. Kann mit Ketten/Winde hochgezogen werden (1 Minute oder Mechanismus). Im hochgezogenen Zustand blockiert sie den Zugang vollständig.",
+    "Drawbridge, iron":       "SPIELWERTE: AC 19, HP 120, Damage Threshold 15. Eisen, 4 Zoll dick. Schwerer und robuster. Benötigt stärkere Ketten und Winden (2 Personen zum Bedienen).",
+    "Shutters, simple":       "SPIELWERTE: AC 15, HP 10. Einfache Holzklappen. Schützen vor Witterung, bieten aber kaum Widerstand gegen gewaltsames Eindringen.",
+    "Shutters, good":         "SPIELWERTE: AC 15, HP 15. Stabile Holzläden. Bieten etwas Schutz gegen Einbruchsversuche.",
+    "Iron bars (window)":     "SPIELWERTE: AC 19, HP 60, Damage Threshold 10 (Schaden unter 10 wird ignoriert). Aufbrechen: DC 25 Stärke-Check (Aktion). Schmiedeeiserne Gitterstäbe. Fernkampfangriffe durch die Stäbe haben Nachteil in beide Richtungen.",
+    "Glass window":           "SPIELWERTE: AC 13, HP 1. Zerbricht bei jedem Treffer. Kein Schutz, nur Komfort und Ästhetik. Lässt Licht in den Raum.",
+    "Arrow slit":             "SPIELWERTE: Gewährt ¾ Deckung (+5 AC) für Fernkämpfer dahinter. Fernkampfangriffe von außen nach innen haben Nachteil. Schützen können von innen normal schießen.",
+    "Stained glass, fancy":   "SPIELWERTE: AC 13, HP 1. Einfache bunte Glasmuster. Kein taktischer Wert, aber erhöht den Sozialen Wert der Festung.",
+    "Stained glass, deluxe":  "SPIELWERTE: AC 13, HP 1. Kunstvolle Szenen in leuchtenden Farben. Signifikanter Beitrag zum Sozialen Wert. Jedes Fenster ist ein einzigartiges Kunstwerk.",
+    "Lock, very simple":      "SPIELWERTE: Thieves' Tools DC 15. Iron Lock: AC 19, HP 30. Einfaches Schloss – hält ehrliche Leute ehrlich, mehr nicht.",
+    "Lock, average":          "SPIELWERTE: Thieves' Tools DC 20. Iron Lock: AC 19, HP 30. Solides Alltagsschloss für Büros und Vorratskammern.",
+    "Lock, good":             "SPIELWERTE: Thieves' Tools DC 25. Iron Lock: AC 19, HP 30. Hochwertiger Mechanismus. Ernsthafte Sicherheit.",
+    "Lock, amazing":          "SPIELWERTE: Thieves' Tools DC 30. Iron Lock: AC 19, HP 30. Meisterwerk mit Anti-Manipulations-Mechanismen.",
+    "Lock, mithral":          "SPIELWERTE: Thieves' Tools DC 30. Mithral Lock: AC 21, HP 30. 5× Preis eines normalen Schlosses. Extrem widerstandsfähig gegen Gewalt.",
+    "Lock, adamantine":       "SPIELWERTE: Thieves' Tools DC 30. Adamantine Lock: AC 23, HP 40. 10× Preis. Praktisch unzerstörbar.",
+    // Siege Weapons
+    "Ballista":               "SPIELWERTE (5e DMG): Large Object. AC 15, HP 50. Fernkampfangriff: +6 to hit, Reichweite 120/480 ft. Treffer: 3d10 Stichschaden. Crew: 3 (1 zum Zielen, 2 zum Laden). 1 Aktion zum Laden, 1 Aktion zum Zielen, 1 Aktion zum Feuern.",
+    "Mangonel (light)":       "SPIELWERTE (extrapoliert aus 5e Mangonel): Large Object. AC 15, HP 75. Fernkampfangriff: +5 to hit, Reichweite 150/600 ft (Minimum 60 ft). Treffer: 3d10 Wuchtschaden. Crew: 3 (1 zum Zielen, 2 zum Laden). 2 Aktionen zum Laden, 1 Aktion zum Zielen, 1 Aktion zum Feuern.",
+    "Mangonel (heavy)":       "SPIELWERTE (5e DMG): Large Object. AC 15, HP 100. Fernkampfangriff: +5 to hit, Reichweite 200/800 ft (Minimum 60 ft). Treffer: 5d10 Wuchtschaden. Crew: 5 (2 zum Zielen, 3 zum Laden). 2 Aktionen zum Laden, 2 Aktionen zum Zielen, 1 Aktion zum Feuern.",
+    "Trebuchet":              "SPIELWERTE (5e DMG): Huge Object. AC 15, HP 150. Fernkampfangriff: +5 to hit, Reichweite 300/1200 ft (Minimum 60 ft). Treffer: 8d10 Wuchtschaden. Crew: 5 (2 zum Zielen, 3 zum Laden). 2 Aktionen zum Laden, 2 Aktionen zum Zielen, 1 Aktion zum Feuern. 10 Minuten Aufbauzeit.",
+    "Battering Ram":          "SPIELWERTE (5e DMG): Large Object. AC 15, HP 100. Nahkampfangriff: +8 to hit, Reichweite 5 ft. Treffer: 3d10 Wuchtschaden. Crew: 4 (min.). Verursacht DOPPELTEN Schaden gegen Objekte und Strukturen (Türen, Tore, Mauern).",
+    "Cannon":                 "SPIELWERTE (5e DMG): Large Object. AC 19, HP 75. Fernkampfangriff: +6 to hit, Reichweite 600/2400 ft. Treffer: 8d10 Wuchtschaden. Crew: 3 (1 zum Zielen, 2 zum Laden). Munition: Kanonenladung (5 GP/Stk, enthält Eisenkugel + Schwarzpulver). HINWEIS: Erfordert Schwarzpulver – DM entscheidet über Verfügbarkeit in der Kampagnenwelt.",
+    "Siege Tower":            "SPIELWERTE (5e DMG): Huge Object. AC 15, HP 200, Damage Threshold 10 (Schaden unter 10 wird ignoriert). Kein Angriff. Crew: Beliebig (wird geschoben). Bietet volle Deckung (Total Cover) für alle Kreaturen im Inneren. Geschwindigkeit: 15 ft/Runde (geschoben).",
+    "Cauldron (boiling oil)": "SPIELWERTE (Homebrew): Wird auf einer Mauerzinne montiert. 1 Aktion zum Kippen. Alle Kreaturen in einem 3m × 3m Bereich direkt unter dem Kessel: DEX Save DC 12. Bei Misserfolg: 3d6 Feuerschaden. Bei Erfolg: Halber Schaden. Einmalige Verwendung, muss danach neu befüllt werden (10 Minuten).",
 };
 
 const formatDateDE = (iso) => {
@@ -5389,7 +5760,7 @@ const EnchantmentMapView = ({ stronghold }) => {
 
 
 const EnchantmentsTab = ({ stronghold }) => {
-    const { enchantments, addEnchantment, removeEnchantment, renameEnchantment, enchantmentPriceScale, setEnchantmentPriceScale } = stronghold;
+    const { enchantments, addEnchantment, removeEnchantment, renameEnchantment, globalPriceScale, setGlobalPriceScale } = stronghold;
     const [subtab, setSubtab] = useState('catalog');
     const [search, setSearch] = useState('');
     const [filterCat, setFilterCat] = useState('all');
@@ -5487,46 +5858,10 @@ const EnchantmentsTab = ({ stronghold }) => {
             ),
             React.createElement("hr", { className: "border-wood/20 dark:border-gray-600 mb-6" }),
 
-            // Price Scale Control
-            React.createElement("div", { className: "mb-6 p-4 bg-amber-50/60 dark:bg-amber-900/20 rounded-lg border-2 border-amber-400/50 dark:border-amber-600/40" },
-                React.createElement("div", { className: "flex items-center justify-between mb-2" },
-                    React.createElement("h4", { className: "font-semibold text-amber-800 dark:text-amber-300 text-sm" }, "💰 Preisskalierung"),
-                    React.createElement("span", { className: "font-bold text-lg text-amber-900 dark:text-amber-200" }, `×${enchantmentPriceScale.toFixed(2)}`)
-                ),
-                React.createElement("input", {
-                    type: "range",
-                    min: "0.1",
-                    max: "2.0",
-                    step: "0.05",
-                    value: enchantmentPriceScale,
-                    onChange: e => setEnchantmentPriceScale(parseFloat(e.target.value)),
-                    className: "w-full h-2 rounded-lg appearance-none cursor-pointer accent-amber-600 dark:accent-amber-400 bg-amber-200 dark:bg-amber-800"
-                }),
-                React.createElement("div", { className: "flex justify-between text-xs text-amber-700/60 dark:text-amber-400/50 mt-1" },
-                    React.createElement("span", null, "×0.10"),
-                    React.createElement("span", null, "×1.00"),
-                    React.createElement("span", null, "×2.00")
-                ),
-                React.createElement("div", { className: "flex gap-2 mt-3 flex-wrap" },
-                    [
-                        { label: "📜 Original (3.5e)", value: 1.0, desc: "Originalpreise aus dem Stronghold Builder's Guidebook" },
-                        { label: "⚖️ 5e Angepasst", value: 0.5, desc: "Halbierte Preise für die niedrigere 5e-Goldwirtschaft" },
-                        { label: "🎯 Low Magic", value: 1.5, desc: "Erhöhte Preise – Magie ist selten und teuer" },
-                        { label: "💎 High Magic", value: 0.25, desc: "Stark reduziert – Magie ist allgegenwärtig und günstig" },
-                    ].map(preset => React.createElement("button", {
-                        key: preset.value,
-                        type: "button",
-                        title: preset.desc,
-                        onClick: () => setEnchantmentPriceScale(preset.value),
-                        className: `px-3 py-1.5 rounded-lg text-xs font-semibold border-2 transition-all ${
-                            Math.abs(enchantmentPriceScale - preset.value) < 0.01
-                                ? 'bg-amber-600 text-white border-amber-800 dark:bg-amber-500 dark:border-amber-400 shadow-md'
-                                : 'bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-600 dark:hover:bg-amber-900/60'
-                        }`
-                    }, preset.label))
-                ),
-                enchantmentPriceScale !== 1.0 && React.createElement("p", { className: "text-xs text-amber-700/70 dark:text-amber-400/50 mt-2 italic" },
-                    `Alle Katalogpreise werden mit ×${enchantmentPriceScale.toFixed(2)} multipliziert. Bereits hinzugefügte Verzauberungen behalten ihren Kaufpreis.`
+            // Price Scale Note (slider is now global)
+            globalPriceScale !== 1.0 && React.createElement("div", { className: "mb-4 p-3 bg-amber-50/40 dark:bg-amber-900/15 rounded-lg border border-amber-300/30 dark:border-amber-700/20 text-center" },
+                React.createElement("span", { className: "text-sm text-amber-800 dark:text-amber-300" },
+                    `💰 Aktive Preisskalierung: ×${globalPriceScale.toFixed(2)} — Katalogpreise werden entsprechend angepasst.`
                 )
             ),
 
@@ -5566,7 +5901,7 @@ const EnchantmentsTab = ({ stronghold }) => {
                     isExpanded: expandedCard === enc.name,
                     onToggleExpand: () => setExpandedCard(prev => prev === enc.name ? null : enc.name),
                     onAdd: (isEmbedded) => addEnchantment(enc, isEmbedded),
-                    priceScale: enchantmentPriceScale
+                    priceScale: globalPriceScale
                 }))
             )
         ),
@@ -5666,8 +6001,14 @@ const CRAFTING_PERKS = {
     TINKERING: { label: '🔧 Werkstatt', roles: ['Tinkerer'] },
 };
 
+const AMMO_TYPES = {
+    bolt:   { label: '🏹 Ballistabolzen', price: 1, desc: 'Massiver Eisenbolzen mit Stahlspitze, ~90 cm lang' },
+    stone:  { label: '🪨 Katapultstein', price: 1, desc: 'Grob behauener Felsbrocken, 10–25 kg' },
+    charge: { label: '💣 Kanonenladung', price: 5, desc: 'Eisenkugel + Schwarzpulverladung, fertig zum Laden' },
+};
+
 const CraftingQueue = ({ stronghold }) => {
-    const { components, craftingOrders, addCraftingOrder, removeCraftingOrder, worldDate } = stronghold;
+    const { components, craftingOrders, addCraftingOrder, removeCraftingOrder, reorderCraftingOrder, worldDate } = stronghold;
     const currentDate = worldDate || new Date().toISOString().split('T')[0];
     const [newOrder, setNewOrder] = useState({ slotId: '', itemName: '', cost: '', durationDays: 1, durationUnit: 'days' });
     const [confirmPickup, setConfirmPickup] = useState(null);
@@ -5878,11 +6219,28 @@ const CraftingQueue = ({ stronghold }) => {
                                                     order.cost > 0 && ` · ${order.cost} GP`
                                                 )
                                             ),
-                                            React.createElement("button", {
-                                                onClick: () => pendingCancel === order.id ? (removeCraftingOrder(order.id), setPendingCancel(null)) : setPendingCancel(order.id),
-                                                className: `text-xs font-bold px-2 py-1 rounded transition-all ${pendingCancel === order.id ? 'bg-yellow-500 text-black animate-pulse' : 'text-red-500 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/30'}`,
-                                                title: status === 'completed' ? "Auftrag entfernen" : "Auftrag abbrechen"
-                                            }, pendingCancel === order.id ? 'Bestätigen?' : '✕')
+                                            React.createElement("div", { className: "flex items-center gap-1" },
+                                                // Reorder buttons (not for first item = currently in progress)
+                                                idx > 0 && status !== 'completed' && React.createElement(React.Fragment, null,
+                                                    React.createElement("button", {
+                                                        onClick: () => reorderCraftingOrder(order.id, -1),
+                                                        disabled: idx <= 1,
+                                                        className: "w-6 h-6 rounded text-xs font-bold bg-wood/20 dark:bg-gray-600 hover:bg-wood/40 dark:hover:bg-gray-500 disabled:opacity-20 transition-colors",
+                                                        title: "Priorität erhöhen"
+                                                    }, "⬆️"),
+                                                    React.createElement("button", {
+                                                        onClick: () => reorderCraftingOrder(order.id, 1),
+                                                        disabled: idx >= orders.length - 1,
+                                                        className: "w-6 h-6 rounded text-xs font-bold bg-wood/20 dark:bg-gray-600 hover:bg-wood/40 dark:hover:bg-gray-500 disabled:opacity-20 transition-colors",
+                                                        title: "Priorität senken"
+                                                    }, "⬇️")
+                                                ),
+                                                React.createElement("button", {
+                                                    onClick: () => pendingCancel === order.id ? (removeCraftingOrder(order.id), setPendingCancel(null)) : setPendingCancel(order.id),
+                                                    className: `text-xs font-bold px-2 py-1 rounded transition-all ${pendingCancel === order.id ? 'bg-yellow-500 text-black animate-pulse' : 'text-red-500 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/30'}`,
+                                                    title: status === 'completed' ? "Auftrag entfernen" : "Auftrag abbrechen"
+                                                }, pendingCancel === order.id ? 'Bestätigen?' : '✕')
+                                            )
                                         ),
                                         status !== 'completed' && React.createElement("div", { className: "mt-1.5" },
                                             React.createElement("div", { className: "w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2" },
@@ -5905,20 +6263,89 @@ const CraftingQueue = ({ stronghold }) => {
 };
 
 const ConstructionTab = ({ stronghold }) => {
-    const { components, walls, enchantments, startConstruction, completeConstruction, removeComponent, removeWall, removeEnchantment } = stronghold;
+    const { components, walls, enchantments, startConstruction, completeConstruction, removeComponent, removeWall, removeEnchantment,
+            reorderConstructionQueue, acknowledgeConstruction, instantComplete, constructionQueue } = stronghold;
     const currentDate = stronghold.worldDate || new Date().toISOString().split('T')[0];
     const worldDateLabel = stronghold.worldDateLabel || '';
     const [itemToCancel, setItemToCancel] = useState(null);
+    const [instantItem, setInstantItem] = useState(null);
 
-    const combinedQueue = useMemo(() => {
-        const componentItems = components.map(c => ({...c, itemType: 'component'}));
-        const wallItems = walls.map(w => ({...w, itemType: 'wall'}));
-        const enchantmentItems = (enchantments || []).map(e => ({...e, itemType: 'enchantment', area: 0, rushPercent: e.rushPercent || 0, baseCost: e.baseCost || e.price5e || 0, totalCost: e.totalCost || e.price5e || 0}));
-        return [...componentItems, ...wallItems, ...enchantmentItems];
+    // Build a lookup of all items
+    const allItems = useMemo(() => {
+        const map = {};
+        components.forEach(c => { map[c.id] = { ...c, itemType: 'component' }; });
+        walls.forEach(w => { map[w.id] = { ...w, itemType: 'wall' }; });
+        (enchantments || []).forEach(e => { map[e.id] = { ...e, itemType: 'enchantment', area: 0, rushPercent: e.rushPercent || 0, baseCost: e.baseCost || e.price5e || 0, totalCost: e.totalCost || e.price5e || 0 }; });
+        return map;
     }, [components, walls, enchantments]);
 
-    const pending = combinedQueue.filter(i => i.constructionStatus === 'pending');
-    const inProgress = combinedQueue.filter(i => i.constructionStatus === 'in_progress');
+    const getEndDate = (item) => {
+        if (!item.startDate) return null;
+        const baseDays = calculateConstructionTime(item.baseCost || item.price5e || 0);
+        const totalDays = Math.max(1, Math.ceil(baseDays * (1 - (item.rushPercent || 0) / 100)));
+        const end = new Date(item.startDate);
+        end.setDate(end.getDate() + totalDays);
+        return end;
+    };
+
+    const getTotalDays = (item) => {
+        const baseDays = calculateConstructionTime(item.baseCost || item.price5e || 0);
+        return Math.max(1, Math.ceil(baseDays * (1 - (item.rushPercent || 0) / 100)));
+    };
+
+    // Auto-start & auto-complete: cascading logic handles multiple completions when time jumps forward
+    useEffect(() => {
+        if (!currentDate || constructionQueue.length === 0) return;
+        const now = new Date(currentDate);
+        
+        const findItem = (id) => {
+            return components.find(c => c.id === id) || walls.find(w => w.id === id) || (enchantments || []).find(e => e.id === id);
+        };
+        const getType = (id) => {
+            if (components.find(c => c.id === id)) return 'component';
+            if (walls.find(w => w.id === id)) return 'wall';
+            return 'enchantment';
+        };
+
+        // Check if current in_progress item is done
+        const allArr = [...components, ...walls, ...(enchantments || [])];
+        const currentInProgress = allArr.find(i => i.constructionStatus === 'in_progress');
+        
+        if (currentInProgress) {
+            const end = getEndDate(currentInProgress);
+            if (end && now >= end) {
+                completeConstruction(currentInProgress.id, getType(currentInProgress.id));
+                return; // Let the re-render handle the next step
+            }
+        } else {
+            // Nothing in progress - start first pending from queue
+            for (const qItem of constructionQueue) {
+                const item = findItem(qItem.id);
+                if (item && item.constructionStatus === 'pending') {
+                    startConstruction(qItem.id, qItem.type, currentDate);
+                    return;
+                }
+            }
+        }
+    }, [currentDate, constructionQueue, components, walls, enchantments]);
+
+    // Items by status (using 'completed_pending_ack' = completed but date already set via completeConstruction)
+    const pendingQueue = useMemo(() => {
+        return constructionQueue
+            .map(q => allItems[q.id])
+            .filter(item => item && item.constructionStatus === 'pending');
+    }, [constructionQueue, allItems]);
+
+    const inProgress = useMemo(() => {
+        return Object.values(allItems).filter(i => i.constructionStatus === 'in_progress');
+    }, [allItems]);
+
+    // "Baubericht" - recently completed items (completed but still in queue = not yet acknowledged)
+    const recentlyCompleted = useMemo(() => {
+        return constructionQueue
+            .map(q => ({ ...allItems[q.id], queueType: q.type }))
+            .filter(item => item && item.constructionStatus === 'completed');
+    }, [constructionQueue, allItems]);
 
     const handleConfirmCancel = () => {
         if (itemToCancel) {
@@ -5929,10 +6356,81 @@ const ConstructionTab = ({ stronghold }) => {
         }
     };
 
+    const handleInstantComplete = () => {
+        if (instantItem) {
+            instantComplete(instantItem.id, instantItem.itemType);
+            setInstantItem(null);
+        }
+    };
+
+    const renderQueueItem = (item, index, canReorder) => {
+        const totalDays = getTotalDays(item);
+        const typeLabel = item.itemType === 'wall' ? ' (Mauer)' : item.itemType === 'enchantment' ? ' (✨ Verzauberung)' : '';
+        const nameDisplay = item.customName || `${item.name}${typeLabel}`;
+        const isInProgress = item.constructionStatus === 'in_progress';
+
+        let daysElapsed = 0, pct = 0;
+        if (isInProgress && item.startDate) {
+            const start = new Date(item.startDate);
+            const now = new Date(currentDate);
+            daysElapsed = Math.min(totalDays, Math.max(0, Math.floor((now - start) / 86400000)));
+            pct = totalDays > 0 ? (daysElapsed / totalDays) * 100 : 100;
+        }
+
+        return React.createElement("div", { key: item.id, className: "bg-parchment-light/50 dark:bg-gray-700/40 p-4 rounded-md border border-gold-dark dark:border-gray-600 space-y-2 shadow-sm" },
+            React.createElement("div", { className: "flex justify-between items-start gap-2" },
+                React.createElement("div", { className: "flex-1 min-w-0" },
+                    React.createElement("div", { className: "font-semibold text-wood dark:text-gold-light" }, nameDisplay),
+                    React.createElement("div", { className: "text-sm text-wood-text/80 dark:text-parchment-bg/70" },
+                        `${(item.totalCost || item.baseCost || 0).toFixed(0)} gp · ${totalDays} Tage`
+                    )
+                ),
+                React.createElement("div", { className: "flex items-center gap-1" },
+                    canReorder && React.createElement(React.Fragment, null,
+                        React.createElement("button", {
+                            onClick: () => { const qi = constructionQueue.findIndex(q => q.id === item.id); if (qi >= 0) reorderConstructionQueue(qi, -1); },
+                            disabled: index === 0,
+                            className: "w-7 h-7 rounded text-sm font-bold bg-wood/20 dark:bg-gray-600 hover:bg-wood/40 dark:hover:bg-gray-500 disabled:opacity-20 transition-colors",
+                            title: "Priorität erhöhen"
+                        }, "⬆️"),
+                        React.createElement("button", {
+                            onClick: () => { const qi = constructionQueue.findIndex(q => q.id === item.id); if (qi >= 0) reorderConstructionQueue(qi, 1); },
+                            disabled: index === pendingQueue.length - 1,
+                            className: "w-7 h-7 rounded text-sm font-bold bg-wood/20 dark:bg-gray-600 hover:bg-wood/40 dark:hover:bg-gray-500 disabled:opacity-20 transition-colors",
+                            title: "Priorität senken"
+                        }, "⬇️")
+                    ),
+                    React.createElement("button", {
+                        onClick: () => setInstantItem(item),
+                        className: "text-xs px-2 py-1 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800/40 font-semibold",
+                        title: "Sofort fertigstellen (nur zum Testen!)"
+                    }, "⚡"),
+                    React.createElement("button", {
+                        onClick: () => setItemToCancel(item),
+                        className: "text-xs px-2 py-1 rounded bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-800/40 font-semibold"
+                    }, "❌")
+                )
+            ),
+            isInProgress && React.createElement("div", null,
+                React.createElement("div", { className: "text-xs flex justify-between text-wood-text/70 dark:text-parchment-bg/60 mb-1" },
+                    React.createElement("span", null, `Beginn: ${formatDateDE(item.startDate)}`),
+                    React.createElement("span", null, `${daysElapsed}/${totalDays} Tage (${pct.toFixed(0)}%)`)
+                ),
+                React.createElement("div", { className: "w-full h-4 bg-parchment dark:bg-gray-800 rounded-full overflow-hidden border border-wood-light dark:border-gray-600" },
+                    React.createElement("div", { style: { width: `${pct}%` }, className: "h-full bg-gradient-to-r from-green-500 to-green-700 transition-all duration-300 text-right pr-2 text-white text-xs flex items-center justify-end" },
+                        pct > 15 ? `${pct.toFixed(0)}%` : ''
+                    )
+                )
+            )
+        );
+    };
+
     return (
          React.createElement("div", null,
-            React.createElement("h2", { className: "text-3xl font-medieval text-wood-dark dark:text-gold-light mb-2" }, "🏗️ Construction Projects"),
-            React.createElement("p", { className: "mb-6" }, "Verwalte den Baustatus deiner Projekte. BAUZEIT: (Kosten ÷ 10.000) × 7 Tage, abgerundet auf ganze Tage, dann × (1 − Rush%/100). WARTUNGSKOSTEN (nach Fertigstellung): 1% des Bauwerts ÷ 52 pro Woche – gilt nur für Gebäude und Mauern, nicht für Verzauberungen. DIENER-PENALTY: Pro fehlendem Diener (1 benötigt pro 2.000 sq ft fertiggestellter Fläche) werden die Wartungskosten um je 100% erhöht – 2 fehlende Diener = 3× normale Wartungskosten. Nur ✅ fertiggestellte Gebäude zählen zu Werten, Ressourcen und Unterhalt."),
+            React.createElement("h2", { className: "text-3xl font-medieval text-wood-dark dark:text-gold-light mb-2" }, "🏗️ Bauprojekte & Aufträge"),
+            React.createElement("p", { className: "text-sm text-wood-text/70 dark:text-parchment-bg/60 mb-6" },
+                "Projekte werden automatisch der Reihe nach gebaut. Das erste Projekt in der Warteschlange startet sofort. Wenn das Weltdatum das Fertigstellungsdatum überschreitet, wird es automatisch fertiggestellt und das nächste beginnt. Mit ⬆️⬇️ kannst du die Reihenfolge der Warteschlange ändern."
+            ),
             React.createElement("div", { className: "mb-8 bg-wood/10 dark:bg-gray-700/30 p-4 rounded-lg border-2 border-wood-light dark:border-gray-600 flex items-center gap-4" },
                 React.createElement("span", { className: "text-3xl" }, "📅"),
                 React.createElement("div", null,
@@ -5946,30 +6444,69 @@ const ConstructionTab = ({ stronghold }) => {
                     )
                 )
             ),
-            React.createElement("div", { className: "grid md:grid-cols-1 lg:grid-cols-2 gap-8" },
-                React.createElement("div", null,
-                    React.createElement("h3", { className: "text-2xl font-medieval text-wood-dark dark:text-gold-light mb-4" }, "⏳ Pending Construction"),
-                    React.createElement("div", { className: "space-y-4 bg-wood/5 dark:bg-gray-800/20 p-4 rounded-lg max-h-[60vh] overflow-y-auto border border-wood-light/50 dark:border-gray-600" },
-                        pending.length > 0
-                            ? pending.map(item => React.createElement(QueueItemCard, { key: `${item.itemType}-${item.id}`, item, currentDate, onCancelClick: setItemToCancel, startConstruction, completeConstruction }))
-                            : React.createElement("p", { className: "text-center text-wood-text/70 dark:text-parchment-bg/60 italic py-8" }, "No pending projects. Add rooms or walls to begin.")
-                    )
+
+            // Baubericht - recently completed
+            recentlyCompleted.length > 0 && React.createElement("div", { className: "mb-6 p-4 bg-green-100/60 dark:bg-green-900/30 rounded-lg border-2 border-green-500/60 dark:border-green-400/40" },
+                React.createElement("h3", { className: "text-xl font-medieval text-green-800 dark:text-green-300 mb-3" }, `📋 Baubericht (${recentlyCompleted.length} fertiggestellt)`),
+                React.createElement("p", { className: "text-sm text-green-700/80 dark:text-green-400/60 mb-3" },
+                    "Diese Projekte wurden abgeschlossen während die Helden unterwegs waren. Bestätige die Fertigstellung, um sie aus dem Bericht zu entfernen."
                 ),
+                React.createElement("div", { className: "space-y-2" },
+                    recentlyCompleted.map(item => React.createElement("div", {
+                        key: item.id,
+                        className: "flex items-center justify-between gap-3 p-3 rounded-lg bg-green-200/60 dark:bg-green-900/50 border border-green-400/50"
+                    },
+                        React.createElement("div", { className: "flex-1" },
+                            React.createElement("div", { className: "font-semibold text-green-900 dark:text-green-200" },
+                                `✅ ${item.customName || item.name}`
+                            ),
+                            React.createElement("div", { className: "text-xs text-green-700/80 dark:text-green-400/60" },
+                                `${(item.totalCost || item.baseCost || 0).toFixed(0)} gp · Fertiggestellt`
+                            )
+                        ),
+                        React.createElement("button", {
+                            onClick: () => acknowledgeConstruction(item.id, item.queueType),
+                            className: "text-xs font-bold px-3 py-1.5 rounded bg-green-600 text-white hover:bg-green-700"
+                        }, "Zur Kenntnis genommen ✓")
+                    ))
+                )
+            ),
+
+            React.createElement("div", { className: "grid md:grid-cols-1 lg:grid-cols-2 gap-8" },
+                // In Progress
                 React.createElement("div", null,
-                    React.createElement("h3", { className: "text-2xl font-medieval text-wood-dark dark:text-gold-light mb-4" }, "🛠️ In Progress"),
+                    React.createElement("h3", { className: "text-2xl font-medieval text-wood-dark dark:text-gold-light mb-4" }, "🛠️ In Bau"),
                     React.createElement("div", { className: "space-y-4 bg-wood/5 dark:bg-gray-800/20 p-4 rounded-lg max-h-[60vh] overflow-y-auto border border-wood-light/50 dark:border-gray-600" },
                         inProgress.length > 0
-                            ? inProgress.map(item => React.createElement(QueueItemCard, { key: `${item.itemType}-${item.id}`, item, currentDate, onCancelClick: setItemToCancel, startConstruction, completeConstruction }))
-                            : React.createElement("p", { className: "text-center text-wood-text/70 dark:text-parchment-bg/60 italic py-8" }, "No projects currently under construction.")
+                            ? inProgress.map(item => renderQueueItem(item, -1, false))
+                            : React.createElement("p", { className: "text-center text-wood-text/70 dark:text-parchment-bg/60 italic py-8" }, "Kein Projekt wird gerade gebaut. Füge Räume oder Mauern hinzu.")
+                    )
+                ),
+                // Pending Queue
+                React.createElement("div", null,
+                    React.createElement("h3", { className: "text-2xl font-medieval text-wood-dark dark:text-gold-light mb-4" }, `⏳ Warteschlange (${pendingQueue.length})`),
+                    React.createElement("div", { className: "space-y-4 bg-wood/5 dark:bg-gray-800/20 p-4 rounded-lg max-h-[60vh] overflow-y-auto border border-wood-light/50 dark:border-gray-600" },
+                        pendingQueue.length > 0
+                            ? pendingQueue.map((item, idx) => renderQueueItem(item, idx, true))
+                            : React.createElement("p", { className: "text-center text-wood-text/70 dark:text-parchment-bg/60 italic py-8" }, "Keine Projekte in der Warteschlange.")
                     )
                 )
             ),
+
+            // Modals
             React.createElement(ConfirmationModal, {
                 isOpen: !!itemToCancel,
                 onClose: () => setItemToCancel(null),
                 onConfirm: handleConfirmCancel,
                 title: "Bauvorhaben abbrechen",
                 message: `Bist du sicher, dass du den Bau von "${itemToCancel?.customName || itemToCancel?.name}" abbrechen möchtest? Alle investierten Ressourcen und Fortschritte gehen verloren.`
+            }),
+            React.createElement(ConfirmationModal, {
+                isOpen: !!instantItem,
+                onClose: () => setInstantItem(null),
+                onConfirm: handleInstantComplete,
+                title: "⚡ Sofort fertigstellen",
+                message: `"${instantItem?.customName || instantItem?.name}" wird sofort als fertiggestellt markiert. Dies ist nur zum Testen gedacht – im normalen Spiel sollten Bauzeiten immer berücksichtigt werden!`
             }),
 
             // Crafting Queue
@@ -6795,7 +7332,7 @@ const EconomyTab = ({ stronghold }) => {
     return (
         React.createElement("div", null,
             React.createElement("h2", { className: "text-3xl font-medieval text-wood-dark dark:text-gold-light mb-2" }, "💰 Wirtschaft"),
-            React.createElement("p", { className: "mb-6" }, "INDUSTRIEPROFIT: IV × 1% / Woche (skaliert mit besetzten Fachkräften). ÖKONOMISCHER PROFIT: ÖV × 5% × min(1, IV/ÖV) / Woche – der Faktor min(1, IV/ÖV) bedeutet: Wirtschaft kann nur so viel Profit erwirtschaften wie Industrie sie 'versorgen' kann. Ist ÖV > IV, gibt es einen Effizienz-Verlust. Ideales Verhältnis: IV ≥ ÖV. HÄNDLERGOLD: 25% des effektiven Shop-Werts (mit Händlern besetzt), wird wöchentlich zurückgesetzt. SCHADEN: Wenn Festung beschädigt ist, verlieren alle vier Werte (MV, IV, ÖV, SV) je 1/4 des Gesamtschadens – Moral und Wirtschaft leiden gleichermaßen."),
+            React.createElement("p", { className: "mb-6" }, `INDUSTRIEPROFIT: IV × ${(stronghold.ivRate || 2).toFixed(1)}% / Woche (skaliert mit besetzten Fachkräften). ÖKONOMISCHER PROFIT: ÖV × ${(stronghold.evRate || 10).toFixed(1)}% × min(1, IV/ÖV) / Woche – der Faktor min(1, IV/ÖV) bedeutet: Wirtschaft kann nur so viel Profit erwirtschaften wie Industrie sie 'versorgen' kann. Ist ÖV > IV, gibt es einen Effizienz-Verlust. Ideales Verhältnis: IV ≥ ÖV. HÄNDLERGOLD: 25% des effektiven Shop-Werts (mit Händlern besetzt), wird wöchentlich zurückgesetzt. SCHADEN: Wenn Festung beschädigt ist, verlieren alle vier Werte (MV, IV, ÖV, SV) je 1/4 des Gesamtschadens – Moral und Wirtschaft leiden gleichermaßen.`),
             React.createElement("div", { className: "grid md:grid-cols-2 gap-8" },
                 React.createElement("div", { className: "space-y-8" },
                     React.createElement("div", { className: "bg-gold/80 dark:bg-gray-800/50 p-6 rounded-lg border-2 border-wood-dark dark:border-gold-dark shadow-lg" },
@@ -6926,7 +7463,7 @@ const EconomyTab = ({ stronghold }) => {
                                     React.createElement("span", null, `${industrialValueForProfit.toFixed(0)} IV`)
                                 ),
                                 React.createElement("div", { className: "flex justify-between text-xs mt-1 pt-1 border-t border-blue-400/20" },
-                                    React.createElement("span", { className: "text-blue-700 dark:text-blue-400" }, "Rate × 1%"),
+                                    React.createElement("span", { className: "text-blue-700 dark:text-blue-400" }, `Rate × ${(stronghold.ivRate || 2).toFixed(1)}%`),
                                     React.createElement("span", { className: "font-bold text-green-700 dark:text-green-400" }, `+${industrialPotential.toFixed(2)} GP/W`)
                                 )
                             ),
@@ -6967,7 +7504,7 @@ const EconomyTab = ({ stronghold }) => {
                                     )
                                 ),
                                 React.createElement("div", { className: "flex justify-between text-xs mt-1 pt-1 border-t border-green-400/20" },
-                                    React.createElement("span", { className: "text-green-700 dark:text-green-400" }, "Rate × 5%"),
+                                    React.createElement("span", { className: "text-green-700 dark:text-green-400" }, `Rate × ${(stronghold.evRate || 10).toFixed(1)}%`),
                                     React.createElement("span", { className: "font-bold text-green-700 dark:text-green-400" }, `+${economicPotential.toFixed(2)} GP/W`)
                                 )
                             ),
@@ -7080,6 +7617,12 @@ const DefenseTab = ({ stronghold }) => {
         rewindLastWeek,
         undoDepth,
         militaryComponentsBreakdown,
+        components,
+        siegeAssignments,
+        updateSiegeAssignment,
+        ammoInventory,
+        updateAmmoInventory,
+        globalPriceScale,
     } = stronghold;
 
     const handleSimulate = () => simulateNextWeek();
@@ -7268,13 +7811,16 @@ const DefenseTab = ({ stronghold }) => {
                         React.createElement("div", { className: "bg-parchment-light/80 dark:bg-gray-800/30 p-4 rounded-lg border border-wood-light dark:border-gray-600 max-h-[600px] overflow-y-auto space-y-3 shadow-inner" },
                             militaryComponentsBreakdown.length > 0 ? (
                                 militaryComponentsBreakdown.map(item => {
-                                    const colorClass = item.classification === 'military_wall' ? 'border-stone-500' : 'border-red-500';
-                                    const typeLabel = item.classification === 'military_wall' ? '🧱 Mauer' : '🏰 Gebäude';
+                                    const colorClass = item.classification === 'military_wall' ? 'border-stone-500' : item.classification === 'military_siege' ? 'border-orange-500' : 'border-red-500';
+                                    const typeLabel = item.classification === 'military_wall' ? '🧱 Mauer' : item.classification === 'military_siege' ? '⚔️ Belagerungswaffe' : '🏰 Gebäude';
                                     return React.createElement("div", { key: item.id, className: `bg-parchment-light/50 dark:bg-gray-700/50 p-3 rounded-md border-l-4 ${colorClass} shadow-sm space-y-2` },
                                         React.createElement("div", { className: "flex justify-between items-start" },
                                             React.createElement("div", null,
                                                 React.createElement("div", { className: "font-semibold text-wood dark:text-gold-light text-lg" }, item.name),
-                                                React.createElement("div", { className: "text-xs text-wood-text/60 dark:text-parchment-bg/50" }, typeLabel)
+                                                React.createElement("div", { className: "text-xs text-wood-text/60 dark:text-parchment-bg/50" }, typeLabel),
+                                                item.tavernNote && React.createElement("div", { className: "text-xs text-orange-700 dark:text-orange-400 font-semibold mt-0.5" },
+                                                    `👥 ${item.tavernNote}`
+                                                )
                                             ),
                                             React.createElement("div", { className: "text-right" },
                                                 React.createElement("span", { className: "font-bold text-lg text-red-800 dark:text-red-300" }, `${item.currentValue.toFixed(0)} MV`),
@@ -7282,7 +7828,21 @@ const DefenseTab = ({ stronghold }) => {
                                                     `Baukosten: ${item.paidCost.toFixed(0)} GP`
                                                 )
                                             )
-                                        )
+                                        ),
+                                        item.classification === 'military_siege' && (() => {
+                                            const effPct = item.baseValue > 0 ? (item.currentValue / item.baseValue) * 100 : 0;
+                                            return React.createElement("div", null,
+                                                React.createElement("div", { className: "text-sm flex justify-between text-wood-text/90 dark:text-parchment-bg/80 mb-1" },
+                                                    React.createElement("span", null, "MV-Beitrag:"),
+                                                    React.createElement("span", { className: "font-bold" }, `${item.currentValue.toFixed(0)} / ${item.baseValue.toFixed(0)} GP`)
+                                                ),
+                                                React.createElement("div", { className: "w-full h-4 bg-parchment dark:bg-gray-800 rounded-full overflow-hidden border border-wood-light dark:border-gray-600" },
+                                                    React.createElement("div", { style: { width: `${effPct}%` }, className: `h-full transition-all duration-300 text-right pr-2 text-white text-xs flex items-center justify-end ${effPct >= 100 ? 'bg-gradient-to-r from-green-400 to-green-600' : effPct > 0 ? 'bg-gradient-to-r from-orange-400 to-orange-600' : 'bg-gradient-to-r from-red-400 to-red-600'}` },
+                                                        effPct > 10 ? `${effPct.toFixed(0)}%` : ''
+                                                    )
+                                                )
+                                            );
+                                        })()
                                     );
                                 })
                             ) : (
@@ -7290,6 +7850,150 @@ const DefenseTab = ({ stronghold }) => {
                             )
                         )
                     ),
+
+                    // Siege Weapons Management
+                    (() => {
+                        const siegeWeapons = components.filter(c => c.category === 'Siege Weapons' && c.constructionStatus === 'completed');
+                        const totalUnskilled = staff.filter(s => s.hirelingKey === 'unskilled').reduce((sum, s) => sum + s.quantity, 0);
+                        const totalAssignedCrew = siegeWeapons.reduce((sum, w) => sum + (siegeAssignments[w.id]?.crew || 0), 0);
+                        const availableCrew = Math.max(0, totalUnskilled - totalAssignedCrew);
+                        const totalAssignedAmmo = {};
+                        siegeWeapons.forEach(w => {
+                            const data = COMPONENTS['Siege Weapons']?.[w.name];
+                            if (data?.ammoType) {
+                                totalAssignedAmmo[data.ammoType] = (totalAssignedAmmo[data.ammoType] || 0) + (siegeAssignments[w.id]?.ammo || 0);
+                            }
+                        });
+                        const inv = ammoInventory || {};
+                        const ammoUnassigned = (type) => Math.max(0, (inv[type] || 0) - (totalAssignedAmmo[type] || 0));
+                        const neededTypes = new Set(siegeWeapons.map(w => COMPONENTS['Siege Weapons']?.[w.name]?.ammoType).filter(Boolean));
+
+                        if (siegeWeapons.length === 0) return null;
+
+                        return React.createElement("div", null,
+                            React.createElement("h3", { className: "text-2xl font-medieval text-wood-dark dark:text-gold-light mb-4" }, "🏹 Belagerungswaffen"),
+                            // Overview bar
+                            React.createElement("div", { className: "mb-4 p-3 bg-red-50/50 dark:bg-red-900/20 rounded-lg border border-red-300/50 dark:border-red-700/40 flex flex-wrap gap-4 text-sm min-h-[3.5rem] items-center" },
+                                React.createElement("span", { className: "font-semibold text-red-800 dark:text-red-300" },
+                                    `👥 Crew: ${totalAssignedCrew}/${totalUnskilled} zugewiesen`
+                                ),
+                                Object.entries(AMMO_TYPES).filter(([type]) => neededTypes.has(type) || (inv[type] || 0) > 0).map(([type, info]) =>
+                                    React.createElement("span", { key: type, className: "text-wood-text/70 dark:text-parchment-bg/60" },
+                                        `${info.label}: ${inv[type] || 0} Stk. (${totalAssignedAmmo[type] || 0} verteilt)`
+                                    )
+                                )
+                            ),
+
+                            // Ammo Inventory Management
+                            React.createElement("div", { className: "mb-6 p-4 bg-amber-50/50 dark:bg-amber-900/15 rounded-lg border-2 border-amber-400/40 dark:border-amber-600/30" },
+                                React.createElement("h4", { className: "font-semibold text-amber-800 dark:text-amber-300 mb-3" }, "🎯 Munitionslager"),
+                                React.createElement("p", { className: "text-xs text-wood-text/60 dark:text-parchment-bg/50 mb-3" },
+                                    "Hier siehst du deinen gesamten Munitionsvorrat. Passe die Menge an wenn du Munition kaufst oder im Kampf verschießt."
+                                ),
+                                React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-3 gap-3" },
+                                    Object.entries(AMMO_TYPES).map(([type, info]) =>
+                                        React.createElement("div", { key: type, className: "p-3 bg-white/50 dark:bg-gray-800/30 rounded border border-amber-300/40 dark:border-amber-700/30" },
+                                            React.createElement("div", { className: "text-sm font-semibold mb-2 truncate" }, info.label),
+                                            React.createElement("div", { className: "flex items-center justify-between gap-1" },
+                                                React.createElement("button", {
+                                                    onClick: () => updateAmmoInventory(type, (inv[type] || 0) - 1),
+                                                    disabled: (inv[type] || 0) <= 0,
+                                                    className: "w-8 h-8 rounded bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200 font-bold disabled:opacity-30 flex-shrink-0"
+                                                }, "−"),
+                                                React.createElement("input", {
+                                                    type: "number", min: "0",
+                                                    value: inv[type] || 0,
+                                                    onChange: e => updateAmmoInventory(type, parseInt(e.target.value) || 0),
+                                                    className: "w-16 text-center p-1.5 border border-amber-400 dark:border-gray-500 rounded bg-white/80 dark:bg-gray-700 dark:text-parchment-light text-sm font-bold"
+                                                }),
+                                                React.createElement("button", {
+                                                    onClick: () => updateAmmoInventory(type, (inv[type] || 0) + 1),
+                                                    className: "w-8 h-8 rounded bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200 font-bold flex-shrink-0"
+                                                }, "+")
+                                            ),
+                                            React.createElement("div", { className: "text-xs text-wood-text/40 dark:text-parchment-bg/30 mt-1.5 text-center" },
+                                                `${info.price} GP pro Stück`
+                                            )
+                                        )
+                                    )
+                                )
+                            ),
+
+                            // Weapon Cards
+                            React.createElement("div", { className: "space-y-3" },
+                                siegeWeapons.map(weapon => {
+                                    const data = COMPONENTS['Siege Weapons']?.[weapon.name] || {};
+                                    const assign = siegeAssignments[weapon.id] || { crew: 0, ammo: 0 };
+                                    const crewReq = data.crewRequired || 0;
+                                    const crewRatio = crewReq > 0 ? Math.min(1, assign.crew / crewReq) : 1;
+                                    const crewFull = crewReq === 0 || assign.crew >= crewReq;
+                                    const mvContrib = (weapon.pureCost ?? weapon.baseCost) * (globalPriceScale || 1.0);
+                                    const effectiveMV = Math.round(mvContrib * crewRatio);
+
+                                    return React.createElement("div", {
+                                        key: weapon.id,
+                                        className: `p-4 rounded-lg border-2 ${crewFull ? 'border-green-500/50 bg-green-50/30 dark:bg-green-900/15' : assign.crew > 0 ? 'border-amber-400/50 bg-amber-50/30 dark:bg-amber-900/15' : 'border-red-400/50 bg-red-50/30 dark:bg-red-900/15'}`
+                                    },
+                                        React.createElement("div", { className: "flex justify-between items-start mb-3" },
+                                            React.createElement("div", null,
+                                                React.createElement("div", { className: "font-semibold text-lg text-wood-dark dark:text-gold-light" },
+                                                    `⚔️ ${weapon.customName || weapon.name}`
+                                                ),
+                                                React.createElement("div", { className: "text-xs text-wood-text/60 dark:text-parchment-bg/50" },
+                                                    crewReq > 0
+                                                        ? `Crew benötigt: ${crewReq} · MV: ${effectiveMV}/${mvContrib} (${Math.round(crewRatio * 100)}%)`
+                                                        : `MV: ${effectiveMV}`
+                                                )
+                                            ),
+                                            crewReq > 0 && React.createElement("span", { className: `text-xs font-bold px-2 py-1 rounded ${crewFull ? 'bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200' : assign.crew > 0 ? 'bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200' : 'bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200'}` },
+                                                crewFull ? '✅ Einsatzbereit' : assign.crew > 0 ? '⚠️ Unterbesetzt' : '❌ Unbemannt'
+                                            )
+                                        ),
+                                        React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-3" },
+                                            crewReq > 0 && React.createElement("div", { className: "flex items-center gap-2" },
+                                                React.createElement("span", { className: "text-sm font-semibold w-16" }, "👥 Crew:"),
+                                                React.createElement("button", {
+                                                    onClick: () => updateSiegeAssignment(weapon.id, 'crew', assign.crew - 1),
+                                                    disabled: assign.crew <= 0,
+                                                    className: "w-7 h-7 rounded bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200 font-bold disabled:opacity-30"
+                                                }, "−"),
+                                                React.createElement("span", { className: `font-bold text-lg w-12 text-center ${crewFull ? 'text-green-700 dark:text-green-400' : 'text-amber-700 dark:text-amber-400'}` },
+                                                    `${assign.crew}/${crewReq}`
+                                                ),
+                                                React.createElement("button", {
+                                                    onClick: () => updateSiegeAssignment(weapon.id, 'crew', assign.crew + 1),
+                                                    disabled: availableCrew <= 0,
+                                                    className: "w-7 h-7 rounded bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200 font-bold disabled:opacity-30"
+                                                }, "+"),
+                                                React.createElement("span", { className: "text-xs text-wood-text/40 dark:text-parchment-bg/30 ml-1" },
+                                                    `(${availableCrew} frei)`
+                                                )
+                                            ),
+                                            data.ammoType && React.createElement("div", { className: "flex items-center gap-2" },
+                                                React.createElement("span", { className: "text-sm font-semibold w-16" }, AMMO_TYPES[data.ammoType]?.label?.split(' ')[0] || '🎯'),
+                                                React.createElement("button", {
+                                                    onClick: () => updateSiegeAssignment(weapon.id, 'ammo', assign.ammo - 1),
+                                                    disabled: assign.ammo <= 0,
+                                                    className: "w-7 h-7 rounded bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200 font-bold disabled:opacity-30"
+                                                }, "−"),
+                                                React.createElement("span", { className: "font-bold text-lg w-12 text-center" },
+                                                    `${assign.ammo}`
+                                                ),
+                                                React.createElement("button", {
+                                                    onClick: () => updateSiegeAssignment(weapon.id, 'ammo', assign.ammo + 1),
+                                                    disabled: ammoUnassigned(data.ammoType) <= 0,
+                                                    className: "w-7 h-7 rounded bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200 font-bold disabled:opacity-30"
+                                                }, "+"),
+                                                React.createElement("span", { className: "text-xs text-wood-text/40 dark:text-parchment-bg/30 ml-1" },
+                                                    `(${ammoUnassigned(data.ammoType)} frei)`
+                                                )
+                                            )
+                                        )
+                                    );
+                                })
+                            )
+                        );
+                    })(),
 
                     // Event Log
                     React.createElement("div", null,
@@ -7514,11 +8218,11 @@ const HelpModal = ({ onClose }) => {
                         ),
                         React.createElement("div", { className: "p-3 bg-blue-50/60 dark:bg-blue-900/20 rounded-lg border-l-4 border-blue-500" },
                             React.createElement("p", { className: "font-bold text-blue-800 dark:text-blue-300" }, "🏭 IV – Industrieller Wert (\"Was wird hergestellt?\")"),
-                            React.createElement("p", null, "Werkstätten, Schmieden, Alchemielabore – alles was Waren produziert. Deine Industrie beliefert deine Läden mit Waren und verdient selbst auch etwas Gold (1% des IV pro Woche). Ohne Industrie hat dein Shop nichts zum Verkaufen! Denk an IV wie die Handwerker und Fabriken einer Stadt.")
+                            React.createElement("p", null, "Werkstätten, Schmieden, Alchemielabore – alles was Waren produziert. Deine Industrie beliefert deine Läden mit Waren und verdient selbst auch etwas Gold (IV-Rate (Standard 2%) des IV pro Woche). Ohne Industrie hat dein Shop nichts zum Verkaufen! Denk an IV wie die Handwerker und Fabriken einer Stadt.")
                         ),
                         React.createElement("div", { className: "p-3 bg-green-50/60 dark:bg-green-900/20 rounded-lg border-l-4 border-green-500" },
                             React.createElement("p", { className: "font-bold text-green-800 dark:text-green-300" }, "💰 ÖV – Ökonomischer Wert (\"Was wird verkauft?\")"),
-                            React.createElement("p", null, "Shops und Handelsposten – hier wird das Gold verdient! ÖV-Gebäude bringen 5% ihres Werts pro Woche ein. ABER: Deine Läden können nur so viel verkaufen, wie deine Industrie herstellt. Wenn dein ÖV höher ist als dein IV, arbeiten deine Läden nicht auf voller Kapazität. Denk an ÖV wie die Marktplätze und Geschäfte einer Stadt.")
+                            React.createElement("p", null, "Shops und Handelsposten – hier wird das Gold verdient! ÖV-Gebäude bringen ÖV-Rate (Standard 10%) ihres Werts pro Woche ein. ABER: Deine Läden können nur so viel verkaufen, wie deine Industrie herstellt. Wenn dein ÖV höher ist als dein IV, arbeiten deine Läden nicht auf voller Kapazität. Denk an ÖV wie die Marktplätze und Geschäfte einer Stadt.")
                         ),
                         React.createElement("div", { className: "p-3 bg-purple-50/60 dark:bg-purple-900/20 rounded-lg border-l-4 border-purple-500" },
                             React.createElement("p", { className: "font-bold text-purple-800 dark:text-purple-300" }, "👥 SV – Sozialer Wert (\"Wie zufrieden sind die Leute?\")"),
@@ -7613,11 +8317,11 @@ const HelpModal = ({ onClose }) => {
                     React.createElement("div", { className: "space-y-3 mt-2" },
                         React.createElement("div", { className: "p-3 bg-blue-50/60 dark:bg-blue-900/20 rounded-lg" },
                             React.createElement("p", { className: "font-bold text-blue-800 dark:text-blue-300" }, "🏭 Schritt 1: Industrie stellt Waren her"),
-                            React.createElement("p", null, "Schmieden, Werkstätten und Alchemielabore produzieren Waren. Einen Teil davon verkaufen sie direkt – das bringt dir jede Woche 1% deines gesamten Industriewerts als Gold ein. Wenn dein IV 1.000 beträgt, verdienst du 10 Gold pro Woche allein durch die Industrie.")
+                            React.createElement("p", null, "Schmieden, Werkstätten und Alchemielabore produzieren Waren. Einen Teil davon verkaufen sie direkt – das bringt dir jede Woche die eingestellte IV-Rate deines Industriewerts als Gold ein. Wenn dein IV 1.000 beträgt, verdienst du bei 2% Rate 20 Gold pro Woche allein durch die Industrie.")
                         ),
                         React.createElement("div", { className: "p-3 bg-green-50/60 dark:bg-green-900/20 rounded-lg" },
                             React.createElement("p", { className: "font-bold text-green-800 dark:text-green-300" }, "🏪 Schritt 2: Shops verkaufen den Rest"),
-                            React.createElement("p", null, "Deine Shops sind die Hauptverdiener – sie bringen 5% ihres Werts pro Woche ein! ABER: Sie können nur verkaufen, was deine Industrie herstellt. Wenn deine Shops mehr wert sind als deine Industrie, arbeiten sie nicht auf voller Kraft. Die Faustregel: Sorge dafür, dass deine Industriegebäude mindestens so viel wert sind wie deine Shops.")
+                            React.createElement("p", null, "Deine Shops sind die Hauptverdiener – sie bringen ÖV-Rate (Standard 10%) ihres Werts pro Woche ein! ABER: Sie können nur verkaufen, was deine Industrie herstellt. Wenn deine Shops mehr wert sind als deine Industrie, arbeiten sie nicht auf voller Kraft. Die Faustregel: Sorge dafür, dass deine Industriegebäude mindestens so viel wert sind wie deine Shops.")
                         ),
                         React.createElement("div", { className: "p-3 bg-amber-50/60 dark:bg-amber-900/20 rounded-lg" },
                             React.createElement("p", { className: "font-bold text-amber-800 dark:text-amber-300" }, "🍺 Bonus: Tavernen boosten alles"),
@@ -7898,6 +8602,55 @@ const App = () => {
               "Aktives Bollwerk: ", React.createElement("span", { className: "font-medieval text-xl italic text-wood-text/80 dark:text-parchment-bg/70" }, "Neues, ungespeichertes Bollwerk")
             )
           )
+        ),
+        // Global Price Scale & Rate Sliders
+        React.createElement("div", { className: "py-2 mb-2 bg-amber-50/50 dark:bg-amber-900/15 border-b-2 border-amber-300/30 dark:border-amber-700/20 px-4" },
+            // Price scale row
+            React.createElement("div", { className: "flex flex-wrap items-center justify-center gap-3 mb-1" },
+                React.createElement("span", { className: "text-sm font-semibold text-amber-800 dark:text-amber-300" }, "💰 Preise:"),
+                React.createElement("input", {
+                    type: "range", min: "0.10", max: "2.00", step: "0.05",
+                    value: stronghold.globalPriceScale,
+                    onChange: e => stronghold.setGlobalPriceScale(parseFloat(e.target.value)),
+                    className: "w-28 accent-amber-600"
+                }),
+                React.createElement("span", { className: "font-bold text-amber-900 dark:text-amber-200 w-12 text-center" }, `×${stronghold.globalPriceScale.toFixed(2)}`),
+                [
+                    { label: '📜 3.5e', value: 1.0, iv: 1.0, ev: 5.0 },
+                    { label: '⚖️ 5e', value: 0.5, iv: 2.0, ev: 10.0 },
+                ].map(preset => React.createElement("button", {
+                    key: preset.label,
+                    onClick: () => { stronghold.setGlobalPriceScale(preset.value); stronghold.setIvRate(preset.iv); stronghold.setEvRate(preset.ev); },
+                    className: `text-xs px-2 py-1 rounded border transition-all ${Math.abs(stronghold.globalPriceScale - preset.value) < 0.01 && Math.abs(stronghold.ivRate - preset.iv) < 0.01 && Math.abs(stronghold.evRate - preset.ev) < 0.01 ? 'bg-amber-600 text-white border-amber-700 font-bold' : 'bg-white/60 dark:bg-gray-700/60 border-amber-400/50 dark:border-amber-600/40 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-800/40'}`
+                }, preset.label))
+            ),
+            // IV/EV rate row
+            React.createElement("div", { className: "flex flex-wrap items-center justify-center gap-3" },
+                React.createElement("span", { className: "text-sm font-semibold text-blue-800 dark:text-blue-300" }, "🏭 IV:"),
+                React.createElement("input", {
+                    type: "range", min: "0.5", max: "10.0", step: "0.5",
+                    value: stronghold.ivRate,
+                    onChange: e => stronghold.setIvRate(parseFloat(e.target.value)),
+                    className: "w-20 accent-blue-600"
+                }),
+                React.createElement("span", { className: "font-bold text-blue-900 dark:text-blue-200 w-10 text-center text-sm" }, `${stronghold.ivRate.toFixed(1)}%`),
+                React.createElement("span", { className: "text-amber-400 dark:text-amber-600 mx-1" }, "·"),
+                React.createElement("span", { className: "text-sm font-semibold text-green-800 dark:text-green-300" }, "💰 ÖV:"),
+                React.createElement("input", {
+                    type: "range", min: "1.0", max: "20.0", step: "0.5",
+                    value: stronghold.evRate,
+                    onChange: e => stronghold.setEvRate(parseFloat(e.target.value)),
+                    className: "w-20 accent-green-600"
+                }),
+                React.createElement("span", { className: "font-bold text-green-900 dark:text-green-200 w-10 text-center text-sm" }, `${stronghold.evRate.toFixed(1)}%`),
+                React.createElement("button", {
+                    onClick: () => { stronghold.setIvRate(2.0); stronghold.setEvRate(10.0); },
+                    className: `text-xs px-2 py-1 rounded border transition-all ${stronghold.ivRate === 2.0 && stronghold.evRate === 10.0 ? 'bg-gray-400 text-white border-gray-500 font-bold' : 'bg-white/60 dark:bg-gray-700/60 border-gray-400/50 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`
+                }, "↺ Standard"),
+                React.createElement("span", { className: "text-xs text-amber-700/60 dark:text-amber-400/40 italic" },
+                    "Gilt für neue Käufe & Simulation"
+                )
+            )
         ),
         React.createElement(Tabs, { activeTab: activeTab, setActiveTab: setActiveTab }),
         React.createElement("main", { className: "bg-parchment-bg/95 dark:bg-gray-900/50 border-x-3 border-b-3 border-wood dark:border-wood-dark rounded-b-lg p-4 sm:p-8 min-h-[500px] overflow-hidden" },
