@@ -364,8 +364,8 @@ const COMPONENTS = {
     },
     "Food & Dining": {
         "Kitchen, basic": { cost: 2000, ss: 1, provides: { food: 15 }, jobs: [{ role: 'Cook', count: 1 }] },
-        "Kitchen, fancy": { cost: 12000, ss: 1, provides: { food: 15 }, jobs: [{ role: 'Cook', count: 1 }] },
-        "Kitchen, luxury": { cost: 50000, ss: 2, provides: { food: 30 }, jobs: [{ role: 'Cook', count: 1 }] },
+        "Kitchen, fancy": { cost: 12000, ss: 1, provides: { food: 30 }, jobs: [{ role: 'Cook', count: 2 }] },
+        "Kitchen, luxury": { cost: 50000, ss: 2, provides: { food: 100 }, jobs: [{ role: 'Cook', count: 6 }] },
         "Dining hall, basic": { cost: 2000, ss: 2, provides: { diningHallSeat: 20 } },
         "Dining hall, fancy": { cost: 12000, ss: 2, provides: { diningHallSeat: 20 } },
         "Dining hall, luxury": { cost: 50000, ss: 2, provides: { diningHallSeat: 20 } },
@@ -4724,9 +4724,9 @@ const ROOM_MECHANICS = {
     "Common area, basic":     "Kein direkter Ressourcen-Output. Trägt zum Sozialen Wert der Festung bei, der Gehälter um bis zu 100% reduzieren kann.",
     "Common area, fancy":     "Kein direkter Ressourcen-Output. Höherer Beitrag zum Sozialen Wert als basic-Variante.",
     // Food & Dining
-    "Kitchen, basic":         "Versorgt die Festung mit Nahrung. Benötigt einen Koch. Kann als sozial (Personalversorgung) oder industriell (Handel, kein Nahrungsoutput) klassifiziert werden. REGELEFFEKT: Gewährt +2 auf alle Checks mit Koch-Utensilien (Cook's Utensils) innerhalb der Festung. Nicht kumulativ mit höheren Küchen.",
-    "Kitchen, fancy":         "Gehobene Küche mit höherem Wert. Gleiche Nahrungskapazität wie basic. Kann als sozial oder industriell klassifiziert werden. REGELEFFEKT: Gewährt +4 auf alle Checks mit Koch-Utensilien (Cook's Utensils) innerhalb der Festung. Ersetzt den +2 Bonus der Basic-Küche.",
-    "Kitchen, luxury":        "Großküche mit doppelter Nahrungskapazität pro Basis-Fläche. Kann als sozial oder industriell klassifiziert werden. REGELEFFEKT: Gewährt +6 auf alle Checks mit Koch-Utensilien (Cook's Utensils) innerhalb der Festung. Ersetzt alle niedrigeren Boni.",
+    "Kitchen, basic":         "Versorgt bis zu 15 Personen mit Nahrung. Benötigt 1 Koch. Kann als sozial (Personalversorgung) oder industriell (Handel, kein Nahrungsoutput) klassifiziert werden. REGELEFFEKT: Gewährt +2 auf alle Checks mit Koch-Utensilien (Cook's Utensils) innerhalb der Festung. Nicht kumulativ mit höheren Küchen.",
+    "Kitchen, fancy":         "Gehobene Küche – versorgt bis zu 30 Personen mit Nahrung (doppelt so viele wie Basic). Benötigt 2 Köche. Kann als sozial oder industriell klassifiziert werden. REGELEFFEKT: Gewährt +4 auf alle Checks mit Koch-Utensilien (Cook's Utensils) innerhalb der Festung. Ersetzt den +2 Bonus der Basic-Küche.",
+    "Kitchen, luxury":        "Massive Großküche – versorgt bis zu 100 Personen mit Nahrung! Benötigt 6 Köche. Kann als sozial oder industriell klassifiziert werden. REGELEFFEKT: Gewährt +6 auf alle Checks mit Koch-Utensilien (Cook's Utensils) innerhalb der Festung. Ersetzt alle niedrigeren Boni.",
     "Dining hall, basic":     "Stellt 20 Essensplätze pro Basis-Fläche (800 sq ft) bereit. Bezahltes Personal (nicht Freiwillige) benötigt einen Sitzplatz. Freiwillige benötigen KEINEN Essensplatz. Skaliert linear.",
     "Dining hall, fancy":     "Stellt 20 Essensplätze bereit. Gleiche Kapazität wie basic, höherer Sozialer-Wert-Beitrag.",
     "Dining hall, luxury":    "Stellt 20 Essensplätze bereit. Höchster Sozialer-Wert-Beitrag aller Speisesäle.",
