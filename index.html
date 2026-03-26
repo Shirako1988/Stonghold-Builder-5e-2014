@@ -1055,6 +1055,16 @@ const migrateState = (state) => {
         ...c,
         pureCost: computePureCost(c),
     }));
+    // Migrate walls: ensure all walls have pureCost (unscaled base value)
+    const walls = (state.walls || []).map(w => ({
+        ...w,
+        pureCost: w.pureCost !== undefined ? w.pureCost : (() => {
+            const wallType = w.type || w.material || 'stone';
+            const costPerFt = WALL_COSTS[wallType] || 0;
+            const vol = (w.length || 0) * (w.height || 0) * (w.thickness || 0);
+            return vol * costPerFt;
+        })(),
+    }));
     // Migrate: generate constructionQueue from pending/in_progress items if missing
     let constructionQueue = state.constructionQueue;
     if (!constructionQueue || constructionQueue.length === 0) {
@@ -1069,7 +1079,7 @@ const migrateState = (state) => {
         (state.enchantments || []).filter(e => e.constructionStatus === 'pending').forEach(e => queue.push({ id: e.id, type: 'enchantment' }));
         if (queue.length > 0) constructionQueue = queue;
     }
-    return { ...state, components, constructionQueue: constructionQueue || [] };
+    return { ...state, components, walls, constructionQueue: constructionQueue || [] };
 };
 
 
@@ -2411,11 +2421,12 @@ const useStronghold = () => {
             const scaledShopValue_sim = newState.components
                 .filter(c => c.constructionStatus === 'completed' && c.name.toLowerCase().includes('shop'))
                 .reduce((sum, c) => {
-                    if (!c.jobSlots || c.jobSlots.length === 0) return sum + c.baseCost;
+                    const baseForMerchant = (c.pureCost ?? c.baseCost) * simGlobalScale;
+                    if (!c.jobSlots || c.jobSlots.length === 0) return sum + baseForMerchant;
                     const totalJobs = c.jobSlots.length;
                     const filledJobs = c.jobSlots.filter(j => j.filledBy !== null).length;
                     const efficiencyRatio = totalJobs > 0 ? filledJobs / totalJobs : 1;
-                    return sum + (c.baseCost * efficiencyRatio);
+                    return sum + (baseForMerchant * efficiencyRatio);
                 }, 0);
             const currentTotalMerchantGold = scaledShopValue_sim * 0.25;
             newLog.push(`Woche ${weekNumber}${dateStamp} (Wirtschaft): Händlergold wurde auf ${currentTotalMerchantGold.toFixed(2)} GP zurückgesetzt.`);
@@ -3301,7 +3312,7 @@ const CLASSIFICATION_LABELS_SHORT = { military: '⚔️', industrial: '🏭', ec
 const CLASSIFICATION_SORT_ORDER = { military: 0, industrial: 1, economic: 2, economic_social: 3, social: 4 };
 
 const AddedComponentsList = ({ stronghold }) => {
-    const { components, removeComponent, renameComponent, updateComponentClassification } = stronghold;
+    const { components, removeComponent, renameComponent, updateComponentClassification, globalPriceScale } = stronghold;
     const [pendingDelete, setPendingDelete] = useState(null);
     const [search, setSearch] = useState('');
     const [sortBy, setSortBy] = useState('added');
@@ -3351,6 +3362,15 @@ const AddedComponentsList = ({ stronghold }) => {
                     c.area > 0 ? React.createElement("span", null, `${c.length}×${c.width} ft (${c.area} sq ft)`) : React.createElement("span", null, "Einzelstück"),
                     React.createElement("span", { className: "opacity-40" }, "·"),
                     React.createElement("span", null, `Bezahlt: ${c.totalCost.toFixed(0)} gp`),
+                    (() => {
+                        const scaledValue = (c.pureCost ?? c.baseCost) * (globalPriceScale || 1.0);
+                        return Math.abs(scaledValue - c.totalCost) > 1 ? React.createElement(React.Fragment, null,
+                            React.createElement("span", { className: "opacity-40" }, "·"),
+                            React.createElement("span", { className: "text-amber-700 dark:text-amber-400", title: "Tatsächlicher Raumwert (ohne Standortmod) – dieser Wert zählt zur Kategorie" },
+                                `Wert: ${scaledValue.toFixed(0)} gp`
+                            )
+                        ) : null;
+                    })(),
                     React.createElement("span", { className: "opacity-40" }, "·"),
                     React.createElement("span", { className: `${c.constructionStatus === 'completed' ? 'text-green-700 dark:text-green-400' : c.constructionStatus === 'in_progress' ? 'text-amber-700 dark:text-amber-400' : 'text-gray-500'}` },
                         c.constructionStatus === 'completed' ? '✅ Fertig' : c.constructionStatus === 'in_progress' ? '🔨 Im Bau' : '⏳ Ausstehend'
@@ -3413,7 +3433,7 @@ const AddedComponentsList = ({ stronghold }) => {
 
 // List of added walls shown in WallsTab
 const AddedWallsList = ({ stronghold }) => {
-    const { walls, removeWall, renameWall } = stronghold;
+    const { walls, removeWall, renameWall, globalPriceScale } = stronghold;
     const [pendingDelete, setPendingDelete] = useState(null);
 
     useEffect(() => {
@@ -3440,12 +3460,15 @@ const AddedWallsList = ({ stronghold }) => {
                             React.createElement("span", { title: "Bezahlter Baupreis (inkl. Standortmod & Rush)" },
                                 `Bezahlt: ${w.totalCost.toFixed(0)} gp`
                             ),
-                            w.pureCost !== undefined && Math.abs(w.pureCost - w.baseCost) > 1 && React.createElement(React.Fragment, null,
-                                React.createElement("span", { className: "opacity-40" }, "·"),
-                                React.createElement("span", { className: "text-amber-700 dark:text-amber-400", title: "Tatsächlicher Mauerwert (ohne Standortmod) – dieser Wert zählt zum MV" },
-                                    `Wert: ${w.pureCost.toFixed(0)} gp`
-                                )
-                            ),
+                            (() => {
+                                const scaledValue = (w.pureCost ?? w.baseCost) * (globalPriceScale || 1.0);
+                                return Math.abs(scaledValue - w.totalCost) > 1 ? React.createElement(React.Fragment, null,
+                                    React.createElement("span", { className: "opacity-40" }, "·"),
+                                    React.createElement("span", { className: "text-amber-700 dark:text-amber-400", title: "Tatsächlicher Mauerwert (ohne Standortmod) – dieser Wert zählt zum MV" },
+                                        `Wert: ${scaledValue.toFixed(0)} gp`
+                                    )
+                                ) : null;
+                            })(),
                             React.createElement("span", { className: "opacity-40" }, "·"),
                             React.createElement("span", { className: `${w.constructionStatus === 'completed' ? 'text-green-700 dark:text-green-400' : w.constructionStatus === 'in_progress' ? 'text-amber-700 dark:text-amber-400' : 'text-gray-500'}` },
                                 w.constructionStatus === 'completed' ? '✅ Fertig' : w.constructionStatus === 'in_progress' ? '🔨 Im Bau' : '⏳ Ausstehend'
@@ -4403,6 +4426,7 @@ const StaffTab = ({ stronghold }) => {
                 React.createElement(ResourceRow, { label: "Nahrung", resourceKey: "food" }),
                 React.createElement(ResourceRow, { label: "Essensplätze", resourceKey: "diningHallSeat" }),
                 React.createElement(ResourceRow, { label: "Bäder", resourceKey: "bath" }),
+                React.createElement(ResourceRow, { label: "Waffenkammer", resourceKey: "armorySpace" }),
                 
                 React.createElement("div", { className: "border-t border-wood-light/30 dark:border-gray-500/30 my-2" }),
                 
