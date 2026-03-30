@@ -980,7 +980,7 @@ const INITIAL_STATE = {
 };
 const calculateConstructionTime = (baseCost) => {
     if (baseCost <= 0) return 0;
-    const days = (baseCost / 10000) * 7;
+    const days = (baseCost / 10000) * 14;
     return Math.ceil(days);
 };
 const calculateScaledBenefits = (componentName, category, area) => {
@@ -5036,6 +5036,7 @@ const EnchantmentMapView = ({ stronghold }) => {
     const panStartRef  = useRef(null);
     const pinDragRef   = useRef(null);
     const elDragRef    = useRef(null); // { id, startX, startY, origX, origY }
+    const resizeDragRef = useRef(null); // { id, corner, origEl, anchorX, anchorY, dragCornerX, dragCornerY }
     const zoomRef = useRef(zoom); const panRef = useRef(pan);
     useEffect(() => { zoomRef.current = zoom; }, [zoom]);
     useEffect(() => { panRef.current  = pan;  }, [pan]);
@@ -5270,7 +5271,7 @@ const EnchantmentMapView = ({ stronghold }) => {
         if (e.button!==0) return;
         e.preventDefault();
         if (editingText) { finishEdit(); return; }
-        if (elDragRef.current) return; // element already claimed this event
+        if (elDragRef.current || resizeDragRef.current) return; // element already claimed this event
         setIsDown(true);
         const { x, y } = getCoords(e.clientX, e.clientY);
 
@@ -5303,6 +5304,49 @@ const EnchantmentMapView = ({ stronghold }) => {
             moveEnchantmentPin(pinDragRef.current,
                 Math.max(0,Math.min(100,((e.clientX-rect.left)/rect.width)*100)),
                 Math.max(0,Math.min(100,((e.clientY-rect.top) /rect.height)*100)));
+            return;
+        }
+        if (resizeDragRef.current) {
+            const { id, origEl, anchorX, anchorY, dragCornerX, dragCornerY, axis } = resizeDragRef.current;
+            const { x: mx, y: my } = getCoords(e.clientX, e.clientY);
+            const dxOrig = dragCornerX - anchorX;
+            const dyOrig = dragCornerY - anchorY;
+            let sx = dxOrig !== 0 ? (mx - anchorX) / dxOrig : 1;
+            let sy = dyOrig !== 0 ? (my - anchorY) / dyOrig : 1;
+            // Midpoint handles: lock the non-dragged axis
+            if (axis === 'x') sy = 1;
+            if (axis === 'y') sx = 1;
+            // Circles: lock aspect ratio
+            if (origEl.type === 'circle') {
+                const s = Math.max(Math.abs(sx), Math.abs(sy));
+                sx = sx < 0 ? -s : s;
+                sy = sy < 0 ? -s : s;
+            }
+            if (Math.abs(sx) < 0.05) sx = 0.05 * Math.sign(sx || 1);
+            if (Math.abs(sy) < 0.05) sy = 0.05 * Math.sign(sy || 1);
+
+            if (origEl.type === 'circle') {
+                const origR = Math.hypot(origEl.x2 - origEl.x1, origEl.y2 - origEl.y1);
+                const newR = origR * Math.abs(sx);
+                const newCx = anchorX + (origEl.x1 - anchorX) * sx;
+                const newCy = anchorY + (origEl.y1 - anchorY) * sy;
+                updateDrawElement(id, { x1: newCx, y1: newCy, x2: newCx + newR, y2: newCy });
+            } else if (origEl.type === 'freehand') {
+                const newPts = origEl.pts.map(([px, py]) => [
+                    anchorX + (px - anchorX) * sx,
+                    anchorY + (py - anchorY) * sy,
+                ]);
+                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                newPts.forEach(([px, py]) => { minX = Math.min(minX, px); minY = Math.min(minY, py); maxX = Math.max(maxX, px); maxY = Math.max(maxY, py); });
+                updateDrawElement(id, { pts: newPts, x1: minX, y1: minY, x2: maxX, y2: maxY });
+            } else {
+                updateDrawElement(id, {
+                    x1: anchorX + (origEl.x1 - anchorX) * sx,
+                    y1: anchorY + (origEl.y1 - anchorY) * sy,
+                    x2: anchorX + (origEl.x2 - anchorX) * sx,
+                    y2: anchorY + (origEl.y2 - anchorY) * sy,
+                });
+            }
             return;
         }
         if (elDragRef.current) {
@@ -5345,6 +5389,7 @@ const EnchantmentMapView = ({ stronghold }) => {
         setIsDown(false);
         pinDragRef.current = null;
         elDragRef.current  = null;
+        resizeDragRef.current = null;
         panStartRef.current = null;
         if (currentEl && tool!=='select' && tool!=='pan' && tool!=='text') {
             const big = tool==='freehand' ? currentEl.pts.length>3
@@ -5373,6 +5418,123 @@ const EnchantmentMapView = ({ stronghold }) => {
         if (!val) { removeDrawElement(editingText.id); }
         else      { updateDrawElement(editingText.id, { content: val }); }
         setEditingText(null);
+    };
+
+    // ── Element bounds helper ─────────────────────────────────────────────
+    const getElementBounds = (el) => {
+        if (!el) return null;
+        if (el.type === 'text') {
+            const fs = el.fs || 24;
+            const lines = (el.content || '').split('\n');
+            const approxW = Math.max(...lines.map(l => l.length)) * fs * 0.6;
+            const approxH = lines.length * fs * 1.25;
+            return { x: el.x, y: el.y - fs, w: approxW, h: approxH };
+        }
+        if (el.type === 'circle') {
+            const r = Math.hypot(el.x2 - el.x1, el.y2 - el.y1);
+            return { x: el.x1 - r, y: el.y1 - r, w: r * 2, h: r * 2 };
+        }
+        if (el.type === 'freehand') {
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            el.pts.forEach(([px, py]) => { minX = Math.min(minX, px); minY = Math.min(minY, py); maxX = Math.max(maxX, px); maxY = Math.max(maxY, py); });
+            return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+        }
+        // rect, line
+        const x = Math.min(el.x1, el.x2), y = Math.min(el.y1, el.y2);
+        return { x, y, w: Math.abs(el.x2 - el.x1), h: Math.abs(el.y2 - el.y1) };
+    };
+
+    // ── Resize handles ──────────────────────────────────────────────────────
+    const renderResizeHandles = (el) => {
+        if (!el || el.type === 'text' || tool !== 'select') return null;
+        const bounds = getElementBounds(el);
+        if (!bounds || (bounds.w < 3 && bounds.h < 3)) return null;
+        const handleSize = 48 / zoom;
+        const half = handleSize / 2;
+        const midSize = 40 / zoom;
+        const midHalf = midSize / 2;
+        const corners = [
+            { id: 'nw', cx: bounds.x,             cy: bounds.y,             cursor: 'nwse-resize' },
+            { id: 'ne', cx: bounds.x + bounds.w,   cy: bounds.y,             cursor: 'nesw-resize' },
+            { id: 'sw', cx: bounds.x,             cy: bounds.y + bounds.h,   cursor: 'nesw-resize' },
+            { id: 'se', cx: bounds.x + bounds.w,   cy: bounds.y + bounds.h,   cursor: 'nwse-resize' },
+        ];
+        const isCircle = el.type === 'circle';
+        const midpoints = isCircle ? [] : [
+            { id: 'n',  cx: bounds.x + bounds.w / 2, cy: bounds.y,               cursor: 'ns-resize',  anchorCy: bounds.y + bounds.h, anchorCx: bounds.x + bounds.w / 2, dragCy: bounds.y,               dragCx: bounds.x + bounds.w / 2, axis: 'y' },
+            { id: 's',  cx: bounds.x + bounds.w / 2, cy: bounds.y + bounds.h,     cursor: 'ns-resize',  anchorCy: bounds.y,             anchorCx: bounds.x + bounds.w / 2, dragCy: bounds.y + bounds.h,     dragCx: bounds.x + bounds.w / 2, axis: 'y' },
+            { id: 'e',  cx: bounds.x + bounds.w,     cy: bounds.y + bounds.h / 2, cursor: 'ew-resize',  anchorCx: bounds.x,             anchorCy: bounds.y + bounds.h / 2, dragCx: bounds.x + bounds.w,     dragCy: bounds.y + bounds.h / 2, axis: 'x' },
+            { id: 'w',  cx: bounds.x,               cy: bounds.y + bounds.h / 2, cursor: 'ew-resize',  anchorCx: bounds.x + bounds.w,  anchorCy: bounds.y + bounds.h / 2, dragCx: bounds.x,               dragCy: bounds.y + bounds.h / 2, axis: 'x' },
+        ];
+        const result = [
+            React.createElement('rect', {
+                key: 'bbox-outline',
+                x: bounds.x, y: bounds.y, width: bounds.w, height: bounds.h,
+                fill: 'none',
+                stroke: '#3b82f6',
+                strokeWidth: 2.5,
+                strokeDasharray: '8 4',
+                vectorEffect: 'non-scaling-stroke',
+                opacity: 0.8,
+                pointerEvents: 'none',
+            }),
+        ];
+        corners.forEach(c => {
+            const anchorId = ({ nw: 'se', ne: 'sw', sw: 'ne', se: 'nw' })[c.id];
+            const anchor = corners.find(a => a.id === anchorId);
+            result.push(React.createElement('rect', {
+                key: 'handle-' + c.id,
+                x: c.cx - half, y: c.cy - half,
+                width: handleSize, height: handleSize,
+                fill: '#fff', stroke: '#3b82f6', strokeWidth: 3 / zoom,
+                rx: 4 / zoom,
+                style: { cursor: c.cursor },
+                onMouseDown: (ev) => {
+                    ev.stopPropagation();
+                    ev.preventDefault();
+                    resizeDragRef.current = {
+                        id: el.id,
+                        corner: c.id,
+                        origEl: { ...el, pts: el.pts ? el.pts.map(p => [...p]) : undefined },
+                        anchorX: anchor.cx,
+                        anchorY: anchor.cy,
+                        dragCornerX: c.cx,
+                        dragCornerY: c.cy,
+                        axis: null,
+                    };
+                    setIsDown(true);
+                },
+            }));
+        });
+        midpoints.forEach(m => {
+            const isVert = m.axis === 'y';
+            const w = isVert ? midSize * 1.6 : midSize * 0.7;
+            const h = isVert ? midSize * 0.7 : midSize * 1.6;
+            result.push(React.createElement('rect', {
+                key: 'handle-' + m.id,
+                x: m.cx - w / 2, y: m.cy - h / 2,
+                width: w, height: h,
+                fill: '#fff', stroke: '#3b82f6', strokeWidth: 2.5 / zoom,
+                rx: 4 / zoom,
+                style: { cursor: m.cursor },
+                onMouseDown: (ev) => {
+                    ev.stopPropagation();
+                    ev.preventDefault();
+                    resizeDragRef.current = {
+                        id: el.id,
+                        corner: m.id,
+                        origEl: { ...el, pts: el.pts ? el.pts.map(p => [...p]) : undefined },
+                        anchorX: m.anchorCx,
+                        anchorY: m.anchorCy,
+                        dragCornerX: m.dragCx,
+                        dragCornerY: m.dragCy,
+                        axis: m.axis,
+                    };
+                    setIsDown(true);
+                },
+            }));
+        });
+        return result;
     };
 
     // ── Render shapes ───────────────────────────────────────────────────────
@@ -5459,7 +5621,7 @@ const EnchantmentMapView = ({ stronghold }) => {
 
     const cursor = !mapImage ? 'default'
         : tool==='pan'    ? (isDown&&panStartRef.current ? 'grabbing':'grab')
-        : tool==='select' ? (elDragRef.current||pinDragRef.current ? 'grabbing':'default')
+        : tool==='select' ? (elDragRef.current||pinDragRef.current||resizeDragRef.current ? 'grabbing':'default')
         : tool==='text'   ? 'text'
         : 'crosshair';
 
@@ -5616,7 +5778,8 @@ const EnchantmentMapView = ({ stronghold }) => {
                             onClick: tool==='select' ? ()=>setSelectedId(null) : undefined,
                         },
                             ...drawn.map(el=>renderShape(el,false)),
-                            currentEl ? renderShape(currentEl,true) : null
+                            currentEl ? renderShape(currentEl,true) : null,
+                            ...((() => { const sel = tool==='select' && selectedId ? drawn.find(e=>e.id===selectedId) : null; return renderResizeHandles(sel) || []; })())
                         ),
                         // Pins – counter-scaled
                         ...pins.map(pin => {
@@ -5716,7 +5879,7 @@ const EnchantmentMapView = ({ stronghold }) => {
                 ),
                 drawn.length>0 && React.createElement('div', { className:'mt-2 pt-2 border-t border-wood/20 dark:border-gray-600 text-xs text-wood-text/60 dark:text-parchment-bg/50' },
                     `${drawn.length} Zeichnung${drawn.length!==1?'en':''}`,
-                    selectedId && React.createElement('div', { className:'text-amber-600 dark:text-amber-400 mt-0.5' }, '↩ Entf-Taste zum Löschen · Doppelklick Text: bearbeiten')
+                    selectedId && React.createElement('div', { className:'text-amber-600 dark:text-amber-400 mt-0.5' }, '↩ Entf-Taste: Löschen · Ecken/Kanten ziehen: Skalieren · Doppelklick: Text bearbeiten')
                 )
             )
         ),
@@ -6943,7 +7106,7 @@ const SummaryTab = ({ stronghold }) => {
         // Pending construction
         const pendingRows = pendingItems.length > 0
             ? pendingItems.map(item => {
-                const days = Math.ceil((item.baseCost/10000)*7 * (1-item.rushPercent/100));
+                const days = Math.ceil((item.baseCost/10000)*14 * (1-item.rushPercent/100));
                 const status = item.constructionStatus === 'in_progress' ? '🔨 Im Bau' : '⏳ Ausstehend';
                 const nameStr = item.customName
                     ? `${item.customName} <span style="color:#999">(${item.name})</span>`
@@ -8322,6 +8485,14 @@ const HelpModal = ({ onClose }) => {
                         React.createElement("div", { className: "p-2 bg-red-50/50 dark:bg-red-900/20 rounded border-l-4 border-red-500" },
                             React.createElement("p", { className: "font-bold text-red-800 dark:text-red-300" }, "Militär (CR-Kreaturen) – Kosten je nach Stärke"),
                             React.createElement("p", null, "Wachen und Soldaten. Sie bilden deine Garnison und verteidigen die Festung bei einem Angriff. Je stärker die Kreatur (höherer CR), desto teurer.")
+                        ),
+                        React.createElement("div", { className: "p-2 bg-green-50/50 dark:bg-green-900/20 rounded border-l-4 border-green-500" },
+                            React.createElement("p", { className: "font-bold text-green-800 dark:text-green-300" }, "🤝 Freiwillige – 1,4 GP/Woche"),
+                            React.createElement("p", null, "Günstige Helfer mit Sonderregeln: Sie brauchen Nahrung und irgendeinen freien Schlafplatz (egal welche Art), benötigen aber KEINEN Essensplatz, KEINEN Waffenkammerplatz und nehmen flexible Unterkünfte. Ideal zum Auffüllen!")
+                        ),
+                        React.createElement("div", { className: "p-2 bg-amber-50/50 dark:bg-amber-900/20 rounded border-l-4 border-amber-600" },
+                            React.createElement("p", { className: "font-bold text-amber-800 dark:text-amber-300" }, "🐴 Reittiere – Stallplätze & Stallmeister"),
+                            React.createElement("p", null, "Reittiere brauchen Stallplätze (Stall bauen!) und einen Stallmeister. Ein Stallmeister versorgt bis zu 4 Plätze. Medium-Reittiere (Pferde) brauchen 1 Platz, Large (Greifen) 4 Plätze, Huge (Elefanten) 9 Plätze. Fancy-Ställe schalten exotische, Luxury-Ställe fliegende Reittiere frei.")
                         )
                     ),
                     React.createElement("div", { className: "mt-3 p-3 bg-amber-50/60 dark:bg-amber-900/20 rounded-lg border border-amber-400/50" },
@@ -8330,6 +8501,7 @@ const HelpModal = ({ onClose }) => {
                         React.createElement("p", null, "• ", React.createElement("strong", null, "Nahrung"), " – 1 pro Person pro Woche (Küchen produzieren Nahrung!)"),
                         React.createElement("p", null, "• Einen ", React.createElement("strong", null, "Essensplatz"), " – In einem Speisesaal (Freiwillige brauchen keinen)"),
                         React.createElement("p", null, "• Ein ", React.createElement("strong", null, "Bad"), " – 1 Bad pro 10 Personen"),
+                        React.createElement("p", null, "• Einen ", React.createElement("strong", null, "Waffenkammerplatz"), " – Militärpersonal (CR-Kreaturen, keine Freiwilligen) braucht jeweils einen Platz. Baue eine Armory!"),
                         React.createElement("p", null, "Die Übersicht im Staff-Tab zeigt dir genau, was du hast und was fehlt. Rote Zahlen = Problem!")
                     )
                 ),
@@ -8396,7 +8568,7 @@ const HelpModal = ({ onClose }) => {
                         React.createElement("p", null, "• Sie steigern einen der vier Werte, je nach Kategorie (Sicherheit/Kampf → MV, Hilfsmittel/Magie → IV, Wirtschaft → ÖV, Sozial/Wohnen → SV)."),
                         React.createElement("p", null, "• ", React.createElement("strong", null, "Fest eingemauert"), " = 50% billiger, kann aber nie wieder entfernt werden. Manche Verzauberungen MÜSSEN eingebaut werden (du erkennst sie am ausgegrauten, dauerhaft aktivierten Häkchen)."),
                         React.createElement("p", null, "• Im ", React.createElement("strong", null, "Katalog"), " findest du alle verfügbaren Verzauberungen mit Beschreibung und Spielmechanik."),
-                        React.createElement("p", null, "• In der ", React.createElement("strong", null, "Festungskarte"), " kannst du platzierte Verzauberungen auf einem Grundriss per Drag & Drop anordnen.")
+                        React.createElement("p", null, "• In der ", React.createElement("strong", null, "Festungskarte"), " kannst du einen Grundriss zeichnen und Verzauberungen per Drag & Drop darauf platzieren. Mehr dazu im Abschnitt \"Festungskarte\".")
                     ),
                     React.createElement("div", { className: "mt-2 p-2 bg-amber-50/50 dark:bg-amber-900/20 rounded border border-amber-400/30" },
                         React.createElement("p", { className: "font-bold text-amber-800 dark:text-amber-300" }, "💰 Preisskalierung"),
@@ -8431,6 +8603,87 @@ const HelpModal = ({ onClose }) => {
                     React.createElement("p", null, "• Jede simulierte Woche wird im Ereignisprotokoll (sichtbar im Wirtschafts- und Verteidigungs-Tab) festgehalten.")
                 ),
 
+                // ═══ PREISMULTIPLIKATOR ═══
+                (!searchTerm || 'preis multiplikator scale skalierung 3.5e 5e preset iv rate öv rate industriell ökonomisch schieberegler'.includes(searchTerm)) &&
+                React.createElement(HelpSection, { title: "Preismultiplikator & Raten – Regelsystem anpassen", icon: "💰" },
+                    React.createElement("p", null, "In der Kopfzeile der App findest du drei wichtige Schieberegler, mit denen du die Wirtschaft an dein Regelsystem anpassen kannst:"),
+                    React.createElement("div", { className: "space-y-3 mt-2" },
+                        React.createElement("div", { className: "p-3 bg-amber-50/60 dark:bg-amber-900/20 rounded-lg border-l-4 border-amber-500" },
+                            React.createElement("p", { className: "font-bold text-amber-800 dark:text-amber-300" }, "💰 Preismultiplikator (×0.10 bis ×2.00)"),
+                            React.createElement("p", null, "Skaliert alle Gebäude- und Mauerpreise. Das 3.5e-Preset (×1.00) verwendet die Originalpreise, das 5e-Preset (×0.50) halbiert alle Preise für die modernere Goldwirtschaft. Bestehende Gebäude behalten ihren Kaufpreis – nur ihr aktueller Wert wird skaliert.")
+                        ),
+                        React.createElement("div", { className: "p-3 bg-blue-50/60 dark:bg-blue-900/20 rounded-lg border-l-4 border-blue-500" },
+                            React.createElement("p", { className: "font-bold text-blue-800 dark:text-blue-300" }, "🏭 IV-Rate (Industrieller Profit)"),
+                            React.createElement("p", null, "Wie viel Prozent des Industriewerts (IV) deine Werkstätten pro Woche als Gold erwirtschaften. Standard bei 3.5e: 1%, bei 5e: 2%. Höhere Rate = mehr passives Einkommen aus Industrie.")
+                        ),
+                        React.createElement("div", { className: "p-3 bg-green-50/60 dark:bg-green-900/20 rounded-lg border-l-4 border-green-500" },
+                            React.createElement("p", { className: "font-bold text-green-800 dark:text-green-300" }, "💰 ÖV-Rate (Ökonomischer Profit)"),
+                            React.createElement("p", null, "Wie viel Prozent des Ökonomischen Werts (ÖV) deine Shops pro Woche verdienen. Standard bei 3.5e: 5%, bei 5e: 10%. Höhere Rate = mehr Handelsgewinn.")
+                        )
+                    ),
+                    React.createElement("div", { className: "mt-2 p-2 bg-purple-50/50 dark:bg-purple-900/20 rounded border border-purple-400/30" },
+                        React.createElement("p", { className: "italic" }, "Tipp: Die Presets \"📜 3.5e\" und \"⚖️ 5e\" stellen automatisch alle drei Werte passend ein. Wenn du ein eigenes System spielst, kannst du die Regler frei anpassen.")
+                    )
+                ),
+
+                // ═══ BEZAHLT vs WERT ═══
+                (!searchTerm || 'bezahlt wert preis unterschied skaliert aktuell kaufpreis'.includes(searchTerm)) &&
+                React.createElement(HelpSection, { title: "Bezahlt vs. Wert – was ist der Unterschied?", icon: "📊" },
+                    React.createElement("p", null, "Bei Räumen und Mauern siehst du manchmal zwei Angaben:"),
+                    React.createElement("div", { className: "space-y-2 mt-2" },
+                        React.createElement("p", null, "• ", React.createElement("strong", null, "Bezahlt"), " – Der Preis, den du beim Kauf tatsächlich bezahlt hast (inklusive Standortmodifikator und Rush-Gebühr)."),
+                        React.createElement("p", null, "• ", React.createElement("strong", null, "Wert"), " (in Amber/Gold angezeigt) – Der aktuelle, skalierte Wert des Gebäudes. Dieser kann sich ändern, wenn du den globalen Preismultiplikator anpasst (z.B. von 3.5e auf 5e wechselst).")
+                    ),
+                    React.createElement("p", { className: "mt-2 italic" }, "Der Wert wird nur angezeigt, wenn er sich vom bezahlten Preis unterscheidet. Der Wert (nicht der Kaufpreis!) ist das, was für MV, IV, ÖV und SV zählt.")
+                ),
+
+                // ═══ HÄNDLERGOLD ═══
+                (!searchTerm || 'händlergold commerce handel kaufen verkaufen shop gegenstand händler merchant'.includes(searchTerm)) &&
+                React.createElement(HelpSection, { title: "Händlergold – Kaufen & Verkaufen", icon: "🏪" },
+                    React.createElement("p", null, "Wenn du mindestens einen Shop mit einem zugewiesenen Händler hast, wird das Handelssystem (COMMERCE) freigeschaltet:"),
+                    React.createElement("div", { className: "space-y-2 mt-2" },
+                        React.createElement("p", null, "• Dein ", React.createElement("strong", null, "wöchentliches Händlergold"), " beträgt 25% des Gesamtwerts aller fertiggestellten Shops (skaliert nach besetzten Händlern)."),
+                        React.createElement("p", null, "• Du kannst Gegenstände ", React.createElement("strong", null, "verkaufen"), ", aber nur bis zum verfügbaren Händlergold."),
+                        React.createElement("p", null, "• Du kannst Gegenstände ", React.createElement("strong", null, "kaufen"), ", deren Einzelwert das Händlergold nicht übersteigt."),
+                        React.createElement("p", null, "• Das Händlergold ", React.createElement("strong", null, "setzt sich jede Woche zurück"), " – nicht ausgegebenes Gold verfällt.")
+                    ),
+                    React.createElement("div", { className: "mt-2 p-2 bg-amber-50/50 dark:bg-amber-900/20 rounded border border-amber-400/30" },
+                        React.createElement("p", null, "Beispiel: Dein Shop hat einen Wert von 400 GP und der Händler ist besetzt → 400 × 25% = 100 GP Händlergold pro Woche. Du kannst Gegenstände bis 100 GP Einzelwert kaufen und verkaufen.")
+                    )
+                ),
+
+                // ═══ FESTUNGSKARTE ═══
+                (!searchTerm || 'karte map zeichnen freihand linie kreis rechteck text skalieren zeichentool grundriss plan'.includes(searchTerm)) &&
+                React.createElement(HelpSection, { title: "Festungskarte – Grundriss zeichnen", icon: "🗺️" },
+                    React.createElement("p", null, "Im Enchantments-Tab findest du unten die Festungskarte. Hier kannst du einen Grundriss zeichnen und Verzauberungen darauf platzieren:"),
+                    React.createElement("div", { className: "space-y-2 mt-2" },
+                        React.createElement("p", null, "📤 ", React.createElement("strong", null, "Kartenbild hochladen"), " – Lade ein Bild als Hintergrund hoch (z.B. einen Dungeon-Plan oder eine Zeichnung deiner Festung)."),
+                        React.createElement("p", null, "↖ ", React.createElement("strong", null, "Auswählen"), " – Klicke auf gezeichnete Elemente um sie auszuwählen, zu verschieben oder zu skalieren."),
+                        React.createElement("p", null, "✏️ ", React.createElement("strong", null, "Freihand"), " – Zeichne frei auf der Karte."),
+                        React.createElement("p", null, "╱ ", React.createElement("strong", null, "Linie"), " / ○ ", React.createElement("strong", null, "Kreis"), " / ▭ ", React.createElement("strong", null, "Rechteck"), " – Geometrische Formen zeichnen."),
+                        React.createElement("p", null, "T ", React.createElement("strong", null, "Text"), " – Text auf der Karte platzieren. Doppelklick zum Bearbeiten."),
+                        React.createElement("p", null, "🔍 ", React.createElement("strong", null, "Zoom"), " – Mit dem Mausrad oder den +/- Buttons die Karte vergrößern/verkleinern.")
+                    ),
+                    React.createElement("div", { className: "mt-2 p-2 bg-blue-50/50 dark:bg-blue-900/20 rounded border border-blue-400/30" },
+                        React.createElement("p", { className: "font-bold text-blue-800 dark:text-blue-300" }, "📐 Skalieren (Resize)"),
+                        React.createElement("p", null, "Wähle ein Element aus (↖ Tool) – an den Ecken und Kanten erscheinen blaue Anfasser. Ziehe an den Ecken um proportional zu skalieren, an den Kanten um nur in eine Richtung zu strecken. Bei Kreisen bleibt das Seitenverhältnis immer erhalten.")
+                    ),
+                    React.createElement("div", { className: "mt-2 p-2 bg-amber-50/50 dark:bg-amber-900/20 rounded border border-amber-400/30" },
+                        React.createElement("p", null, "Verzauberungen aus der Liste oben können per Drag & Drop auf die Karte gezogen werden. So siehst du auf einen Blick, welche magischen Effekte wo in deiner Festung wirken.")
+                    )
+                ),
+
+                // ═══ DARK MODE ═══
+                (!searchTerm || 'dark mode dunkel hell theme nacht design farbe'.includes(searchTerm)) &&
+                React.createElement(HelpSection, { title: "Dark Mode & Darstellung", icon: "🌙" },
+                    React.createElement("p", null, "Oben rechts findest du den Theme-Umschalter (☀️/🌙/💻). Du kannst zwischen drei Modi wählen:"),
+                    React.createElement("div", { className: "space-y-1 mt-2" },
+                        React.createElement("p", null, "☀️ ", React.createElement("strong", null, "Hell"), " – Klassisches Pergament-Design."),
+                        React.createElement("p", null, "🌙 ", React.createElement("strong", null, "Dunkel"), " – Augenfreundlich bei nächtlichen D&D-Sessions."),
+                        React.createElement("p", null, "💻 ", React.createElement("strong", null, "System"), " – Folgt automatisch der Einstellung deines Betriebssystems.")
+                    )
+                ),
+
                 // ═══ FAQ ═══
                 (!searchTerm || 'faq frage problem fehler hilfe warum funktioniert nicht'.includes(searchTerm)) &&
                 React.createElement(HelpSection, { title: "Häufige Fragen", icon: "❓" },
@@ -8458,6 +8711,10 @@ const HelpModal = ({ onClose }) => {
                         React.createElement("div", null,
                             React.createElement("p", { className: "font-bold text-wood-dark dark:text-gold-light" }, "\"Kann ich Gebäudenamen ändern?\""),
                             React.createElement("p", null, "Ja! In der Gebäudeliste (unten im Rooms-Tab) und in der Mauerliste siehst du ein kleines ✏️-Symbol neben jedem Namen. Klick darauf um einen Spitznamen zu vergeben.")
+                        ),
+                        React.createElement("div", null,
+                            React.createElement("p", { className: "font-bold text-wood-dark dark:text-gold-light" }, "\"Meine Soldaten können nicht eingestellt werden!\""),
+                            React.createElement("p", null, "Militärpersonal (CR-Kreaturen) braucht neben Schlafplatz und Nahrung auch einen Waffenkammerplatz. Baue eine Armory (basic oder fancy) im Rooms-Tab. Freiwillige brauchen keine Waffenkammer.")
                         )
                     )
                 ),
