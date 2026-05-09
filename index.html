@@ -1112,12 +1112,13 @@ const useStronghold = () => {
 
         if (oldStateRaw && !savesRaw) {
             const oldState = JSON.parse(oldStateRaw);
+            const legacyWorldDate = localStorage.getItem('worldDate') || null;
             const legacySave = {
                 name: 'Autosave (Legacy)',
                 lastSaved: new Date().toISOString(),
-                worldDate: localStorage.getItem('worldDate') || null,
+                worldDate: legacyWorldDate,
                 worldDateLabel: localStorage.getItem('worldDateLabel') || '',
-                lastSimulationDate: localStorage.getItem('lastSimulationDate') || localStorage.getItem('worldDate') || null,
+                lastSimulationDate: normalizeLastSimulationDate(legacyWorldDate, localStorage.getItem('lastSimulationDate') || legacyWorldDate || null),
                 state: oldState,
             };
             setSaveSlots([legacySave]);
@@ -1131,11 +1132,16 @@ const useStronghold = () => {
         }
       
         const loadedSavesRaw = savesRaw ? JSON.parse(savesRaw) : [];
-        const loadedSaves = loadedSavesRaw.map(slot => ({
-            ...slot,
-            // Migration: older saves had only worldDate. Use it as initial simulation baseline once.
-            lastSimulationDate: slot.lastSimulationDate || slot.worldDate || null,
-        }));
+        const loadedSaves = loadedSavesRaw.map(slot => {
+            const slotWorldDate = slot.worldDate || null;
+            const slotLastSimulationDate = normalizeLastSimulationDate(slotWorldDate, slot.lastSimulationDate || slotWorldDate || null);
+            return {
+                ...slot,
+                // Migration: older saves had only worldDate. Use it as initial simulation baseline once.
+                // Safety: if a previous buggy build pushed simulation bookkeeping past worldDate, clamp it back.
+                lastSimulationDate: slotLastSimulationDate,
+            };
+        });
         setSaveSlots(loadedSaves);
 
         const loadedActiveName = localStorage.getItem('activeStrongholdSaveName');
@@ -1215,7 +1221,7 @@ const useStronghold = () => {
           setActiveSaveName(name);
           setWorldDateState(slotToLoad.worldDate || null);
           setWorldDateLabelState(slotToLoad.worldDateLabel || '');
-          setLastSimulationDateState(slotToLoad.lastSimulationDate || slotToLoad.worldDate || null);
+          setLastSimulationDateState(normalizeLastSimulationDate(slotToLoad.worldDate || null, slotToLoad.lastSimulationDate || slotToLoad.worldDate || null));
           setUndoStack(slotToLoad.undoStack || []);
           localStorage.setItem('activeStrongholdSaveName', name);
       }
@@ -2357,9 +2363,13 @@ const useStronghold = () => {
   }, []);
 
     const simulateNextWeek = useCallback((options = {}) => {
-        const { updateWorldDate = false } = options;
-        const simulationBaseDate = lastSimulationDateRef.current || worldDateRef.current || new Date().toISOString().split('T')[0];
-        const nextSimulationDate = addDaysIso(simulationBaseDate, 7);
+        const { updateWorldDate = false, manual = false, logDate = null } = options;
+        const currentWorldDate = worldDateRef.current || null;
+        const simulationBaseDate = lastSimulationDateRef.current || currentWorldDate || new Date().toISOString().split('T')[0];
+        const nextSimulationDate = manual
+            ? (currentWorldDate || logDate || simulationBaseDate)
+            : addDaysIso(simulationBaseDate, 7);
+        const logDateForThisRun = logDate || (manual ? (currentWorldDate || nextSimulationDate) : nextSimulationDate);
 
         // Push current state and date metadata onto undo stack BEFORE mutation
         const snapshot = {
@@ -2370,7 +2380,7 @@ const useStronghold = () => {
         };
         setUndoStack(prev => [...prev, snapshot]);
 
-        const dateStamp = nextSimulationDate ? ` [${formatDateDE(nextSimulationDate)}]` : '';
+        const dateStamp = logDateForThisRun ? ` [${formatDateDE(logDateForThisRun)}]` : '';
 
         setLastSimulationDateState(nextSimulationDate);
         lastSimulationDateRef.current = nextSimulationDate;
@@ -5038,6 +5048,14 @@ const getConstructionTotalDays = (item) => {
     return Math.max(1, Math.ceil(baseDays * (1 - (item.rushPercent || 0) / 100)));
 };
 const isBeforeDate = (a, b) => toMidnight(a).getTime() < toMidnight(b).getTime();
+const normalizeLastSimulationDate = (worldDateValue, simDateValue) => {
+    const world = worldDateValue || null;
+    const sim = simDateValue || world || null;
+    // Safety migration for saves touched by the no-time-jump bug:
+    // simulation bookkeeping must never be ahead of the actual world date.
+    if (world && sim && isBeforeDate(world, sim)) return world;
+    return sim;
+};
 const fullWeeksBetween = (from, to) => {
     const msPerWeek = 7 * 24 * 60 * 60 * 1000;
     return Math.floor((toMidnight(to) - toMidnight(from)) / msPerWeek);
@@ -7956,7 +7974,7 @@ const DefenseTab = ({ stronghold }) => {
         globalPriceScale,
     } = stronghold;
 
-    const handleSimulate = () => simulateNextWeek({ updateWorldDate: false });
+    const handleSimulate = () => simulateNextWeek({ updateWorldDate: false, manual: true });
     const handleRewind = () => rewindLastWeek();
 
     const socialValueForDisplay = industrialValue + economicValue;
