@@ -1827,6 +1827,82 @@ const useStronghold = () => {
     });
   }, []);
 
+  const advanceConstructionToDate = useCallback((targetIsoDate) => {
+    if (!targetIsoDate) return;
+    setState(prevState => {
+        const targetDate = parseDateLocal(targetIsoDate);
+        if (!targetDate || isNaN(targetDate.getTime())) return prevState;
+
+        let newState = JSON.parse(JSON.stringify(prevState));
+        const queue = [...(newState.constructionQueue || [])];
+        if (queue.length === 0) return prevState;
+
+        const targetTime = toMidnight(targetIsoDate).getTime();
+        let changed = false;
+        let nextAvailableStartDate = null;
+
+        const getList = (type) => {
+            if (type === 'component') return newState.components || [];
+            if (type === 'wall') return newState.walls || [];
+            if (type === 'enchantment') return newState.enchantments || [];
+            return [];
+        };
+
+        const setList = (type, list) => {
+            if (type === 'component') newState.components = list;
+            else if (type === 'wall') newState.walls = list;
+            else if (type === 'enchantment') newState.enchantments = list;
+        };
+
+        const findItem = (qItem) => getList(qItem.type).find(item => item.id === qItem.id);
+
+        const patchItem = (qItem, patch) => {
+            const list = getList(qItem.type);
+            const nextList = list.map(item => item.id === qItem.id ? { ...item, ...patch } : item);
+            setList(qItem.type, nextList);
+            changed = true;
+        };
+
+        let guard = 0;
+        while (guard++ < 1000) {
+            const activeQueueItem = queue.find(qItem => {
+                const item = findItem(qItem);
+                return item && item.constructionStatus === 'in_progress';
+            });
+
+            if (activeQueueItem) {
+                const item = findItem(activeQueueItem);
+                if (!item.startDate) {
+                    patchItem(activeQueueItem, { startDate: targetIsoDate });
+                    break;
+                }
+
+                const endDate = addDaysIso(item.startDate, getConstructionTotalDays(item));
+                if (toMidnight(endDate).getTime() <= targetTime) {
+                    patchItem(activeQueueItem, { constructionStatus: 'completed', completedDate: endDate });
+                    nextAvailableStartDate = endDate;
+                    continue;
+                }
+                break;
+            }
+
+            const nextPendingQueueItem = queue.find(qItem => {
+                const item = findItem(qItem);
+                return item && item.constructionStatus === 'pending';
+            });
+
+            if (!nextPendingQueueItem) break;
+
+            const startDate = nextAvailableStartDate || targetIsoDate;
+            patchItem(nextPendingQueueItem, { constructionStatus: 'in_progress', startDate });
+            // Continue immediately: if the date jump still contains enough unused time,
+            // this newly-started item can complete in the same catch-up pass.
+        }
+
+        return changed ? newState : prevState;
+    });
+  }, []);
+
   const repairDamage = useCallback((amount) => {
     setState(prevState => ({ ...prevState, totalDamage: Math.max(0, prevState.totalDamage - amount), simulationLog: [...prevState.simulationLog, `Reparatur: ${amount.toFixed(0)} GP wurden für Reparaturen aufgewendet.`] }));
   }, []);
@@ -2281,7 +2357,7 @@ const useStronghold = () => {
   }, []);
 
     const simulateNextWeek = useCallback((options = {}) => {
-        const { updateWorldDate = true } = options;
+        const { updateWorldDate = false } = options;
         const simulationBaseDate = lastSimulationDateRef.current || worldDateRef.current || new Date().toISOString().split('T')[0];
         const nextSimulationDate = addDaysIso(simulationBaseDate, 7);
 
@@ -2299,8 +2375,8 @@ const useStronghold = () => {
         setLastSimulationDateState(nextSimulationDate);
         lastSimulationDateRef.current = nextSimulationDate;
 
-        // Manual defense simulation should advance world time when it would otherwise lag behind.
-        // Automatic catch-up keeps the user-selected current worldDate unchanged.
+        // Defense simulation advances only the simulation baseline by default.
+        // It must not move worldDate, because worldDate drives construction timing.
         if (updateWorldDate && nextSimulationDate && (!worldDateRef.current || isBeforeDate(worldDateRef.current, nextSimulationDate))) {
             setWorldDateState(nextSimulationDate);
             worldDateRef.current = nextSimulationDate;
@@ -2685,7 +2761,7 @@ const useStronghold = () => {
     siegeAssignments: state.siegeAssignments || {},
     updateAmmoInventory,
     ammoInventory: state.ammoInventory || { bolt: 0, stone: 0, charge: 0 },
-    startNewStronghold, exportSlot, importStronghold, startConstruction, completeConstruction, simulateNextWeek, rewindLastWeek, repairDamage,
+    startNewStronghold, exportSlot, importStronghold, startConstruction, completeConstruction, advanceConstructionToDate, simulateNextWeek, rewindLastWeek, repairDamage,
     reorderConstructionQueue, acknowledgeConstruction, instantComplete,
     constructionQueue: state.constructionQueue || [],
     setMerchantGoldSpentThisWeek, depositToTreasury, withdrawFromTreasury,
@@ -4951,6 +5027,16 @@ const addDaysIso = (isoDate, days) => {
     d.setDate(d.getDate() + days);
     return toIsoDate(d);
 };
+const getConstructionTotalDays = (item) => {
+    if (!item) return 1;
+    if (item.constructionDays !== undefined && item.constructionDays !== null) {
+        const storedDays = parseInt(item.constructionDays, 10);
+        if (!isNaN(storedDays) && storedDays > 0) return storedDays;
+    }
+    const rawCost = item.baseCost || item.price5e || 0;
+    const baseDays = calculateConstructionTime(rawCost);
+    return Math.max(1, Math.ceil(baseDays * (1 - (item.rushPercent || 0) / 100)));
+};
 const isBeforeDate = (a, b) => toMidnight(a).getTime() < toMidnight(b).getTime();
 const fullWeeksBetween = (from, to) => {
     const msPerWeek = 7 * 24 * 60 * 60 * 1000;
@@ -6542,7 +6628,7 @@ const CraftingQueue = ({ stronghold }) => {
 };
 
 const ConstructionTab = ({ stronghold }) => {
-    const { components, walls, enchantments, startConstruction, completeConstruction, removeComponent, removeWall, removeEnchantment,
+    const { components, walls, enchantments, startConstruction, completeConstruction, advanceConstructionToDate, removeComponent, removeWall, removeEnchantment,
             reorderConstructionQueue, acknowledgeConstruction, instantComplete, constructionQueue } = stronghold;
     const currentDate = stronghold.worldDate || new Date().toISOString().split('T')[0];
     const worldDateLabel = stronghold.worldDateLabel || '';
@@ -6560,53 +6646,18 @@ const ConstructionTab = ({ stronghold }) => {
 
     const getEndDate = (item) => {
         if (!item.startDate) return null;
-        const baseDays = calculateConstructionTime(item.baseCost || item.price5e || 0);
-        const totalDays = Math.max(1, Math.ceil(baseDays * (1 - (item.rushPercent || 0) / 100)));
-        const end = new Date(item.startDate);
-        end.setDate(end.getDate() + totalDays);
-        return end;
+        const endIso = addDaysIso(item.startDate, getConstructionTotalDays(item));
+        return parseDateLocal(endIso);
     };
 
-    const getTotalDays = (item) => {
-        const baseDays = calculateConstructionTime(item.baseCost || item.price5e || 0);
-        return Math.max(1, Math.ceil(baseDays * (1 - (item.rushPercent || 0) / 100)));
-    };
+    const getTotalDays = (item) => getConstructionTotalDays(item);
 
-    // Auto-start & auto-complete: cascading logic handles multiple completions when time jumps forward
+    // Auto-start & auto-complete: process the whole elapsed construction timeline in one pass.
+    // If 7 days pass and several 2-day jobs are queued, multiple jobs finish and the next one starts with remaining progress.
     useEffect(() => {
         if (!currentDate || constructionQueue.length === 0) return;
-        const now = new Date(currentDate);
-        
-        const findItem = (id) => {
-            return components.find(c => c.id === id) || walls.find(w => w.id === id) || (enchantments || []).find(e => e.id === id);
-        };
-        const getType = (id) => {
-            if (components.find(c => c.id === id)) return 'component';
-            if (walls.find(w => w.id === id)) return 'wall';
-            return 'enchantment';
-        };
-
-        // Check if current in_progress item is done
-        const allArr = [...components, ...walls, ...(enchantments || [])];
-        const currentInProgress = allArr.find(i => i.constructionStatus === 'in_progress');
-        
-        if (currentInProgress) {
-            const end = getEndDate(currentInProgress);
-            if (end && now >= end) {
-                completeConstruction(currentInProgress.id, getType(currentInProgress.id));
-                return; // Let the re-render handle the next step
-            }
-        } else {
-            // Nothing in progress - start first pending from queue
-            for (const qItem of constructionQueue) {
-                const item = findItem(qItem.id);
-                if (item && item.constructionStatus === 'pending') {
-                    startConstruction(qItem.id, qItem.type, currentDate);
-                    return;
-                }
-            }
-        }
-    }, [currentDate, constructionQueue, components, walls, enchantments]);
+        advanceConstructionToDate(currentDate);
+    }, [currentDate, constructionQueue, components, walls, enchantments, advanceConstructionToDate]);
 
     // Items by status (using 'completed_pending_ack' = completed but date already set via completeConstruction)
     const pendingQueue = useMemo(() => {
@@ -7905,7 +7956,7 @@ const DefenseTab = ({ stronghold }) => {
         globalPriceScale,
     } = stronghold;
 
-    const handleSimulate = () => simulateNextWeek();
+    const handleSimulate = () => simulateNextWeek({ updateWorldDate: false });
     const handleRewind = () => rewindLastWeek();
 
     const socialValueForDisplay = industrialValue + economicValue;
