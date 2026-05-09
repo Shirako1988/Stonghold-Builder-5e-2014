@@ -1089,13 +1089,18 @@ const useStronghold = () => {
   const [activeSaveName, setActiveSaveName] = useState(null);
   const [worldDate, setWorldDateState] = useState(null);
   const [worldDateLabel, setWorldDateLabelState] = useState('');
+  const [lastSimulationDate, setLastSimulationDateState] = useState(null);
   const [undoStack, setUndoStack] = useState([]);
 
-  // Ref so simulateNextWeek can capture current state without stale closure
+  // Refs so weekly simulation can use current values without stale closures
   const stateRef = useRef(state);
   useEffect(() => { stateRef.current = state; }, [state]);
   const worldDateRef = useRef(worldDate);
   useEffect(() => { worldDateRef.current = worldDate; }, [worldDate]);
+  const worldDateLabelRef = useRef(worldDateLabel);
+  useEffect(() => { worldDateLabelRef.current = worldDateLabel; }, [worldDateLabel]);
+  const lastSimulationDateRef = useRef(lastSimulationDate);
+  useEffect(() => { lastSimulationDateRef.current = lastSimulationDate; }, [lastSimulationDate]);
   // saveSlotsRef lets the auto-save effect update React state without being in its own dep array
   const saveSlotsRef = useRef(saveSlots);
   useEffect(() => { saveSlotsRef.current = saveSlots; }, [saveSlots]);
@@ -1112,6 +1117,7 @@ const useStronghold = () => {
                 lastSaved: new Date().toISOString(),
                 worldDate: localStorage.getItem('worldDate') || null,
                 worldDateLabel: localStorage.getItem('worldDateLabel') || '',
+                lastSimulationDate: localStorage.getItem('lastSimulationDate') || localStorage.getItem('worldDate') || null,
                 state: oldState,
             };
             setSaveSlots([legacySave]);
@@ -1119,11 +1125,17 @@ const useStronghold = () => {
             setState(migrateState(oldState));
             setWorldDateState(legacySave.worldDate);
             setWorldDateLabelState(legacySave.worldDateLabel);
+            setLastSimulationDateState(legacySave.lastSimulationDate);
             localStorage.removeItem('strongholdBuilder');
             return;
         }
       
-        const loadedSaves = savesRaw ? JSON.parse(savesRaw) : [];
+        const loadedSavesRaw = savesRaw ? JSON.parse(savesRaw) : [];
+        const loadedSaves = loadedSavesRaw.map(slot => ({
+            ...slot,
+            // Migration: older saves had only worldDate. Use it as initial simulation baseline once.
+            lastSimulationDate: slot.lastSimulationDate || slot.worldDate || null,
+        }));
         setSaveSlots(loadedSaves);
 
         const loadedActiveName = localStorage.getItem('activeStrongholdSaveName');
@@ -1134,12 +1146,14 @@ const useStronghold = () => {
             setState(migrateState(activeSave.state));
             setWorldDateState(activeSave.worldDate || null);
             setWorldDateLabelState(activeSave.worldDateLabel || '');
+            setLastSimulationDateState(activeSave.lastSimulationDate || activeSave.worldDate || null);
             setUndoStack(activeSave.undoStack || []);
         } else if (loadedSaves.length > 0) {
             setActiveSaveName(loadedSaves[0].name);
             setState(migrateState(loadedSaves[0].state));
             setWorldDateState(loadedSaves[0].worldDate || null);
             setWorldDateLabelState(loadedSaves[0].worldDateLabel || '');
+            setLastSimulationDateState(loadedSaves[0].lastSimulationDate || loadedSaves[0].worldDate || null);
             setUndoStack(loadedSaves[0].undoStack || []);
         }
 
@@ -1153,7 +1167,7 @@ const useStronghold = () => {
         // Use ref to avoid having saveSlots in dep array (would cause infinite loop)
         const updatedSlots = saveSlotsRef.current.map(slot => 
             slot.name === activeSaveName 
-            ? { ...slot, state, worldDate, worldDateLabel, undoStack, lastSaved: new Date().toISOString() } 
+            ? { ...slot, state, worldDate, worldDateLabel, lastSimulationDate, undoStack, lastSaved: new Date().toISOString() } 
             : slot
         );
         setSaveSlots(updatedSlots);  // keep React state in sync so loadSlot always reads fresh data
@@ -1162,18 +1176,18 @@ const useStronghold = () => {
     }
   // saveSlots intentionally NOT in dep array — we use saveSlotsRef to avoid infinite loop
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state, worldDate, worldDateLabel, undoStack, activeSaveName]);
+  }, [state, worldDate, worldDateLabel, lastSimulationDate, undoStack, activeSaveName]);
 
   const saveCurrentSlot = useCallback(() => {
       if (!activeSaveName) return;
       const updatedSlots = saveSlotsRef.current.map(slot => 
           slot.name === activeSaveName 
-          ? { ...slot, state, worldDate, worldDateLabel, undoStack, lastSaved: new Date().toISOString() } 
+          ? { ...slot, state, worldDate, worldDateLabel, lastSimulationDate, undoStack, lastSaved: new Date().toISOString() } 
           : slot
       );
       setSaveSlots(updatedSlots);
       localStorage.setItem('strongholdSaves', JSON.stringify(updatedSlots));
-  }, [state, worldDate, worldDateLabel, undoStack, activeSaveName]);
+  }, [state, worldDate, worldDateLabel, lastSimulationDate, undoStack, activeSaveName]);
 
   const saveAsNewSlot = useCallback((name) => {
       if (!name || saveSlotsRef.current.some(s => s.name === name)) {
@@ -1183,7 +1197,7 @@ const useStronghold = () => {
       const newSave = {
           name,
           lastSaved: new Date().toISOString(),
-          worldDate, worldDateLabel, undoStack,
+          worldDate, worldDateLabel, lastSimulationDate, undoStack,
           state,
       };
       const newSaveSlots = [...saveSlotsRef.current, newSave];
@@ -1192,7 +1206,7 @@ const useStronghold = () => {
       localStorage.setItem('strongholdSaves', JSON.stringify(newSaveSlots));
       localStorage.setItem('activeStrongholdSaveName', name);
       return true;
-  }, [state, worldDate, worldDateLabel, undoStack]);
+  }, [state, worldDate, worldDateLabel, lastSimulationDate, undoStack]);
 
   const loadSlot = useCallback((name) => {
       const slotToLoad = saveSlotsRef.current.find(s => s.name === name);
@@ -1201,6 +1215,7 @@ const useStronghold = () => {
           setActiveSaveName(name);
           setWorldDateState(slotToLoad.worldDate || null);
           setWorldDateLabelState(slotToLoad.worldDateLabel || '');
+          setLastSimulationDateState(slotToLoad.lastSimulationDate || slotToLoad.worldDate || null);
           setUndoStack(slotToLoad.undoStack || []);
           localStorage.setItem('activeStrongholdSaveName', name);
       }
@@ -1215,6 +1230,10 @@ const useStronghold = () => {
           setState(INITIAL_STATE);
           setWorldDateState(null);
           setWorldDateLabelState('');
+          setLastSimulationDateState(null);
+          worldDateRef.current = null;
+          worldDateLabelRef.current = '';
+          lastSimulationDateRef.current = null;
           setUndoStack([]);
           localStorage.removeItem('activeStrongholdSaveName');
       }
@@ -1282,13 +1301,14 @@ const useStronghold = () => {
               newName = `${importedSlot.name} (Importiert ${counter})`;
               counter++;
           }
-          const newSave = { ...importedSlot, name: newName };
+          const newSave = { ...importedSlot, name: newName, lastSimulationDate: importedSlot.lastSimulationDate || importedSlot.worldDate || null };
           const newSaveSlots = [...saveSlotsRef.current, newSave];
           setSaveSlots(newSaveSlots);
           setState(migrateState(newSave.state));
           setActiveSaveName(newSave.name);
           setWorldDateState(newSave.worldDate || null);
           setWorldDateLabelState(newSave.worldDateLabel || '');
+          setLastSimulationDateState(newSave.lastSimulationDate || newSave.worldDate || null);
           setUndoStack(newSave.undoStack || []);
           localStorage.setItem('strongholdSaves', JSON.stringify(newSaveSlots));
           localStorage.setItem('activeStrongholdSaveName', newSave.name);
@@ -1780,6 +1800,10 @@ const useStronghold = () => {
       setActiveSaveName(null);
       setWorldDateState(null);
       setWorldDateLabelState('');
+      setLastSimulationDateState(null);
+      worldDateRef.current = null;
+      worldDateLabelRef.current = '';
+      lastSimulationDateRef.current = null;
       setUndoStack([]);
       localStorage.removeItem('activeStrongholdSaveName');
     }
@@ -2214,8 +2238,18 @@ const useStronghold = () => {
     }, [state.components, state.walls, state.siegeAssignments, state.globalPriceScale]);
 
   const setWorldDate = useCallback((isoDate, label) => {
-      setWorldDateState(isoDate || null);
-      setWorldDateLabelState(label || '');
+      const nextDate = isoDate || null;
+      const nextLabel = label || '';
+      setWorldDateState(nextDate);
+      setWorldDateLabelState(nextLabel);
+      worldDateRef.current = nextDate;
+      worldDateLabelRef.current = nextLabel;
+  }, []);
+
+  const setLastSimulationDate = useCallback((isoDate) => {
+      const nextDate = isoDate || null;
+      setLastSimulationDateState(nextDate);
+      lastSimulationDateRef.current = nextDate;
   }, []);
 
   const rewindLastWeek = useCallback(() => {
@@ -2226,20 +2260,51 @@ const useStronghold = () => {
           }
           const newStack = [...prev];
           const snapshot = newStack.pop();
-          setState(snapshot);
+
+          // New snapshots store state + date metadata. Legacy snapshots stored only state.
+          if (snapshot && snapshot.state) {
+              setState(snapshot.state);
+              setWorldDateState(snapshot.worldDate || null);
+              setWorldDateLabelState(snapshot.worldDateLabel || '');
+              setLastSimulationDateState(snapshot.lastSimulationDate || null);
+              worldDateRef.current = snapshot.worldDate || null;
+              worldDateLabelRef.current = snapshot.worldDateLabel || '';
+              lastSimulationDateRef.current = snapshot.lastSimulationDate || null;
+          } else {
+              setState(snapshot);
+              const rewoundSimDate = lastSimulationDateRef.current ? addDaysIso(lastSimulationDateRef.current, -7) : null;
+              setLastSimulationDateState(rewoundSimDate);
+              lastSimulationDateRef.current = rewoundSimDate;
+          }
           return newStack;
       });
   }, []);
 
-    const simulateNextWeek = useCallback(() => {
-        // Push current state onto undo stack BEFORE mutation
-        const snapshot = JSON.parse(JSON.stringify(stateRef.current));
+    const simulateNextWeek = useCallback((options = {}) => {
+        const { updateWorldDate = true } = options;
+        const simulationBaseDate = lastSimulationDateRef.current || worldDateRef.current || new Date().toISOString().split('T')[0];
+        const nextSimulationDate = addDaysIso(simulationBaseDate, 7);
+
+        // Push current state and date metadata onto undo stack BEFORE mutation
+        const snapshot = {
+            state: JSON.parse(JSON.stringify(stateRef.current)),
+            worldDate: worldDateRef.current,
+            worldDateLabel: worldDateLabelRef.current,
+            lastSimulationDate: lastSimulationDateRef.current,
+        };
         setUndoStack(prev => [...prev, snapshot]);
 
-        // Capture worldDate now (ref avoids stale closure)
-        const dateStamp = worldDateRef.current
-            ? ` [${new Date(worldDateRef.current).toLocaleDateString('de-DE')}]`
-            : '';
+        const dateStamp = nextSimulationDate ? ` [${formatDateDE(nextSimulationDate)}]` : '';
+
+        setLastSimulationDateState(nextSimulationDate);
+        lastSimulationDateRef.current = nextSimulationDate;
+
+        // Manual defense simulation should advance world time when it would otherwise lag behind.
+        // Automatic catch-up keeps the user-selected current worldDate unchanged.
+        if (updateWorldDate && nextSimulationDate && (!worldDateRef.current || isBeforeDate(worldDateRef.current, nextSimulationDate))) {
+            setWorldDateState(nextSimulationDate);
+            worldDateRef.current = nextSimulationDate;
+        }
 
         setState(prevState => {
             let newState = JSON.parse(JSON.stringify(prevState));
@@ -2632,7 +2697,7 @@ const useStronghold = () => {
     economicComponentsBreakdown, socialComponentsBreakdown, militaryComponentsBreakdown, requiredServants, currentServants, missingServants, maintenancePenaltyMultiplier,
     priestCount, potentialPriestBonus, actualPriestBonus, totalChapelValue,
     baseSocialValue,
-    worldDate, worldDateLabel, setWorldDate, undoDepth: undoStack.length,
+    worldDate, worldDateLabel, lastSimulationDate, setWorldDate, setLastSimulationDate, undoDepth: undoStack.length,
     enchantmentPins: state.enchantmentPins || [],
     globalPriceScale: state.globalPriceScale || 1.0,
     setGlobalPriceScale,
@@ -4859,7 +4924,34 @@ const formatDateDE = (iso) => {
     if (isNaN(d.getTime())) return '—';
     return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
-const toMidnight = (date) => { const d = new Date(date); d.setHours(0,0,0,0); return d; };
+const parseDateLocal = (value) => {
+    if (!value) return null;
+    if (value instanceof Date) return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+    const match = String(value).slice(0, 10).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (match) return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return null;
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+};
+const toMidnight = (date) => {
+    const d = parseDateLocal(date) || new Date();
+    d.setHours(0,0,0,0);
+    return d;
+};
+const toIsoDate = (date) => {
+    const d = parseDateLocal(date);
+    if (!d || isNaN(d.getTime())) return null;
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+};
+const addDaysIso = (isoDate, days) => {
+    const d = parseDateLocal(isoDate) || new Date();
+    d.setDate(d.getDate() + days);
+    return toIsoDate(d);
+};
+const isBeforeDate = (a, b) => toMidnight(a).getTime() < toMidnight(b).getTime();
 const fullWeeksBetween = (from, to) => {
     const msPerWeek = 7 * 24 * 60 * 60 * 1000;
     return Math.floor((toMidnight(to) - toMidnight(from)) / msPerWeek);
@@ -6904,7 +6996,8 @@ const SummaryTab = ({ stronghold }) => {
         defenseBonus, attackChanceBonus, maxAttackRoll, garrisonCR, attackCR,
         totalMerchantGold, comparisonValue, salaryReductionPercentage, baseStaffTotalWeekly,
         totalConstructionDays: constructionDaysLeft, strongholdTreasury, staff,
-        grandTotal, siteModifier, resourceBonusMults, site, terrainMvBonus, featureMvBonus, customValueMults
+        grandTotal, siteModifier, resourceBonusMults, site, terrainMvBonus, featureMvBonus, customValueMults,
+        worldDate, worldDateLabel, lastSimulationDate
     } = stronghold;
     
     const [pendingDeletion, setPendingDeletion] = useState(null);
@@ -7047,9 +7140,8 @@ const SummaryTab = ({ stronghold }) => {
     const handlePrint = () => {
         const { staticPerks, scaledBonuses } = getAllPerks();
         const netWeekly = weeklyProfit - weeklyUpkeep;
-        const worldDate = localStorage.getItem('worldDate');
-        const worldDateLabel = localStorage.getItem('worldDateLabel');
         const dateStr = worldDate ? formatDateDE(worldDate) : '—';
+        const simDateStr = lastSimulationDate ? formatDateDE(lastSimulationDate) : '—';
         const completedComponents = components.filter(c => c.constructionStatus === 'completed');
         const completedWalls = walls.filter(w => w.constructionStatus === 'completed');
         const pendingItems = [
@@ -7124,6 +7216,7 @@ const SummaryTab = ({ stronghold }) => {
             <h1>⚔️ ${activeSaveName || 'Ungespeicherte Festung'}</h1>
             <div class="print-subtitle">
                 Weltzeit: ${dateStr}${worldDateLabel ? ` · "${worldDateLabel}"` : ''}
+                &nbsp;·&nbsp; Simuliert bis: ${simDateStr}
                 &nbsp;·&nbsp; Gesamtwert: ${totalValue.toFixed(0)} GP
                 &nbsp;·&nbsp; Fläche: ${totalArea} sq ft
             </div>
@@ -8224,14 +8317,16 @@ const ThemeToggle = ({ theme, setTheme }) => {
 
 
 // ─── WorldDateModal ───────────────────────────────────────────────────────────
-const WorldDateModal = ({ onConfirm, onSkip, lastSimDate, lastSimLabel }) => {
-    const defaultDate = lastSimDate 
-        ? new Date(lastSimDate).toISOString().slice(0, 10)
-        : new Date().toISOString().slice(0, 10);
+const WorldDateModal = ({ onConfirm, onSkip, worldDate, worldDateLabel, lastSimDate }) => {
+    const defaultDate = worldDate
+        ? new Date(worldDate).toISOString().slice(0, 10)
+        : lastSimDate
+            ? new Date(lastSimDate).toISOString().slice(0, 10)
+            : new Date().toISOString().slice(0, 10);
     const [inputDate, setInputDate] = useState(defaultDate);
-    const [label, setLabel]         = useState('');
+    const [label, setLabel]         = useState(worldDateLabel || '');
 
-    const weeksAgo = lastSimDate ? Math.max(0, fullWeeksBetween(lastSimDate, new Date(inputDate))) : null;
+    const weeksAgo = lastSimDate ? Math.max(0, fullWeeksBetween(lastSimDate, inputDate)) : null;
 
     return React.createElement("div", {
             className: "fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
@@ -8240,10 +8335,17 @@ const WorldDateModal = ({ onConfirm, onSkip, lastSimDate, lastSimLabel }) => {
                 className: "relative bg-parchment-bg dark:bg-gray-800 border-8 border-wood dark:border-gold-dark rounded-2xl shadow-2xl p-6 sm:p-8 max-w-lg w-full"
             },
             React.createElement("h2", { className: "font-medieval text-2xl sm:text-3xl text-wood-dark dark:text-gold-light mb-1 text-center" }, "⏳ Weltzeit"),
-            React.createElement("p", { className: "text-sm text-center italic text-wood-text/80 dark:text-parchment-bg/70 mb-6" },
-                lastSimDate
-                    ? `Letzter Wochen-Roll: ${formatDateDE(lastSimDate)}${lastSimLabel ? ` ("${lastSimLabel}")` : ''}`
-                    : "Kein gespeichertes Datum vorhanden."
+            React.createElement("div", { className: "text-sm text-center italic text-wood-text/80 dark:text-parchment-bg/70 mb-6 space-y-1" },
+                React.createElement("div", null,
+                    worldDate
+                        ? `Aktuelle Weltzeit: ${formatDateDE(worldDate)}${worldDateLabel ? ` ("${worldDateLabel}")` : ''}`
+                        : "Aktuelle Weltzeit: nicht gesetzt"
+                ),
+                React.createElement("div", null,
+                    lastSimDate
+                        ? `Bereits simuliert bis: ${formatDateDE(lastSimDate)}`
+                        : "Noch kein Simulationsdatum gesetzt. Das nächste gespeicherte Datum wird als Startpunkt benutzt."
+                )
             ),
 
             // Date input
@@ -8263,16 +8365,18 @@ const WorldDateModal = ({ onConfirm, onSkip, lastSimDate, lastSimLabel }) => {
             }),
 
             // Weeks info
-            weeksAgo !== null && React.createElement("div", {
+            lastSimDate ? React.createElement("div", {
                     className: `p-4 rounded-lg border-2 mb-5 text-center ${weeksAgo > 0 ? 'bg-amber-100 dark:bg-amber-900/40 border-amber-500' : 'bg-green-100 dark:bg-green-900/30 border-green-500'}`
                 },
                 weeksAgo > 0
                     ? React.createElement(React.Fragment, null,
-                        React.createElement("div", { className: "text-2xl font-bold text-amber-800 dark:text-amber-200 mb-1" }, `⚔️ ${weeksAgo} Woche${weeksAgo > 1 ? 'n' : ''} vergangen!`),
+                        React.createElement("div", { className: "text-2xl font-bold text-amber-800 dark:text-amber-200 mb-1" }, `⚔️ ${weeksAgo} Woche${weeksAgo > 1 ? 'n' : ''} seit der letzten Simulation!`),
                         React.createElement("div", { className: "text-amber-700 dark:text-amber-300 text-sm" }, `Die App kann jetzt ${weeksAgo}× "Nächste Woche simulieren" ausführen.`)
                     )
-                    : React.createElement("div", { className: "text-green-800 dark:text-green-200 font-semibold" }, "✅ Weniger als 7 Tage seit dem letzten Roll – nichts zu simulieren.")
-            ),
+                    : React.createElement("div", { className: "text-green-800 dark:text-green-200 font-semibold" }, "✅ Weniger als 7 Tage seit der letzten Simulation – nichts zu simulieren.")
+            ) : React.createElement("div", {
+                    className: "p-4 rounded-lg border-2 mb-5 text-center bg-blue-100 dark:bg-blue-900/30 border-blue-500 text-blue-900 dark:text-blue-200"
+                }, "ℹ️ Kein Simulationsdatum vorhanden. Dieses Datum wird als Startpunkt gespeichert; es wird noch keine Woche automatisch berechnet."),
 
             // Buttons
             React.createElement("div", { className: "flex flex-col sm:flex-row gap-3" },
@@ -8296,7 +8400,7 @@ const WorldDateModal = ({ onConfirm, onSkip, lastSimDate, lastSimLabel }) => {
 };
 
 // ─── WorldDateBar ─────────────────────────────────────────────────────────────
-const WorldDateBar = ({ worldDate, worldDateLabel, onEdit }) => {
+const WorldDateBar = ({ worldDate, worldDateLabel, lastSimulationDate, onEdit }) => {
     return React.createElement("div", {
             className: "flex items-center justify-center gap-3 py-2 px-4 bg-gradient-to-r from-wood-dark/80 via-wood/80 to-wood-dark/80 dark:from-gray-900/80 dark:via-gray-800/80 dark:to-gray-900/80 border-y-2 border-gold/50 dark:border-gold-dark/50 mb-4 -mt-4"
         },
@@ -8308,7 +8412,11 @@ const WorldDateBar = ({ worldDate, worldDateLabel, onEdit }) => {
                     React.createElement("span", { className: "font-medieval text-gold-light dark:text-gold-light text-lg" }, formatDateDE(worldDate)),
                     worldDateLabel && React.createElement("span", { className: "ml-2 italic text-parchment-bg/80 dark:text-parchment-bg/70 text-sm" }, `"${worldDateLabel}"`)
                 )
-                : React.createElement("span", { className: "italic text-parchment-bg/60 dark:text-parchment-bg/50 text-sm" }, "Kein Datum gesetzt")
+                : React.createElement("span", { className: "italic text-parchment-bg/60 dark:text-parchment-bg/50 text-sm" }, "Kein Datum gesetzt"),
+            React.createElement("span", { className: "mx-2 text-parchment-bg/40" }, "·"),
+            React.createElement("span", { className: "text-xs text-parchment-bg/80 dark:text-parchment-bg/70" },
+                lastSimulationDate ? `Simuliert bis ${formatDateDE(lastSimulationDate)}` : "Simulation nicht gestartet"
+            )
         ),
         React.createElement("button", {
                 onClick: onEdit,
@@ -8765,8 +8873,8 @@ const App = () => {
   const [showHelp, setShowHelp]             = useState(false);
   const hasShownModal = useRef(false);
 
-  // worldDate lives in stronghold (per-save)
-  const { worldDate, worldDateLabel, setWorldDate } = stronghold;
+  // worldDate and lastSimulationDate live in stronghold (per-save)
+  const { worldDate, worldDateLabel, lastSimulationDate, setWorldDate, setLastSimulationDate } = stronghold;
 
   // Show modal on first mount
   useEffect(() => {
@@ -8777,15 +8885,23 @@ const App = () => {
   }, []);
 
   const handleDateConfirm = (isoDate, label, weeksToSimulate) => {
+    const hadSimulationDate = !!lastSimulationDate;
     setWorldDate(isoDate, label);
     setShowDateModal(false);
+
+    // First date ever sets the baseline. It must not instantly simulate a fake past week.
+    if (!hadSimulationDate) {
+        setLastSimulationDate(isoDate);
+    }
 
     if (weeksToSimulate > 0) {
         setIsSimulating(true);
         let count = 0;
         const runNext = () => {
             if (count < weeksToSimulate) {
-                stronghold.simulateNextWeek();
+                // Catch-up simulation advances lastSimulationDate week by week,
+                // but keeps the selected current worldDate unchanged.
+                stronghold.simulateNextWeek({ updateWorldDate: false });
                 count++;
                 setTimeout(runNext, 50);
             } else {
@@ -8839,8 +8955,9 @@ const App = () => {
     React.createElement("div", { className: "min-h-screen p-2 md:p-4 lg:p-6" },
       // World-Date Modal overlay
       showDateModal && React.createElement(WorldDateModal, {
-          lastSimDate: worldDate,
-          lastSimLabel: worldDateLabel,
+          worldDate,
+          worldDateLabel,
+          lastSimDate: lastSimulationDate,
           onConfirm: handleDateConfirm,
           onSkip: () => setShowDateModal(false)
       }),
@@ -8871,7 +8988,7 @@ const App = () => {
         React.createElement(Header, null),
 
         // World Date Bar – prominent, always visible
-        React.createElement(WorldDateBar, { worldDate, worldDateLabel, onEdit: () => setShowDateModal(true) }),
+        React.createElement(WorldDateBar, { worldDate, worldDateLabel, lastSimulationDate, onEdit: () => setShowDateModal(true) }),
 
         React.createElement("div", { className: "text-center font-semibold text-wood-dark dark:text-gold-light bg-gold/50 dark:bg-gray-700/50 py-2 mb-4 border-b-2 border-t-2 border-wood/20 dark:border-wood-dark/50" },
           stronghold.activeSaveName ? (
